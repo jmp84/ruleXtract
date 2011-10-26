@@ -1,0 +1,3 @@
+patternfile=/test/uk/ac/cam/eng/rulebuilding/retrieval/patterns
+testfile=/test/uk/ac/cam/eng/rulebuilding/retrieval/testfile
+maxlength=5

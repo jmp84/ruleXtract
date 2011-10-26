@@ -1,0 +1,12 @@
+* phrase extract: max source length OK (MAX_SOURCE_PHRASE),
+TTOSCTRAINTS,
+threshold v2u default 0.01, threshold u2v default 1e-10
+* rule extract:
+max term length OK (MAX_TERMINAL_LENGTH),
+max non term length OK (MAX_NONTERMINAL_LENGTH),
+max src elem OK (MAX_SOURCE_ELEMENTS),
+remove monotonic repetitions,
+threshold v2u (default 0.01) and u2v (default 1e-10)
+* rule building: TTOCSTRAINTS,
+pattern configuration (defines which pattern are allowed
+(ignore/skip/commented), nocc, ntrans2, what is -1 doing)
