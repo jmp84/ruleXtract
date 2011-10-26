@@ -21,8 +21,7 @@ public final class Sentence { // final because immutable class
     }
 
     public Sentence(String input) {
-        String[] parts = input.split("\\s+"); // TODO make this delimiter format
-                                              // independent
+        String[] parts = input.split("\\s+");
         words = new int[parts.length];
         for (int i = 0; i < parts.length; i++) {
             words[i] = Integer.parseInt(parts[i]);

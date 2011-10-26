@@ -32,7 +32,6 @@ public class SidePattern {
     public static SidePattern parsePattern(String patternString) {
         String[] parts = patternString.split("_");
         List<String> elements = new ArrayList<String>();
-        // TODO refactor
         for (String part: parts) {
             if (part.equals("X")) {
                 elements.add("-1");

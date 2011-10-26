@@ -9,6 +9,8 @@ package uk.ac.cam.eng.extraction.datatypes;
  */
 public final class SentencePair { // final because immutable class
 
+    private final static String delimiter = "\n";
+
     /**
      * Source sentence
      */
@@ -34,7 +36,7 @@ public final class SentencePair { // final because immutable class
     }
 
     public SentencePair(String input, boolean side1source) {
-        String[] parts = input.split("\n"); // TODO make this format independent
+        String[] parts = input.split(delimiter);
         if (side1source) {
             source = new Sentence(parts[0]);
             target = new Sentence(parts[1]);

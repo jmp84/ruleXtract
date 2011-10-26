@@ -416,9 +416,9 @@ public class RuleExtractor {
                                                                   // sourceEndIndex
                 }
                 else { // zero offset, found a plausible subregion
-                // System.err.println("Extracting rules one nonterminal " +
-                // sourceStartIndex + " " + sourceEndIndex + " " +
-                // minTargetIndex + " " + maxTargetIndex);
+                    // System.err.println("Extracting rules one nonterminal " +
+                    // sourceStartIndex + " " + sourceEndIndex + " " +
+                    // minTargetIndex + " " + maxTargetIndex);
                     res.addAll(extractRulesOneNonTerminal(sourceStartIndex,
                             sourceEndIndex, targetLimit.getFirst(),
                             targetLimit.getSecond(), a, sp));
@@ -568,7 +568,8 @@ public class RuleExtractor {
                                         sourceStartIndex, sourceEndIndex,
                                         sourceStartIndexX, sourceEndIndexX,
                                         sourceStartIndexX2, sourceEndIndexX2, a)) {
-                                    Rule r = new Rule(sourceStartIndex,
+                                    Rule r = new Rule(
+                                            sourceStartIndex,
                                             sourceEndIndex,
                                             minTargetIndex,
                                             maxTargetIndex,

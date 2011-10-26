@@ -4,7 +4,7 @@
 
 package uk.ac.cam.eng.extraction;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -14,10 +14,7 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import uk.ac.cam.eng.extraction.datatypes.Alignment;
@@ -51,7 +48,6 @@ public class RuleExtractorTest {
      */
     @Before
     public void setUp() throws Exception {
-        // TODO make lines short
         String acnAlign = "S 0 2\nS 3 3\nS 4 5\nS 5 6\nS 6 6\nS 7 7\nS 8 8\nS 9 9\nS 10 10\nS 11 11\nS 12 12\nS 13 13";
         String sentencePairString = "16 12 37 9 966 24 3 568 10 13 23 366 4806 5\n8 60 563 21 9 391 12 569 13 16 78 209 4590 5";
         sp = new SentencePair(sentencePairString, false);
