@@ -4,3 +4,4 @@ doc/
 AwsCredentials.properties
 .settings/
 *.crc
+/.classpath

@@ -93,8 +93,6 @@ public class ExtractorReducerMethod3
         // default value is true: source-to-target extraction
         boolean source2target = conf.getBoolean("source2target", true);
         double marginalCount = 0;
-        // Map<RuleWritable, IntWritable> ruleCounts =
-        // new HashMap<RuleWritable, IntWritable>();
         Map<RuleWritable, Integer> ruleCounts =
                 new HashMap<RuleWritable, Integer>();
         // sideCountPair is either a target and a count (source-to-target
@@ -113,10 +111,6 @@ public class ExtractorReducerMethod3
                 rw.setTarget(new Text());
                 rw.setLeftHandSide(new Text("0"));
             }
-            // here it is important to create a new object, otherwise the other
-            // values in ruleCounts get overwritten.
-            // IntWritable count = new IntWritable();
-            // count.set(targetCountPair.second.get());
             if (!ruleCounts.containsKey(rw)) {
                 // ruleCounts.put(rw, targetCountPair.second);
                 // ruleCounts.put(rw, count);

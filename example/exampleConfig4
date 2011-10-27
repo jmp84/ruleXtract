@@ -1,0 +1,6 @@
+inputPaths=/home/juan/workspace/ruleXtract/input
+outputPath=/home/juan/workspace/ruleXtract/output3
+# number of map reduce features: source-to-target, target-to-source, count
+nb_features=3
+# direction for the extraction job: source-to-target or target-to-source
+source2target=false

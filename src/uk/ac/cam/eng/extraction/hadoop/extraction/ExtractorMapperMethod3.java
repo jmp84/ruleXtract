@@ -72,21 +72,29 @@ public class ExtractorMapperMethod3 extends
         Alignment a = new Alignment(wordAlign, sp, false); // TODO replace 2 by
                                                            // side, get side
                                                            // from a config file
-
-        RuleExtractor re = new RuleExtractor(context.getConfiguration());
-
+        Configuration conf = context.getConfiguration();
+        RuleExtractor re = new RuleExtractor(conf);
+        boolean source2target = conf.getBoolean("source2target", true);
         for (Rule r: re.extract(a, sp)) {
             // context.progress();
             // TODO replace this by a write method instead of creating an object
             RuleWritable sourceMarginal = RuleWritable.makeSourceMarginal(r);
             RuleWritable targetMarginal = RuleWritable.makeTargetMarginal(r);
-            PairWritable targetCountPair =
-                    new PairWritable(targetMarginal, one);
-            BytesWritable sourceMarginalBytes =
-                    new BytesWritable(object2ByteArray(sourceMarginal));
-            // context.write(sourceMarginal, targetCountPair);
-            context.write(sourceMarginalBytes, targetCountPair);
-            // System.err.println(sourceMarginal + " ||| " + targetCountPair);
+            PairWritable sideCountPair = null;
+            BytesWritable ruleMarginalBytes = null;
+            if (source2target) {
+            	sideCountPair =
+            			new PairWritable(targetMarginal, one);
+            	ruleMarginalBytes =
+            			new BytesWritable(object2ByteArray(sourceMarginal));
+            }
+            else {
+            	sideCountPair =
+            			new PairWritable(sourceMarginal, one);
+            	ruleMarginalBytes =
+            			new BytesWritable(object2ByteArray(targetMarginal));            	
+            }
+            context.write(ruleMarginalBytes, sideCountPair);
         }
     }
 
