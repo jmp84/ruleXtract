@@ -27,7 +27,7 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Writable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable2;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -57,7 +57,7 @@ public class RuleFileBuilder {
     private static ArrayWritable convertValueBytes(ByteBuffer bytes) {
         DataInputBuffer in = new DataInputBuffer();
         in.reset(bytes.array(), bytes.arrayOffset(), bytes.limit());
-        ArrayWritable value = new ArrayWritable(PairWritable2.class);
+        ArrayWritable value = new ArrayWritable(PairWritable3.class);
         try {
             value.readFields(in);
         }
@@ -77,9 +77,9 @@ public class RuleFileBuilder {
                 sidePatterns);
     }
 
-    private List<PairWritable2> getRules(String patternFile,
+    private List<PairWritable3> getRules(String patternFile,
             String testFile, String hfile) throws IOException {
-        List<PairWritable2> res = new ArrayList<PairWritable2>();
+        List<PairWritable3> res = new ArrayList<PairWritable3>();
         Set<Rule> sourceRules = getSourceRuleInstances(patternFile, testFile);
         System.err.println("source rule size: " + sourceRules.size());
         // read the HFile and select the rules matching the source phrases
@@ -95,7 +95,7 @@ public class RuleFileBuilder {
             byte[] ruleBytes = object2ByteArray(ruleWritable);
             int success = hfileScanner.seekTo(ruleBytes);
             if (success == 0) { // found the source rule
-                List<PairWritable2> filteredRules = ruleFilter.filter(
+                List<PairWritable3> filteredRules = ruleFilter.filter(
                         ruleWritable,
                         convertValueBytes(hfileScanner.getValue()));
                 res.addAll(filteredRules);
@@ -150,11 +150,11 @@ public class RuleFileBuilder {
             System.err.println("Missing property 'hfile' in the config");
             System.exit(1);
         }
-        List<PairWritable2> rules =
+        List<PairWritable3> rules =
                 ruleFileBuilder.getRules(patternFile, testFile, hfile);
         try (GZIPOutputStream bw =
                 new GZIPOutputStream(new FileOutputStream(outRuleFile))) {
-            for (PairWritable2 ruleAndProb: rules) {
+            for (PairWritable3 ruleAndProb: rules) {
                 bw.write((ruleAndProb.toString() + "\n").getBytes());
             }
         }

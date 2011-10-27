@@ -4,15 +4,19 @@
 
 package uk.ac.cam.eng.extraction.hadoop.extraction;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.URI;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configuration.IntegerRanges;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -23,7 +27,6 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
-import org.apache.hadoop.mapreduce.Mapper.Context;
 
 import uk.ac.cam.eng.extraction.RuleExtractor;
 import uk.ac.cam.eng.extraction.datatypes.Alignment;
@@ -39,17 +42,26 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.TextArrayWritable;
  */
 
 public class ExtractorMapperMethod3 extends
-        Mapper<IntWritable, TextArrayWritable, RuleWritable, PairWritable> {
+        // Mapper<IntWritable, TextArrayWritable, RuleWritable, PairWritable> {
+        Mapper<IntWritable, TextArrayWritable, BytesWritable, PairWritable> {
 
     // private final static RuleWritable rule = new RuleWritable();
     private final static IntWritable one = new IntWritable(1);
+
+    private byte[] object2ByteArray(Writable obj) throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(buffer);
+        obj.write(out);
+        return buffer.toByteArray();
+    }
 
     /**                                                                                                                                                                                                    
      *                                                                                                                                  
      */
     @Override
-    protected void map(IntWritable key, TextArrayWritable value, Context context)
-            throws java.io.IOException, InterruptedException {
+    protected void
+            map(IntWritable key, TextArrayWritable value, Context context)
+                    throws java.io.IOException, InterruptedException {
         // System.err.println("record number: " + key);
         // Get the associated records from the input array
         String sentenceAlign = ((Text) value.get()[0]).toString();
@@ -68,8 +80,12 @@ public class ExtractorMapperMethod3 extends
             // TODO replace this by a write method instead of creating an object
             RuleWritable sourceMarginal = RuleWritable.makeSourceMarginal(r);
             RuleWritable targetMarginal = RuleWritable.makeTargetMarginal(r);
-            PairWritable targetCountPair = new PairWritable(targetMarginal, one);
-            context.write(sourceMarginal, targetCountPair);
+            PairWritable targetCountPair =
+                    new PairWritable(targetMarginal, one);
+            BytesWritable sourceMarginalBytes =
+                    new BytesWritable(object2ByteArray(sourceMarginal));
+            // context.write(sourceMarginal, targetCountPair);
+            context.write(sourceMarginalBytes, targetCountPair);
             // System.err.println(sourceMarginal + " ||| " + targetCountPair);
         }
     }
@@ -83,12 +99,14 @@ public class ExtractorMapperMethod3 extends
         Text[] arrayValue = new Text[2];
         value.set(arrayValue);
 
-        String sentenceAlign = "15 2623 2935 3 1709 6 3 28 50 4581 17 2874 1779 873 902 4 8 15 35 65 331 251 7 287 48 11 1303 81 182 9 3 196 10 48 3657 11 6421 18722 493 5\n"
-                + "4991 7711 6 558 3 1391 143006 38 52 4 4796 6 2810 1836 3 888 307 4 11 6873 10 44 215 66 445 3 8 783 488 376 1245 4668 7";
+        String sentenceAlign =
+                "15 2623 2935 3 1709 6 3 28 50 4581 17 2874 1779 873 902 4 8 15 35 65 331 251 7 287 48 11 1303 81 182 9 3 196 10 48 3657 11 6421 18722 493 5\n"
+                        + "4991 7711 6 558 3 1391 143006 38 52 4 4796 6 2810 1836 3 888 307 4 11 6873 10 44 215 66 445 3 8 783 488 376 1245 4668 7";
 
-        String wordAlign = "S 0 0\nS 1 0\nS 2 1\nS 3 2\nS 4 3\nS 4 5\nS 5 4\nS 5 6\nS 6 6\nS 7 7\nS 8 8\nS 9 10\nS 10 11\nS 10 12\n"
-                + "S 11 12\nS 12 13\nS 13 15\nS 13 16\nS 14 16\nS 15 17\nS 16 18\nS 17 23\nS 18 19\nS 19 19\nS 20 19\nS 21 19\n"
-                + "S 22 20\nS 23 24\nS 24 21\nS 24 22\nS 26 1\nS 27 1\nS 28 16\nS 31 24\nS 32 26\nS 33 26\nS 33 27\nS 34 28\nS 35 29\nS 36 30\nS 37 31\nS 38 31\nS 39 32";
+        String wordAlign =
+                "S 0 0\nS 1 0\nS 2 1\nS 3 2\nS 4 3\nS 4 5\nS 5 4\nS 5 6\nS 6 6\nS 7 7\nS 8 8\nS 9 10\nS 10 11\nS 10 12\n"
+                        + "S 11 12\nS 12 13\nS 13 15\nS 13 16\nS 14 16\nS 15 17\nS 16 18\nS 17 23\nS 18 19\nS 19 19\nS 20 19\nS 21 19\n"
+                        + "S 22 20\nS 23 24\nS 24 21\nS 24 22\nS 26 1\nS 27 1\nS 28 16\nS 31 24\nS 32 26\nS 33 26\nS 33 27\nS 34 28\nS 35 29\nS 36 30\nS 37 31\nS 38 31\nS 39 32";
 
         arrayValue[0] = new Text(sentenceAlign);
         arrayValue[1] = new Text(wordAlign);
@@ -104,7 +122,7 @@ public class ExtractorMapperMethod3 extends
         Context context = ruleMapper.new Context() {
 
             @Override
-            public void write(RuleWritable key, PairWritable value)
+            public void write(BytesWritable key, PairWritable value)
                     throws IOException, InterruptedException {
                 System.out.printf("%s\t%s\n", key, value);
             }

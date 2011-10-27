@@ -16,8 +16,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.io.ArrayWritable;
+import org.apache.hadoop.io.DoubleWritable;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable2;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -82,9 +83,11 @@ public class RuleFilter {
                 }
                 else if (featureValue[0].equals("allowed_source_pattern")) {
                     if (sourcePatternConstraints == null) {
-                        sourcePatternConstraints = new HashMap<SidePattern, Map<String, Double>>();
+                        sourcePatternConstraints =
+                                new HashMap<SidePattern, Map<String, Double>>();
                     }
-                    Map<String, Double> constraints = new HashMap<String, Double>();
+                    Map<String, Double> constraints =
+                            new HashMap<String, Double>();
                     for (int i = 1; i < parts.length; i++) {
                         String[] constraintValue = parts[i].split("=", 2);
                         constraints.put(constraintValue[0],
@@ -105,9 +108,9 @@ public class RuleFilter {
         }
     }
 
-    public List<PairWritable2> filter(RuleWritable source,
+    public List<PairWritable3> filter(RuleWritable source,
             ArrayWritable listTargetAndProb) {
-        List<PairWritable2> res = new ArrayList<PairWritable2>();
+        List<PairWritable3> res = new ArrayList<PairWritable3>();
         SidePattern sourcePattern = SidePattern.getSourcePattern(source);
         if (!sourcePattern.isPhrase()
                 && !sourcePatternConstraints.containsKey(sourcePattern)) {
@@ -115,7 +118,7 @@ public class RuleFilter {
         }
         int numberTranslations = 0;
         for (int i = 0; i < listTargetAndProb.get().length; i++) {
-            PairWritable2 targetAndProb = (PairWritable2) listTargetAndProb
+            PairWritable3 targetAndProb = (PairWritable3) listTargetAndProb
                     .get()[i];
             RulePattern rulePattern = RulePattern.getPattern(source,
                     targetAndProb.first);
@@ -124,19 +127,19 @@ public class RuleFilter {
                 continue;
             }
             if (sourcePattern.isPhrase()) {
-                if (targetAndProb.second.get() <= minSource2TargetPhrase) {
+                if (((DoubleWritable) targetAndProb.second.get()[0]).get() <= minSource2TargetPhrase) {
                     break;
                 }
             }
             else {
-                if (targetAndProb.second.get() <= minSource2TargetRule) {
+                if (((DoubleWritable) targetAndProb.second.get()[0]).get() <= minSource2TargetRule) {
                     break;
                 }
                 if (sourcePatternConstraints.get(sourcePattern).get("ntrans") <= numberTranslations) {
                     break;
                 }
             }
-            res.add(new PairWritable2(new RuleWritable(source,
+            res.add(new PairWritable3(new RuleWritable(source,
                     targetAndProb.first), targetAndProb.second));
             numberTranslations++;
         }

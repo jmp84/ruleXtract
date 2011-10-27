@@ -7,22 +7,19 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
-
+import org.apache.hadoop.io.ArrayWritable;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
-import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 public class ExtractorJob extends Configured implements Tool {
 
@@ -53,15 +50,19 @@ public class ExtractorJob extends Configured implements Tool {
         // because
         // it is different than the final output key (respectively value) class
         // may not be needed for key
-        job.setMapOutputKeyClass(RuleWritable.class);
+        // job.setMapOutputKeyClass(RuleWritable.class);
+        job.setMapOutputKeyClass(BytesWritable.class);
         job.setMapOutputValueClass(PairWritable.class);
 
-        job.setOutputKeyClass(RuleWritable.class);
-        job.setOutputValueClass(DoubleWritable.class);
+        // job.setOutputKeyClass(RuleWritable.class);
+        job.setOutputKeyClass(BytesWritable.class);
+        // job.setOutputValueClass(DoubleWritable.class);
+        job.setOutputValueClass(ArrayWritable.class);
         // job.setOutputValueClass(PairWritable.class);
 
         job.setMapperClass(ExtractorMapperMethod3.class);
-        job.setCombinerClass(ExtractorCombinerMethod3.class);
+        //TODO fix the Combiner
+        // job.setCombinerClass(ExtractorCombinerMethod3.class);
         job.setReducerClass(ExtractorReducerMethod3.class);
 
         job.setInputFormatClass(SequenceFileInputFormat.class);

@@ -7,28 +7,19 @@ package uk.ac.cam.eng.rulebuilding.retrieval;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.hfile.HFile;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.DataOutputBuffer;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapred.LineRecordReader;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable2;
-import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
 
 /**
  * @author jmp84 This class takes a sorted file in HDFS and converts it into an
@@ -72,7 +63,7 @@ public class HFileLoader extends Configured {
         }
         HFile.Writer writer = new HFile.Writer(fs, path, 16 * 1024, "gz", null);
         BytesWritable key = new BytesWritable();
-        ArrayWritable value = new ArrayWritable(PairWritable2.class);
+        ArrayWritable value = new ArrayWritable(PairWritable3.class);
         while (sequenceReader.next(key, value)) {
             byte[] valueBytes = object2ByteArray(value);
             writer.append(key.getBytes().clone(), 0, key.getLength(),
