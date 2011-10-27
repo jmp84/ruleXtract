@@ -3,3 +3,4 @@ test-output/
 doc/
 AwsCredentials.properties
 .settings/
+*.crc
