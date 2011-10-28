@@ -93,8 +93,12 @@ public class ExtractorReducerMethod3
         // default value is true: source-to-target extraction
         boolean source2target = conf.getBoolean("source2target", true);
         double marginalCount = 0;
+        // use a TreeMap to have the targets (resp. sources) sorted in 
+        // source-to-target (resp. target-to-source) extraction. This
+        // is because it makes it easier to merge the outputs of the
+        // source-to-target and target-to-source extraction jobs.
         Map<RuleWritable, Integer> ruleCounts =
-                new HashMap<RuleWritable, Integer>();
+                new TreeMap<RuleWritable, Integer>();
         // sideCountPair is either a target and a count (source-to-target
         // extraction) or a source and a count (target-to-source extraction)
         for (PairWritable sideCountPair: values) {
@@ -128,11 +132,11 @@ public class ExtractorReducerMethod3
         // do a second pass for normalization
         // first sort ruleCounts by value (sorting by count is the same as
         // sorting by probability because here the denominator is the same)
-        Map<RuleWritable, Integer> sortedMap = sortMapByValue(ruleCounts);
-        PairWritable3[] outputValue = new PairWritable3[sortedMap.size()];
-        // for (RuleWritable rw: ruleCounts.keySet()) {
+        //Map<RuleWritable, Integer> sortedMap = sortMapByValue(ruleCounts);
+        PairWritable3[] outputValue = new PairWritable3[ruleCounts.size()];
+        for (RuleWritable rw: ruleCounts.keySet()) {
         int i = 0;
-        for (RuleWritable rw: sortedMap.keySet()) {
+        //for (RuleWritable rw: sortedMap.keySet()) {
             // double countRule = ruleCounts.get(rw).get();
             double countRule = ruleCounts.get(rw);
             DoubleWritable probability = new DoubleWritable(countRule

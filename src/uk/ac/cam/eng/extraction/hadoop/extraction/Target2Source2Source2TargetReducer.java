@@ -89,20 +89,22 @@ Reducer<BytesWritable, PairWritable3, BytesWritable, ArrayWritable> {
 	protected void reduce(BytesWritable key, Iterable<PairWritable3> values,
 			Context context) throws java.io.IOException, InterruptedException {
 		ArrayWritable value = new ArrayWritable(PairWritable3.class);
-		List<PairWritable3> valuesArrayList = new ArrayList<PairWritable3>();
-		for (PairWritable3 targetAndProb: values) {
-			PairWritable3 copy = convertValueBytes(object2ByteArray(targetAndProb));
-			valuesArrayList.add(copy);
-			// targetsAndProbs.put(copy.first, copy.second.get());
+		// put all the targets in a TreeMap for sorting. This way the target ordering
+		// is the same as in the source-to-target job and allows merging the source-to-target
+		// job and the target-to-source job.
+		Map<RuleWritable, ArrayWritable> targetsAndFeatures =
+				new TreeMap<RuleWritable, ArrayWritable>();
+		for (PairWritable3 targetAndFeatures: values) {
+			PairWritable3 copy = convertValueBytes(object2ByteArray(targetAndFeatures));
+			targetsAndFeatures.put(copy.first, copy.second);
 		}
-		//Map<RuleWritable, Double> sortedMap = sortMapByValue(targetsAndProbs);
-		//for (RuleWritable rule: sortedMap.keySet()) {
-		//	valuesArrayList.add(new PairWritable2(rule, new DoubleWritable(
-		//			sortedMap.get(rule))));
-		//}
-		PairWritable3[] valuesArray = valuesArrayList
-				.toArray(new PairWritable3[0]);
-		value.set(valuesArray);
+		PairWritable3[] valueArray = new PairWritable3[targetsAndFeatures.size()];
+		int i = 0;
+		for (RuleWritable target: targetsAndFeatures.keySet()) {
+			valueArray[i] = new PairWritable3(target, targetsAndFeatures.get(target));
+			i++;
+		}
+		value.set(valueArray);
 		context.write(key, value);
 	}
 }
