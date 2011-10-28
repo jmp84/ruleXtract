@@ -13,13 +13,13 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Writable;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3ArrayWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -60,7 +60,9 @@ public class ConvertToText2 {
             boolean stop = false;
             while (!stop) {
                 BytesWritable key = new BytesWritable();
-                ArrayWritable value = new ArrayWritable(PairWritable3.class);
+                // ArrayWritable value = new ArrayWritable(PairWritable3.class);
+                PairWritable3ArrayWritable value =
+                        new PairWritable3ArrayWritable();
                 if (sequenceReader.next(key, value)) {
                     RuleWritable source = convertValueBytes(key.getBytes());
                     bw.write(source.getLeftHandSide() + " "

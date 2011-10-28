@@ -1,16 +1,12 @@
 /**
  * 
  */
-package uk.ac.cam.eng.extraction.hadoop.extraction;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.Properties;
+package uk.ac.cam.eng.extraction.hadoop.extraction;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.Job;
@@ -21,12 +17,11 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3ArrayWritable;
 
 /**
  * @author juan
- *
  */
 public class Target2Source2Source2TargetJob extends Configured implements Tool {
 
@@ -42,19 +37,19 @@ public class Target2Source2Source2TargetJob extends Configured implements Tool {
         // it is different than the final output key (respectively value) class
         job.setMapOutputKeyClass(BytesWritable.class);
         job.setMapOutputValueClass(PairWritable3.class);
-        
+
         job.setOutputKeyClass(BytesWritable.class);
-        job.setOutputValueClass(ArrayWritable.class);
+        job.setOutputValueClass(PairWritable3ArrayWritable.class);
 
         job.setMapperClass(Target2Source2Source2TargetMapper.class);
-        //TODO combiner
+        // TODO combiner
         job.setReducerClass(Target2Source2Source2TargetReducer.class);
 
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
-        FileInputFormat.setInputPaths(job, conf.get("inputPaths"));
-        FileOutputFormat.setOutputPath(job, new Path(conf.get("outputPath")));
+        FileInputFormat.setInputPaths(job, args[0]);
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
         FileOutputFormat.setCompressOutput(job, true);
 
         boolean success = job.waitForCompletion(true);
@@ -62,10 +57,14 @@ public class Target2Source2Source2TargetJob extends Configured implements Tool {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) {
-            System.err.println("Usage args: configFile");
+        if (args.length != 2) {
+            System.out.println("Usage: Target2Source2SourceTargetJob input " +
+                    "output");
+            System.exit(1);
         }
-        int res = ToolRunner.run(new Configuration(), new ExtractorJob(), args);
+        int res =
+                ToolRunner.run(new Configuration(),
+                        new Target2Source2Source2TargetJob(), args);
         System.exit(res);
     }
 }

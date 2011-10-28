@@ -8,7 +8,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -23,6 +22,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3ArrayWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -42,7 +42,8 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 public class ExtractorReducerMethod3
         extends
         // Reducer<RuleWritable, PairWritable, BytesWritable, ArrayWritable> {
-        Reducer<BytesWritable, PairWritable, BytesWritable, ArrayWritable> {
+        // Reducer<BytesWritable, PairWritable, BytesWritable, ArrayWritable> {
+        Reducer<BytesWritable, PairWritable, BytesWritable, PairWritable3ArrayWritable> {
 
     private static class ValueComparator<K extends Comparable<K>, V extends Comparable<V>>
             implements Comparator<K> {
@@ -93,7 +94,7 @@ public class ExtractorReducerMethod3
         // default value is true: source-to-target extraction
         boolean source2target = conf.getBoolean("source2target", true);
         double marginalCount = 0;
-        // use a TreeMap to have the targets (resp. sources) sorted in 
+        // use a TreeMap to have the targets (resp. sources) sorted in
         // source-to-target (resp. target-to-source) extraction. This
         // is because it makes it easier to merge the outputs of the
         // source-to-target and target-to-source extraction jobs.
@@ -132,11 +133,11 @@ public class ExtractorReducerMethod3
         // do a second pass for normalization
         // first sort ruleCounts by value (sorting by count is the same as
         // sorting by probability because here the denominator is the same)
-        //Map<RuleWritable, Integer> sortedMap = sortMapByValue(ruleCounts);
-        PairWritable3[] outputValue = new PairWritable3[ruleCounts.size()];
-        for (RuleWritable rw: ruleCounts.keySet()) {
+        // Map<RuleWritable, Integer> sortedMap = sortMapByValue(ruleCounts);
+        PairWritable3[] outputValueArray = new PairWritable3[ruleCounts.size()];
         int i = 0;
-        //for (RuleWritable rw: sortedMap.keySet()) {
+        for (RuleWritable rw: ruleCounts.keySet()) {
+            // for (RuleWritable rw: sortedMap.keySet()) {
             // double countRule = ruleCounts.get(rw).get();
             double countRule = ruleCounts.get(rw);
             DoubleWritable probability = new DoubleWritable(countRule
@@ -147,11 +148,15 @@ public class ExtractorReducerMethod3
             features[2] = new DoubleWritable(countRule);
             ArrayWritable featuresWritable =
                     new ArrayWritable(DoubleWritable.class, features);
-            outputValue[i] = new PairWritable3(rw, featuresWritable);
+            outputValueArray[i] = new PairWritable3(rw, featuresWritable);
             i++;
         }
         // context.write(rw, probability);
-        context.write(key, new ArrayWritable(PairWritable3.class,
-                outputValue));
+        PairWritable3ArrayWritable outputValue =
+                new PairWritable3ArrayWritable();
+        outputValue.set(outputValueArray);
+        // context.write(key, new ArrayWritable(PairWritable3.class,
+        // outputValueArray));
+        context.write(key, outputValue);
     }
 }

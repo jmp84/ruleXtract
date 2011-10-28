@@ -8,7 +8,6 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.Job;
@@ -20,6 +19,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3ArrayWritable;
 
 public class ExtractorJob extends Configured implements Tool {
 
@@ -57,11 +57,12 @@ public class ExtractorJob extends Configured implements Tool {
         // job.setOutputKeyClass(RuleWritable.class);
         job.setOutputKeyClass(BytesWritable.class);
         // job.setOutputValueClass(DoubleWritable.class);
-        job.setOutputValueClass(ArrayWritable.class);
+        job.setOutputValueClass(PairWritable3ArrayWritable.class);
+        // job.setOutputValueClass(ArrayWritable.class);
         // job.setOutputValueClass(PairWritable.class);
 
         job.setMapperClass(ExtractorMapperMethod3.class);
-        //TODO fix the Combiner
+        // TODO fix the Combiner
         // job.setCombinerClass(ExtractorCombinerMethod3.class);
         job.setReducerClass(ExtractorReducerMethod3.class);
 

@@ -14,12 +14,11 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.hfile.HFile;
-import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Writable;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3ArrayWritable;
 
 /**
  * @author jmp84 This class takes a sorted file in HDFS and converts it into an
@@ -63,7 +62,8 @@ public class HFileLoader extends Configured {
         }
         HFile.Writer writer = new HFile.Writer(fs, path, 16 * 1024, "gz", null);
         BytesWritable key = new BytesWritable();
-        ArrayWritable value = new ArrayWritable(PairWritable3.class);
+        // ArrayWritable value = new ArrayWritable(PairWritable3.class);
+        PairWritable3ArrayWritable value = new PairWritable3ArrayWritable();
         while (sequenceReader.next(key, value)) {
             byte[] valueBytes = object2ByteArray(value);
             writer.append(key.getBytes().clone(), 0, key.getLength(),
