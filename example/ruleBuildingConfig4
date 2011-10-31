@@ -2,9 +2,9 @@
 # all possible source pattern up to two nonterminals
 patternfile=example/allPatterns
 # output rule file with rules and probabilities
-outrulefile=outRulefile2
+outrulefile=outRulefile3
 # input hfile containing all the rules
-hfile=outputHFile2
+hfile=outputHFile4
 # test file for set specific rule building
 testfile=/home/blue9/jmp84/test/testRuleRetrieval/news-test2008.fr.idx.10.no12
 # constraints

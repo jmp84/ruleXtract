@@ -83,16 +83,16 @@ public class ExtractorMapperMethod3 extends
             PairWritable sideCountPair = null;
             BytesWritable ruleMarginalBytes = null;
             if (source2target) {
-            	sideCountPair =
-            			new PairWritable(targetMarginal, one);
-            	ruleMarginalBytes =
-            			new BytesWritable(object2ByteArray(sourceMarginal));
+                sideCountPair =
+                        new PairWritable(targetMarginal, one);
+                ruleMarginalBytes =
+                        new BytesWritable(object2ByteArray(sourceMarginal));
             }
             else {
-            	sideCountPair =
-            			new PairWritable(sourceMarginal, one);
-            	ruleMarginalBytes =
-            			new BytesWritable(object2ByteArray(targetMarginal));            	
+                sideCountPair =
+                        new PairWritable(sourceMarginal, one);
+                ruleMarginalBytes =
+                        new BytesWritable(object2ByteArray(targetMarginal));
             }
             context.write(ruleMarginalBytes, sideCountPair);
         }

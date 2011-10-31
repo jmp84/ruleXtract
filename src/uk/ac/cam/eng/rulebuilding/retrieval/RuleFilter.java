@@ -127,13 +127,40 @@ public class RuleFilter {
                 continue;
             }
             if (sourcePattern.isPhrase()) {
+                // TODO replace hardcoded feature indices
+                // source-to-target threshold
                 if (((DoubleWritable) targetAndProb.second.get()[0]).get() <= minSource2TargetPhrase) {
-                    break;
+                    // break;
+                    // TODO currently targets are sorted in alphabetical order.
+                    // We need to sort them by count (or equivalently by
+                    // source-to-target probability), so we can use a break
+                    // instead of a continue. In the current pipeline, the
+                    // maximum number of translation per source relies on this
+                    // ordering
+                    continue;
+                }
+                // target-to-source threshold
+                if (((DoubleWritable) targetAndProb.second.get()[1]).get() <= minTarget2SourcePhrase) {
+                    continue;
                 }
             }
             else {
+                // source-to-target threshold
                 if (((DoubleWritable) targetAndProb.second.get()[0]).get() <= minSource2TargetRule) {
-                    break;
+                    // break;
+                    continue;
+                }
+                // target-to-source threshold
+                if (((DoubleWritable) targetAndProb.second.get()[1]).get() <= minTarget2SourceRule) {
+                    continue;
+                }
+                // minimum number of occurrence threshold
+                if (sourcePatternConstraints.get(sourcePattern).containsKey(
+                        "nocc")) {
+                    if (((DoubleWritable) targetAndProb.second.get()[2]).get() < sourcePatternConstraints
+                            .get(sourcePattern).get("nocc")) {
+                        continue;
+                    }
                 }
                 if (sourcePatternConstraints.get(sourcePattern).get("ntrans") <= numberTranslations) {
                     break;

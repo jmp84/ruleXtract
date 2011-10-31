@@ -89,15 +89,15 @@ public class HFileLoader2 extends Configured {
                         "target-to-source jobs should have produced the same " +
                         "set of targets per source: "
                         + targetsAndFeaturesArray[i].first + " "
-                        + targetsAndFeatures2Array[i].first + " " +
-                        convertValueBytes(targetsAndFeaturesArray[i].first) +
-                        convertValueBytes(targetsAndFeatures2Array[i].first));
+                        + targetsAndFeatures2Array[i].first);
                 System.exit(1);
             }
-            DoubleWritable[] features =
-                    (DoubleWritable[]) targetsAndFeaturesArray[i].second.get();
-            DoubleWritable[] features2 =
-                    (DoubleWritable[]) targetsAndFeatures2Array[i].second.get();
+            // DoubleWritable[] features =
+            // (DoubleWritable[]) targetsAndFeaturesArray[i].second.get();
+            Writable[] features = targetsAndFeaturesArray[i].second.get();
+            // DoubleWritable[] features2 =
+            // (DoubleWritable[]) targetsAndFeatures2Array[i].second.get();
+            Writable[] features2 = targetsAndFeatures2Array[i].second.get();
             if (features.length != features2.length) {
                 System.err.println("Error: the source-to-target and " +
                         "target-to-source jobs should have produced the same " +
@@ -109,8 +109,8 @@ public class HFileLoader2 extends Configured {
                     new DoubleWritable[features.length];
             for (int j = 0; j < features.length; j++) {
                 mergedFeaturesArray[j] =
-                        new DoubleWritable(features[j].get()
-                                + features2[j].get());
+                        new DoubleWritable(((DoubleWritable) features[j]).get()
+                                + ((DoubleWritable) features2[j]).get());
             }
             mergedFeatures.set(mergedFeaturesArray);
             resArray[i] =

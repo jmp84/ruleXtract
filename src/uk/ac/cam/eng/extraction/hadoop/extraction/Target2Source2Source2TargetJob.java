@@ -28,7 +28,7 @@ public class Target2Source2Source2TargetJob extends Configured implements Tool {
     public int run(String[] args) throws Exception {
         Configuration conf = getConf();
         conf.set("mapreduce.tasktracker.map.tasks.maximum", "6");
-        Job job = Job.getInstance(new Cluster(conf));
+        Job job = Job.getInstance(new Cluster(conf), conf);
         job.setJarByClass(ExtractorJob.class);
         job.setJobName("Source-to-target to target-to-source conversion");
 
