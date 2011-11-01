@@ -4,6 +4,8 @@
 
 package uk.ac.cam.eng.rulebuilding.features;
 
+import org.apache.hadoop.io.ArrayWritable;
+
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 
 /**
@@ -11,7 +13,7 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
  *         that is the feature that counts the number of rules used in
  *         translation
  */
-public class PhraseInsertionPenalty implements Feature {
+public class RuleInsertionPenalty implements Feature {
 
     /*
      * (non-Javadoc)
@@ -20,7 +22,7 @@ public class PhraseInsertionPenalty implements Feature {
      * .Rule)
      */
     @Override
-    public double value(Rule r) {
+    public double value(Rule r, ArrayWritable mapReduceFeatures) {
         return 1;
     }
 

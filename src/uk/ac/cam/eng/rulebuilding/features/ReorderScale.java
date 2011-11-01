@@ -4,6 +4,8 @@
 
 package uk.ac.cam.eng.rulebuilding.features;
 
+import org.apache.hadoop.io.ArrayWritable;
+
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 
 /**
@@ -22,7 +24,7 @@ public class ReorderScale implements Feature {
      * .Rule)
      */
     @Override
-    public double value(Rule r) {
+    public double value(Rule r, ArrayWritable mapReduceFeatures) {
         return r.isStartingGlue() ? 1 : 0;
     }
 

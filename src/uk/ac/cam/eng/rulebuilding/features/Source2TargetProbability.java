@@ -5,24 +5,24 @@
 package uk.ac.cam.eng.rulebuilding.features;
 
 import org.apache.hadoop.io.ArrayWritable;
+import org.apache.hadoop.io.DoubleWritable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 
 /**
- * @author jmp84 This class represent the word insertion penalty feature, that
- *         is the number of terminals in the target side of a rule
+ * @author jmp84
  */
-public class WordInsertionPenalty implements Feature {
+public class Source2TargetProbability implements Feature {
 
     /*
      * (non-Javadoc)
      * @see
      * uk.ac.cam.eng.rulebuilding.features.Feature#value(uk.ac.cam.eng.extraction
-     * .Rule)
+     * .datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
     public double value(Rule r, ArrayWritable mapReduceFeatures) {
-        return r.nbTargetWords();
+        return ((DoubleWritable) mapReduceFeatures.get()[0]).get();
     }
 
 }
