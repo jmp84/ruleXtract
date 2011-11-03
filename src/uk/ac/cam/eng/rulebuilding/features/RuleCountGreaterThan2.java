@@ -23,7 +23,7 @@ public class RuleCountGreaterThan2 implements Feature {
     @Override
     public double value(Rule r, ArrayWritable mapReduceFeatures) {
         double count = ((DoubleWritable) mapReduceFeatures.get()[2]).get();
-        return (count > 2) ? 1 : 0;
+        return (int) ((count > 2) ? 1 : 0);
     }
 
 }

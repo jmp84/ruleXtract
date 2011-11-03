@@ -4,6 +4,7 @@
 
 package uk.ac.cam.eng.rulebuilding.retrieval;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
@@ -29,6 +30,7 @@ import org.apache.hadoop.io.Writable;
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
+import uk.ac.cam.eng.rulebuilding.features.FeatureCreator;
 
 /**
  * @author jmp84 This class reads a config file specifying an HFile and a test
@@ -152,10 +154,42 @@ public class RuleFileBuilder {
         }
         List<PairWritable3> rules =
                 ruleFileBuilder.getRules(patternFile, testFile, hfile);
-        try (GZIPOutputStream bw =
-                new GZIPOutputStream(new FileOutputStream(outRuleFile))) {
-            for (PairWritable3 ruleAndProb: rules) {
-                bw.write((ruleAndProb.toString() + "\n").getBytes());
+        String source2TargetLexicalModel =
+                p.getProperty("source2target_lexical_model");
+        if (source2TargetLexicalModel == null) {
+            System.err.println("Missing property " +
+                    "'source2target_lexical_model' in the config");
+            System.exit(1);
+        }
+        String target2SourceLexicalModel =
+                p.getProperty("target2source_lexical_model");
+        if (target2SourceLexicalModel == null) {
+            System.err.println("Missing property " +
+                    "'target2source_lexical_model' in the config");
+            System.exit(1);
+        }
+        String selectedFeaturesString = p.getProperty("features");
+        if (selectedFeaturesString == null) {
+            System.err.println("Missing property 'features' in the config");
+            System.exit(1);
+        }
+        String[] selectedFeatures = selectedFeaturesString.split(",");
+        FeatureCreator featureCreator =
+                new FeatureCreator(source2TargetLexicalModel,
+                        target2SourceLexicalModel, rules, selectedFeatures);
+        List<PairWritable3> rulesWithFeatures =
+                featureCreator.createFeatures(rules);
+        try (BufferedOutputStream bos =
+                new BufferedOutputStream(new GZIPOutputStream(
+                        new FileOutputStream(outRuleFile)))) {
+            for (PairWritable3 ruleWithFeatures: rulesWithFeatures) {
+                // bw.write((ruleWithFeatures.toString() + "\n").getBytes());
+                bos.write(ruleWithFeatures.first.toString().getBytes());
+                Writable[] features = ruleWithFeatures.second.get();
+                for (Writable w: features) {
+                    bos.write((" " + w.toString()).getBytes());
+                }
+                bos.write("\n".getBytes());
             }
         }
     }

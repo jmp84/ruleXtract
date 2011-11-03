@@ -22,7 +22,7 @@ public class WordInsertionPenalty implements Feature {
      */
     @Override
     public double value(Rule r, ArrayWritable mapReduceFeatures) {
-        return r.nbTargetWords();
+        return (int) r.nbTargetWords();
     }
 
 }

@@ -122,7 +122,7 @@ public final class Rule { // final because immutable class
             int maxTargetIndex, int sourceStartIndexX, int sourceEndIndexX,
             int minTargetIndexX, int maxTargetIndexX, int sourceStartIndexX2,
             int sourceEndIndexX2, int minTargetIndexX2, int maxTargetIndexX2,
-            SentencePair sp) {
+            SentencePair sp, boolean source2target) {
         this.leftHandSide = 0;
         this.nbNonTerminal = 2;
         source = new ArrayList<Integer>();
@@ -158,31 +158,46 @@ public final class Rule { // final because immutable class
         // source-to-target probability, the denominator would include two kinds
         // of source, the sources
         // with non terminal in order and the sources with nonterminal swaped.
-        // TODO when we compute target-to-source probabilities, we have the same
-        // problem, add an option
-        // to decide how to print the rule depending we're doing a hadoop source
-        // to target job or a
-        // hadoop target to source job.
         else {
             for (int sourceIndex = sourceStartIndex; sourceIndex < sourceStartIndexX; sourceIndex++) {
                 source.add(sp.getSource().getWords()[sourceIndex]);
             }
-            source.add(X1);
+            if (source2target) {
+                source.add(X1);
+            }
+            else {
+                source.add(X2);
+            }
             for (int sourceIndex = sourceEndIndexX + 1; sourceIndex < sourceStartIndexX2; sourceIndex++) {
                 source.add(sp.getSource().getWords()[sourceIndex]);
             }
-            source.add(X2);
+            if (source2target) {
+                source.add(X2);
+            }
+            else {
+                source.add(X1);
+            }
             for (int sourceIndex = sourceEndIndexX2 + 1; sourceIndex <= sourceEndIndex; sourceIndex++) {
                 source.add(sp.getSource().getWords()[sourceIndex]);
             }
             for (int targetIndex = minTargetIndex; targetIndex < minTargetIndexX2; targetIndex++) {
                 target.add(sp.getTarget().getWords()[targetIndex]);
             }
-            target.add(X2);
+            if (source2target) {
+                target.add(X2);
+            }
+            else {
+                target.add(X1);
+            }
             for (int targetIndex = maxTargetIndexX2 + 1; targetIndex < minTargetIndexX; targetIndex++) {
                 target.add(sp.getTarget().getWords()[targetIndex]);
             }
-            target.add(X1);
+            if (source2target) {
+                target.add(X1);
+            }
+            else {
+                target.add(X2);
+            }
             for (int targetIndex = maxTargetIndexX + 1; targetIndex <= maxTargetIndex; targetIndex++) {
                 target.add(sp.getTarget().getWords()[targetIndex]);
             }
@@ -192,12 +207,27 @@ public final class Rule { // final because immutable class
     public Rule(RuleWritable rw) {
         this.leftHandSide = Integer.parseInt(rw.getLeftHandSide().toString());
         this.source = new ArrayList<Integer>();
-        String[] rwSource = rw.getSource().toString().split("\\s+");
+        String[] rwSource = rw.getSource().toString().split("_");
         for (String rws: rwSource) {
             this.source.add(Integer.parseInt(rws));
         }
         this.target = new ArrayList<Integer>();
-        String[] rwTarget = rw.getTarget().toString().split("\\s+");
+        String[] rwTarget = rw.getTarget().toString().split("_");
+        for (String rwt: rwTarget) {
+            this.target.add(Integer.parseInt(rwt));
+        }
+    }
+
+    public Rule(RuleWritable source, RuleWritable target) {
+        this.leftHandSide =
+                Integer.parseInt(source.getLeftHandSide().toString());
+        this.source = new ArrayList<Integer>();
+        String[] rwSource = source.getSource().toString().split("_");
+        for (String rws: rwSource) {
+            this.source.add(Integer.parseInt(rws));
+        }
+        this.target = new ArrayList<Integer>();
+        String[] rwTarget = target.getTarget().toString().split("_");
         for (String rwt: rwTarget) {
             this.target.add(Integer.parseInt(rwt));
         }
@@ -252,8 +282,68 @@ public final class Rule { // final because immutable class
         return false;
     }
 
+    public boolean isSwapping() {
+        if (nbNonTerminal < 2) {
+            return false;
+        }
+        for (int sourceElement: source) {
+            if (sourceElement < 0) {
+                if (sourceElement == X2) {
+                    return true;
+                }
+                return false;
+            }
+        }
+        // TODO logging
+        throw new Error("Error: method isSwapping, cannot be here: " + source);
+    }
+
+    public Rule invertNonTerminals() {
+        List<Integer> src = new ArrayList<Integer>();
+        List<Integer> trg = new ArrayList<Integer>();
+        for (int sourceElement: source) {
+            if (sourceElement == X2) {
+                src.add(X1);
+            }
+            else {
+                src.add(sourceElement);
+            }
+        }
+        for (int targetElement: target) {
+            if (targetElement == X2) {
+                trg.add(X1);
+            }
+            else {
+                trg.add(targetElement);
+            }
+        }
+        return new Rule(src, trg);
+    }
+
     public List<Integer> getSource() {
         return source;
+    }
+
+    public List<Integer> getSourceWords() {
+        List<Integer> res = new ArrayList<Integer>();
+        for (int sourceElement: source) {
+            // if positive then it is a terminal
+            if (sourceElement > 0) {
+                res.add(sourceElement);
+            }
+        }
+        return res;
+    }
+
+    public List<Integer> getTargetWords() {
+        List<Integer> res = new ArrayList<Integer>();
+        for (int targetElement: target) {
+            // if positive then it is a terminal
+            if (targetElement > 0) {
+                res.add(targetElement);
+            }
+        }
+        return res;
     }
 
     /*

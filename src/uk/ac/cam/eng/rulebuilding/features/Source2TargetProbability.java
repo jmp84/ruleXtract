@@ -22,7 +22,8 @@ public class Source2TargetProbability implements Feature {
      */
     @Override
     public double value(Rule r, ArrayWritable mapReduceFeatures) {
-        return ((DoubleWritable) mapReduceFeatures.get()[0]).get();
+        // TODO could use the log in the mapreduce job
+        return Math.log(((DoubleWritable) mapReduceFeatures.get()[0]).get());
     }
 
 }

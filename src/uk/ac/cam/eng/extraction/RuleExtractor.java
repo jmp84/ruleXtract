@@ -4,12 +4,8 @@
 
 package uk.ac.cam.eng.extraction;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.hadoop.conf.Configuration;
@@ -40,11 +36,14 @@ public class RuleExtractor {
     protected int MAX_NONTERMINAL_LENGTH = 10; // TODO revise this value, put in
                                                // constructor or something
 
+    private boolean source2target;
+
     public RuleExtractor(Configuration conf) {
         MAX_SOURCE_PHRASE = conf.getInt("max_source_phrase", 5);
         MAX_SOURCE_ELEMENTS = conf.getInt("max_source_elements", 5);
         MAX_TERMINAL_LENGTH = conf.getInt("max_terminal_length", 5);
         MAX_NONTERMINAL_LENGTH = conf.getInt("max_nonterminal_length", 10);
+        source2target = conf.getBoolean("source2target", true);
     }
 
     private static String usage() {
@@ -416,9 +415,10 @@ public class RuleExtractor {
                                                                   // sourceEndIndex
                 }
                 else { // zero offset, found a plausible subregion
-                    // System.err.println("Extracting rules one nonterminal " +
-                    // sourceStartIndex + " " + sourceEndIndex + " " +
-                    // minTargetIndex + " " + maxTargetIndex);
+                       // System.err.println("Extracting rules one nonterminal "
+                       // +
+                       // sourceStartIndex + " " + sourceEndIndex + " " +
+                       // minTargetIndex + " " + maxTargetIndex);
                     res.addAll(extractRulesOneNonTerminal(sourceStartIndex,
                             sourceEndIndex, targetLimit.getFirst(),
                             targetLimit.getSecond(), a, sp));
@@ -540,8 +540,10 @@ public class RuleExtractor {
                                     || !a.isSourceAligned(sourceEndIndexX2)) {
                                 break;
                             }
-                            Pair<Integer, Integer> targetLimitX2 = updateTargetLimit(
-                                    a, sourceStartIndexX2, sourceEndIndexX2);
+                            Pair<Integer, Integer> targetLimitX2 =
+                                    updateTargetLimit(
+                                            a, sourceStartIndexX2,
+                                            sourceEndIndexX2);
                             int offset2 = 0;
                             for (int targetIndex = targetLimitX2.getFirst(); targetIndex <= targetLimitX2
                                     .getSecond(); targetIndex++) {
@@ -568,24 +570,27 @@ public class RuleExtractor {
                                         sourceStartIndex, sourceEndIndex,
                                         sourceStartIndexX, sourceEndIndexX,
                                         sourceStartIndexX2, sourceEndIndexX2, a)) {
-                                    Rule r = new Rule(
-                                            sourceStartIndex,
-                                            sourceEndIndex,
-                                            minTargetIndex,
-                                            maxTargetIndex,
-                                            sourceStartIndexX,
-                                            // sourceEndIndexX, minTargetIndexX,
-                                            sourceEndIndexX,
-                                            targetLimit.getFirst(),
-                                            // maxTargetIndexX,
-                                            targetLimit.getSecond(),
-                                            sourceStartIndexX2,
-                                            // sourceEndIndexX2,
-                                            // minTargetIndexX2,
-                                            sourceEndIndexX2,
-                                            targetLimitX2.getFirst(),
-                                            // maxTargetIndexX2, sp);
-                                            targetLimitX2.getSecond(), sp);
+                                    Rule r =
+                                            new Rule(
+                                                    sourceStartIndex,
+                                                    sourceEndIndex,
+                                                    minTargetIndex,
+                                                    maxTargetIndex,
+                                                    sourceStartIndexX,
+                                                    // sourceEndIndexX,
+                                                    // minTargetIndexX,
+                                                    sourceEndIndexX,
+                                                    targetLimit.getFirst(),
+                                                    // maxTargetIndexX,
+                                                    targetLimit.getSecond(),
+                                                    sourceStartIndexX2,
+                                                    // sourceEndIndexX2,
+                                                    // minTargetIndexX2,
+                                                    sourceEndIndexX2,
+                                                    targetLimitX2.getFirst(),
+                                                    // maxTargetIndexX2, sp);
+                                                    targetLimitX2.getSecond(),
+                                                    sp, source2target);
                                     res.add(r);
                                 }
                             }

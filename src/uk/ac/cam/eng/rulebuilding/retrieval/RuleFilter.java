@@ -26,6 +26,7 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
  */
 public class RuleFilter {
 
+    // TODO put the default in the code
     private double minSource2TargetPhrase;
     private double minTarget2SourcePhrase;
     private int maxSourcePhrase;

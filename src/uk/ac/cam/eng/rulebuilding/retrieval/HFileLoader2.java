@@ -108,9 +108,21 @@ public class HFileLoader2 extends Configured {
             DoubleWritable[] mergedFeaturesArray =
                     new DoubleWritable[features.length];
             for (int j = 0; j < features.length; j++) {
-                mergedFeaturesArray[j] =
-                        new DoubleWritable(((DoubleWritable) features[j]).get()
-                                + ((DoubleWritable) features2[j]).get());
+                // for j=0,1 we add the probability
+                // for j>=2, we don't (otherwise the occurrence is doubled for
+                // example)
+                if (j < 2) {
+                    mergedFeaturesArray[j] =
+                            new DoubleWritable(
+                                    ((DoubleWritable) features[j]).get()
+                                            + ((DoubleWritable) features2[j])
+                                                    .get());
+                }
+                else {
+                    mergedFeaturesArray[j] =
+                            new DoubleWritable(
+                                    ((DoubleWritable) features[j]).get());
+                }
             }
             mergedFeatures.set(mergedFeaturesArray);
             resArray[i] =

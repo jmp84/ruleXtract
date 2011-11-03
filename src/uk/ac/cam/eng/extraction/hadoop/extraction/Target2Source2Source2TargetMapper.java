@@ -15,6 +15,7 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Mapper;
 
+import uk.ac.cam.eng.extraction.datatypes.Rule;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3ArrayWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
@@ -75,6 +76,15 @@ public class Target2Source2Source2TargetMapper
         return buffer.toByteArray();
     }
 
+    private RuleWritable invertSwappingRule(RuleWritable source,
+            RuleWritable target) {
+        Rule rule = new Rule(source, target);
+        if (rule.isSwapping()) {
+            return new RuleWritable(rule.invertNonTerminals());
+        }
+        return new RuleWritable(source, target);
+    }
+
     /**                                                                                                                                                                                                    
 	 *                                                                                                                                  
 	 */
@@ -95,12 +105,20 @@ public class Target2Source2Source2TargetMapper
             // (PairWritable3) sourceAndFeatures;
             // PairWritable3 targetAndFeatures =
             // new PairWritable3(source, sourceAndFeaturesCast.second);
+            RuleWritable source = sourceAndFeatures.first;
+            RuleWritable nonterminalsInvertedRule =
+                    invertSwappingRule(source, target);
             PairWritable3 targetAndFeatures =
-                    new PairWritable3(target, sourceAndFeatures.second);
+                    new PairWritable3(
+                            // target
+                            RuleWritable.makeTargetMarginal(nonterminalsInvertedRule),
+                            sourceAndFeatures.second);
             BytesWritable outputKey =
                     new BytesWritable(
                             // object2ByteArray(sourceAndFeaturesCast.first));
-                            object2ByteArray(sourceAndFeatures.first));
+                            // object2ByteArray(sourceAndFeatures.first));
+                            object2ByteArray(RuleWritable
+                                    .makeSourceMarginal(nonterminalsInvertedRule)));
             context.write(outputKey, targetAndFeatures);
         }
     }

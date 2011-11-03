@@ -25,7 +25,7 @@ public class ReorderScale implements Feature {
      */
     @Override
     public double value(Rule r, ArrayWritable mapReduceFeatures) {
-        return r.isStartingGlue() ? 1 : 0;
+        return (int) (r.isStartingGlue() ? 1 : 0);
     }
 
 }

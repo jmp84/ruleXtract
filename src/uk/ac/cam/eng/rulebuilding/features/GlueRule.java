@@ -22,7 +22,8 @@ public class GlueRule implements Feature {
      */
     @Override
     public double value(Rule r, ArrayWritable mapReduceFeatures) {
-        return r.isConcatenatingGlue() ? 1 : 0;
+        // TODO the cast to int is just for the printing. necessary ?
+        return (int) (r.isConcatenatingGlue() ? 1 : 0);
     }
 
 }

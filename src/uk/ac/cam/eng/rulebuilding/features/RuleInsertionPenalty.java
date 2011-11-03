@@ -23,7 +23,7 @@ public class RuleInsertionPenalty implements Feature {
      */
     @Override
     public double value(Rule r, ArrayWritable mapReduceFeatures) {
-        return 1;
+        return (int) 1;
     }
 
 }
