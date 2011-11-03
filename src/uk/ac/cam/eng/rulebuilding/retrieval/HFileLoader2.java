@@ -25,6 +25,7 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3ArrayWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
+//TODO upgrade to hbase 0.90
 /**
  * @author jmp84 This class takes the outputs of a source-to-target and a
  *         target-to-source job and converts them to an HFile
@@ -134,8 +135,7 @@ public class HFileLoader2 extends Configured {
     }
 
     protected static void hdfs2HFile(String source2TargetInput,
-            String target2SourceInput, String hFile)
-            throws IOException {
+            String target2SourceInput, String hFile) throws IOException {
         // TODO replace this with a logger
         System.out.println("Reading " + source2TargetInput + " "
                 + target2SourceInput
@@ -184,7 +184,8 @@ public class HFileLoader2 extends Configured {
     }
 
     /**
-     * @param args
+     * @param args 
+     * @throws IOException 
      */
     public static void main(String[] args) throws IOException {
         if (args.length != 3) {

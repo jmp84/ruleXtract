@@ -283,9 +283,9 @@ public final class Rule { // final because immutable class
     }
 
     public boolean isSwapping() {
-        if (nbNonTerminal < 2) {
-            return false;
-        }
+        //if (nbNonTerminal < 2) {
+        //    return false;
+        //}
         for (int sourceElement: source) {
             if (sourceElement < 0) {
                 if (sourceElement == X2) {
@@ -294,8 +294,9 @@ public final class Rule { // final because immutable class
                 return false;
             }
         }
+        return false;
         // TODO logging
-        throw new Error("Error: method isSwapping, cannot be here: " + source);
+        //throw new Error("Error: method isSwapping, cannot be here: " + source);
     }
 
     public Rule invertNonTerminals() {
@@ -305,6 +306,9 @@ public final class Rule { // final because immutable class
             if (sourceElement == X2) {
                 src.add(X1);
             }
+            else if (sourceElement == X1) {
+            	src.add(X2);
+            }
             else {
                 src.add(sourceElement);
             }
@@ -312,6 +316,9 @@ public final class Rule { // final because immutable class
         for (int targetElement: target) {
             if (targetElement == X2) {
                 trg.add(X1);
+            }
+            else if (targetElement == X1) {
+            	trg.add(X2);
             }
             else {
                 trg.add(targetElement);
