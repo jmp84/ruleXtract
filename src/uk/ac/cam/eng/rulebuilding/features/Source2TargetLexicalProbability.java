@@ -33,6 +33,7 @@ public class Source2TargetLexicalProbability implements Feature {
     private Set<Integer>
             getVocabulary(List<PairWritable3> rules, boolean source) {
         Set<Integer> res = new HashSet<Integer>();
+        res.add(0); // null word
         for (PairWritable3 rule: rules) {
             Rule r = new Rule(rule.first);
             List<Integer> words =
@@ -92,6 +93,9 @@ public class Source2TargetLexicalProbability implements Feature {
         double res = 1;
         List<Integer> sourceWords = r.getSourceWords();
         List<Integer> targetWords = r.getTargetWords();
+        if (sourceWords.size() > 1) {
+            targetWords.add(0);
+        }
         for (Integer sourceWord: sourceWords) {
             double sum = 0;
             for (Integer targetWord: targetWords) {
@@ -114,6 +118,7 @@ public class Source2TargetLexicalProbability implements Feature {
                 res *= minSum;
             }
         }
+        res /= Math.pow(targetWords.size(), sourceWords.size());
         // TODO could use the log in the computation
         return Math.log(res);
     }

@@ -33,6 +33,7 @@ public class Target2SourceLexicalProbability implements Feature {
     private Set<Integer>
             getVocabulary(List<PairWritable3> rules, boolean source) {
         Set<Integer> res = new HashSet<Integer>();
+        res.add(0); // null word
         for (PairWritable3 rule: rules) {
             Rule r = new Rule(rule.first);
             List<Integer> words =
@@ -92,16 +93,23 @@ public class Target2SourceLexicalProbability implements Feature {
         double res = 1;
         List<Integer> sourceWords = r.getSourceWords();
         List<Integer> targetWords = r.getTargetWords();
+        if (targetWords.size() > 1) {
+            sourceWords.add(0);
+        }
         for (Integer targetWord: targetWords) {
             double sum = 0;
             for (Integer sourceWord: sourceWords) {
                 if (!model.containsKey(targetWord)) {
-                    System.err.println("Warning: model 1 missing target word: "
-                            + targetWord);
+                    System.err
+                            .println("Warning: model 1 missing target word: "
+                                    + targetWord);
                 }
                 else if (!model.get(targetWord).containsKey(sourceWord)) {
-                    System.err.println("Warning: model 1 missing source word: "
-                            + sourceWord + " for target word: " + targetWord);
+                    System.err
+                            .println("Warning: model 1 missing source word: "
+                                    + sourceWord
+                                    + " for target word: "
+                                    + targetWord);
                 }
                 else {
                     sum += model.get(targetWord).get(sourceWord);
@@ -114,6 +122,7 @@ public class Target2SourceLexicalProbability implements Feature {
                 res *= minSum;
             }
         }
+        res /= Math.pow(sourceWords.size(), targetWords.size());
         // TODO could use the log in the computation
         return Math.log(res);
     }

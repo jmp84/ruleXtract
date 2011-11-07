@@ -256,7 +256,15 @@ public final class Rule { // final because immutable class
      * @return The number of target words.
      */
     public int nbTargetWords() {
-        return target.size() - nbNonTerminal;
+        // TODO have nbNonTerminal properly set
+        // return target.size() - nbNonTerminal;
+        int res = 0;
+        for (int targetElement: target) {
+            if (targetElement > 0) {
+                res++;
+            }
+        }
+        return res;
     }
 
     /**
@@ -283,9 +291,9 @@ public final class Rule { // final because immutable class
     }
 
     public boolean isSwapping() {
-        //if (nbNonTerminal < 2) {
-        //    return false;
-        //}
+        // if (nbNonTerminal < 2) {
+        // return false;
+        // }
         for (int sourceElement: source) {
             if (sourceElement < 0) {
                 if (sourceElement == X2) {
@@ -296,7 +304,8 @@ public final class Rule { // final because immutable class
         }
         return false;
         // TODO logging
-        //throw new Error("Error: method isSwapping, cannot be here: " + source);
+        // throw new Error("Error: method isSwapping, cannot be here: " +
+        // source);
     }
 
     public Rule invertNonTerminals() {
@@ -307,7 +316,7 @@ public final class Rule { // final because immutable class
                 src.add(X1);
             }
             else if (sourceElement == X1) {
-            	src.add(X2);
+                src.add(X2);
             }
             else {
                 src.add(sourceElement);
@@ -318,7 +327,7 @@ public final class Rule { // final because immutable class
                 trg.add(X1);
             }
             else if (targetElement == X1) {
-            	trg.add(X2);
+                trg.add(X2);
             }
             else {
                 trg.add(targetElement);
