@@ -27,6 +27,7 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
 public class Target2SourceLexicalProbability implements Feature {
 
     private final double minSum = 4.24e-18; // exp(-40)
+    private final double logMinSum = -40;
 
     private Map<Integer, Map<Integer, Double>> model;
 
@@ -125,5 +126,20 @@ public class Target2SourceLexicalProbability implements Feature {
         res /= Math.pow(sourceWords.size(), targetWords.size());
         // TODO could use the log in the computation
         return Math.log(res);
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see
+     * uk.ac.cam.eng.rulebuilding.features.Feature#valueAsciiOovDeletion(uk.
+     * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
+     */
+    @Override
+    public double
+            valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
+        if (r.getTargetWords().size() == 1 && r.getTargetWords().get(0) != 0) {
+            return logMinSum;
+        }
+        return 0;
     }
 }

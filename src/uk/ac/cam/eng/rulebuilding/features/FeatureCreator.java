@@ -69,6 +69,13 @@ public class FeatureCreator {
                 ruleAndMapReduceFeatures.second);
     }
 
+    private double createFeatureAsciiOovDeletion(String featureName,
+            PairWritable3 asciiOovDeletionRule) {
+        return features.get(featureName).valueAsciiOovDeletion(
+                new Rule(asciiOovDeletionRule.first),
+                asciiOovDeletionRule.second);
+    }
+
     private PairWritable3
             createFeatures(PairWritable3 ruleAndMapReduceFeatures) {
         PairWritable3 res = new PairWritable3();
@@ -85,6 +92,23 @@ public class FeatureCreator {
         return res;
     }
 
+    private PairWritable3 createFeaturesAsciiOovDeletion(
+            PairWritable3 asciiOovDeletionRule) {
+        PairWritable3 res = new PairWritable3();
+        res.first = asciiOovDeletionRule.first;
+        DoubleWritable[] featureValues = new DoubleWritable[features.size()];
+        int i = 0;
+        for (String featureName: selectedFeatures) {
+            double featureValue =
+                    createFeatureAsciiOovDeletion(featureName,
+                            asciiOovDeletionRule);
+            featureValues[i] = new DoubleWritable(featureValue);
+            i++;
+        }
+        res.second = new ArrayWritable(DoubleWritable.class, featureValues);
+        return res;
+    }
+
     public List<PairWritable3> createFeatures(
             List<PairWritable3> rulesAndMapReduceFeatures) {
         List<PairWritable3> res = new ArrayList<PairWritable3>();
@@ -92,6 +116,17 @@ public class FeatureCreator {
             PairWritable3 ruleAndFeatures =
                     createFeatures(ruleAndMapReduceFeatures);
             res.add(ruleAndFeatures);
+        }
+        return res;
+    }
+
+    public List<PairWritable3> createFeaturesAsciiOovDeletion(
+            List<PairWritable3> asciiOovDeletionRules) {
+        List<PairWritable3> res = new ArrayList<PairWritable3>();
+        for (PairWritable3 asciiOovDeletionRule: asciiOovDeletionRules) {
+            PairWritable3 asciiOovDeletionRuleAndFeatures =
+                    createFeaturesAsciiOovDeletion(asciiOovDeletionRule);
+            res.add(asciiOovDeletionRuleAndFeatures);
         }
         return res;
     }

@@ -25,4 +25,16 @@ public class WordInsertionPenalty implements Feature {
         return (int) r.nbTargetWords();
     }
 
+    /*
+     * (non-Javadoc)
+     * @see
+     * uk.ac.cam.eng.rulebuilding.features.Feature#valueAsciiOovDeletion(uk.
+     * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
+     */
+    @Override
+    public double
+            valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
+        return 0;
+    }
+
 }

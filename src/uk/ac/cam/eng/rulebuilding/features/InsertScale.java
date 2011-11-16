@@ -24,4 +24,19 @@ public class InsertScale implements Feature {
         // TODO make this work for deletion and oov rules
         return (int) 0;
     }
+
+    /*
+     * (non-Javadoc)
+     * @see
+     * uk.ac.cam.eng.rulebuilding.features.Feature#valueAsciiOovDeletion(uk.
+     * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
+     */
+    @Override
+    public double
+            valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
+        if (r.getTargetWords().size() == 1 && r.getTargetWords().get(0) == 0) {
+            return -1;
+        }
+        return 0;
+    }
 }

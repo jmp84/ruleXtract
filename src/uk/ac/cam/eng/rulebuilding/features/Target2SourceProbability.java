@@ -26,4 +26,16 @@ public class Target2SourceProbability implements Feature {
         return Math.log(((DoubleWritable) mapReduceFeatures.get()[1]).get());
     }
 
+    /*
+     * (non-Javadoc)
+     * @see
+     * uk.ac.cam.eng.rulebuilding.features.Feature#valueAsciiOovDeletion(uk.
+     * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
+     */
+    @Override
+    public double
+            valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
+        return 0;
+    }
+
 }

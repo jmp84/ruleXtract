@@ -5,17 +5,22 @@
 package uk.ac.cam.eng.rulebuilding.retrieval;
 
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.hadoop.conf.Configuration;
@@ -25,6 +30,7 @@ import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileScanner;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Writable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
@@ -106,6 +112,106 @@ public class RuleFileBuilder {
         return res;
     }
 
+    private Set<Rule> getAsciiConstraints(String filename) throws IOException {
+        Set<Rule> res = new HashSet<Rule>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+            String line;
+            Pattern regex = Pattern.compile(".*: (.*) # (.*)");
+            Matcher matcher;
+            while ((line = br.readLine()) != null) {
+                matcher = regex.matcher(line);
+                if (matcher.matches()) {
+                    String[] sourceString = matcher.group(1).split(" ");
+                    String[] targetString = matcher.group(2).split(" ");
+                    List<Integer> source = new ArrayList<Integer>();
+                    List<Integer> target = new ArrayList<Integer>();
+                    for (String ss: sourceString) {
+                        source.add(Integer.parseInt(ss));
+                    }
+                    for (String ts: targetString) {
+                        target.add(Integer.parseInt(ts));
+                    }
+                    Rule rule = new Rule(source, target);
+                    res.add(rule);
+                }
+                else {
+                    System.err.println("Malformed ascii constraint file: "
+                            + filename);
+                    System.exit(1);
+                }
+            }
+        }
+        return res;
+    }
+
+    private Set<Integer> getTestVocab(String testFile)
+            throws FileNotFoundException, IOException {
+        Set<Integer> res = new HashSet<Integer>();
+        try (BufferedReader br = new BufferedReader(new FileReader(testFile))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split("\\s+");
+                for (String part: parts) {
+                    res.add(Integer.parseInt(part));
+                }
+            }
+        }
+        return res;
+    }
+
+    /**
+     * @param testFile
+     * @param hfile
+     * @return
+     * @throws IOException
+     */
+    private List<PairWritable3> getAsciiOovDeletionRules(String testFile,
+            String hfile, String asciiConstraints) throws IOException {
+        Set<Rule> asciiRules = getAsciiConstraints(asciiConstraints);
+        List<PairWritable3> res = new ArrayList<PairWritable3>();
+        // read the HFile and select the rules matching the source phrases
+        Configuration conf = new Configuration();
+        FileSystem fs = FileSystem.get(conf);
+        HFile.Reader hfileReader = new HFile.Reader(fs, new Path(hfile),
+                null, false);
+        hfileReader.loadFileInfo();
+        HFileScanner hfileScanner = hfileReader.getScanner();
+        Set<Integer> testVocab = getTestVocab(testFile);
+        for (Rule asciiRule: asciiRules) {
+            res.add(new PairWritable3(new RuleWritable(asciiRule),
+                    new ArrayWritable(DoubleWritable.class)));
+        }
+        for (Integer testWord: testVocab) {
+            // for (Rule rule: sourceRules) {
+            List<Integer> source = new ArrayList<Integer>();
+            source.add(testWord);
+            Rule rule = new Rule(source, new ArrayList<Integer>());
+            Rule asciiRule = new Rule(source, source);
+            if (asciiRules.contains(asciiRule)) {
+                continue;
+            }
+            RuleWritable ruleWritable = RuleWritable
+                    .makeSourceMarginal(rule);
+            byte[] ruleBytes = object2ByteArray(ruleWritable);
+            int success = hfileScanner.seekTo(ruleBytes);
+            if (success != 0) { // did not found the source: add an oov rule
+                res.add(new PairWritable3(new RuleWritable(rule),
+                        new ArrayWritable(DoubleWritable.class)));
+            }
+            else { // found it: add deletion rule
+                List<Integer> deletion = new ArrayList<Integer>();
+                // deletion is represented by a zero
+                deletion.add(0);
+                Rule deletionRule = new Rule(source, deletion);
+                RuleWritable deletionRuleWritable =
+                        new RuleWritable(deletionRule);
+                res.add(new PairWritable3(deletionRuleWritable,
+                        new ArrayWritable(DoubleWritable.class)));
+            }
+        }
+        return res;
+    }
+
     /**
      * @param args
      * @throws IOException
@@ -179,6 +285,18 @@ public class RuleFileBuilder {
                         target2SourceLexicalModel, rules, selectedFeatures);
         List<PairWritable3> rulesWithFeatures =
                 featureCreator.createFeatures(rules);
+        String asciiConstraints = p.getProperty("ascii_constraints");
+        if (asciiConstraints == null) {
+            System.err
+                    .println("Missing property 'ascii_constraints' in the config");
+            System.exit(1);
+        }
+        List<PairWritable3> asciiOovDeletionRules =
+                ruleFileBuilder.getAsciiOovDeletionRules(testFile, hfile,
+                        asciiConstraints);
+        List<PairWritable3> asciiOovDeletionRulesWithFeatures =
+                featureCreator
+                        .createFeaturesAsciiOovDeletion(asciiOovDeletionRules);
         try (BufferedOutputStream bos =
                 new BufferedOutputStream(new GZIPOutputStream(
                         new FileOutputStream(outRuleFile)))) {
@@ -186,6 +304,16 @@ public class RuleFileBuilder {
                 // bw.write((ruleWithFeatures.toString() + "\n").getBytes());
                 bos.write(ruleWithFeatures.first.toString().getBytes());
                 Writable[] features = ruleWithFeatures.second.get();
+                for (Writable w: features) {
+                    bos.write((" " + w.toString()).getBytes());
+                }
+                bos.write("\n".getBytes());
+            }
+            for (PairWritable3 asciiOovDeletionRuleWithFeatures: asciiOovDeletionRulesWithFeatures) {
+                bos.write(asciiOovDeletionRuleWithFeatures.first.toString()
+                        .getBytes());
+                Writable[] features =
+                        asciiOovDeletionRuleWithFeatures.second.get();
                 for (Writable w: features) {
                     bos.write((" " + w.toString()).getBytes());
                 }

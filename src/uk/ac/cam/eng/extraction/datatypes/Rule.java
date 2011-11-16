@@ -214,7 +214,9 @@ public final class Rule { // final because immutable class
         this.target = new ArrayList<Integer>();
         String[] rwTarget = rw.getTarget().toString().split("_");
         for (String rwt: rwTarget) {
-            this.target.add(Integer.parseInt(rwt));
+            if (!rwt.isEmpty()) { // check in case the target was empty
+                this.target.add(Integer.parseInt(rwt));
+            }
         }
     }
 

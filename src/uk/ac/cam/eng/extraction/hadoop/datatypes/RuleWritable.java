@@ -76,7 +76,12 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         String[] parts = r.toString().split("\\s+");
         leftHandSide = new Text(parts[0]);
         source = new Text(parts[1]);
-        target = new Text(parts[2]);
+        if (parts.length == 3) {
+            target = new Text(parts[2]);
+        }
+        else {
+            target = new Text();
+        }
     }
 
     public RuleWritable(RuleWritable source, RuleWritable target) {

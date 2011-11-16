@@ -16,4 +16,7 @@ public interface Feature {
 
     public double value(Rule r, ArrayWritable mapReduceFeatures);
 
+    public double
+            valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures);
+
 }
