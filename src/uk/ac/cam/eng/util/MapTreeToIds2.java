@@ -8,8 +8,10 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import edu.berkeley.nlp.syntax.Tree;
@@ -28,8 +30,8 @@ public class MapTreeToIds2 {
      */
     public static void main(String[] args) throws FileNotFoundException,
             IOException {
-        if (args.length != 2) {
-            System.err.println("Args: <word map> <PTB tree file>");
+        if (args.length != 3) {
+            System.err.println("Args: <word map> <PTB tree file> <words>");
             System.exit(1);
         }
         Map<String, String> wordMap = new HashMap<String, String>();
@@ -42,21 +44,33 @@ public class MapTreeToIds2 {
             }
         }
         try (BufferedReader br =
-                new BufferedReader(new FileReader(args[1]))) {
+                new BufferedReader(new FileReader(args[1]));
+        		BufferedReader brWords = new BufferedReader(new FileReader(args[2]))) {
             String line;
-            while ((line = br.readLine()) != null) {
-                // Tree parseTree = Tree.valueOf(line);
+            String lineWords;
+            while ((line = br.readLine()) != null && (lineWords = brWords.readLine()) != null) {
+            	String[] words = lineWords.split("\\s+");
                 Tree parseTree = Trees.PennTreeReader.parseEasy(line);
                 Iterator<Tree> parseTreeIterator =
                         parseTree.iterator();
-                @SuppressWarnings("unused")
-                int a = 0;
+                int index = 0;
                 while (parseTreeIterator.hasNext()) {
                     Tree next = parseTreeIterator.next();
                     if (next.isLeaf()) {
                         String word = (String) next.getLabel();
-                        // next.setValue(wordMap.get(word));
-                        next.setLabel(wordMap.get(word));
+                        String wordCheck = words[index];
+                        if (word.equals(wordCheck)) {
+                        	next.setLabel(wordMap.get(word));
+                        }
+                        // this means that the word was discarded in parsing and
+                        // only the tag was left
+                        else {
+                        	//next.setLabel(wordMap.get(wordCheck));
+                        	List<Tree> children = new ArrayList<Tree>();
+                        	children.add(new Tree(wordMap.get(wordCheck)));
+                        	next.setChildren(children);
+                        }
+                        index++;
                     }
                 }
                 System.out.println(parseTree.toString());
