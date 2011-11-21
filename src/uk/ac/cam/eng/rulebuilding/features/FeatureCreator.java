@@ -76,6 +76,12 @@ public class FeatureCreator {
                 asciiOovDeletionRule.second);
     }
 
+    private double createFeatureGlueRule(String featureName,
+            PairWritable3 glueRule) {
+        return features.get(featureName).valueGlue(new Rule(glueRule.first),
+                glueRule.second);
+    }
+
     private PairWritable3
             createFeatures(PairWritable3 ruleAndMapReduceFeatures) {
         PairWritable3 res = new PairWritable3();
@@ -109,6 +115,21 @@ public class FeatureCreator {
         return res;
     }
 
+    private PairWritable3 createFeaturesGlueRule(PairWritable3 glueRule) {
+        PairWritable3 res = new PairWritable3();
+        res.first = glueRule.first;
+        DoubleWritable[] featureValues = new DoubleWritable[features.size()];
+        int i = 0;
+        for (String featureName: selectedFeatures) {
+            double featureValue =
+                    createFeatureGlueRule(featureName, glueRule);
+            featureValues[i] = new DoubleWritable(featureValue);
+            i++;
+        }
+        res.second = new ArrayWritable(DoubleWritable.class, featureValues);
+        return res;
+    }
+
     public List<PairWritable3> createFeatures(
             List<PairWritable3> rulesAndMapReduceFeatures) {
         List<PairWritable3> res = new ArrayList<PairWritable3>();
@@ -127,6 +148,17 @@ public class FeatureCreator {
             PairWritable3 asciiOovDeletionRuleAndFeatures =
                     createFeaturesAsciiOovDeletion(asciiOovDeletionRule);
             res.add(asciiOovDeletionRuleAndFeatures);
+        }
+        return res;
+    }
+
+    public List<PairWritable3> createFeaturesGlueRules(
+            List<PairWritable3> glueRules) {
+        List<PairWritable3> res = new ArrayList<PairWritable3>();
+        for (PairWritable3 glueRule: glueRules) {
+            PairWritable3 glueRuleAndFeatures =
+                    createFeaturesGlueRule(glueRule);
+            res.add(glueRuleAndFeatures);
         }
         return res;
     }

@@ -10,6 +10,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 
 /**
@@ -43,6 +44,21 @@ public class PairWritable3 implements WritableComparable<PairWritable3> {
         sb.append(first.toString());
         sb.append(" ");
         sb.append(second.toStrings());
+        return sb.toString();
+    }
+
+    /**
+     * Prints in HiFST format (X, V nonterminal, etc.)
+     * 
+     * @return a rule with features in HiFST format
+     */
+    public String toStringShallow() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(first.toStringShallow());
+        Writable[] features = second.get();
+        for (Writable w: features) {
+            sb.append(" " + w.toString());
+        }
         return sb.toString();
     }
 

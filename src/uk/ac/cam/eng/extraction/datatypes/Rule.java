@@ -42,6 +42,12 @@ public final class Rule { // final because immutable class
      */
     private final List<Integer> target;
 
+    public Rule(int lhs, List<Integer> src, List<Integer> trg) {
+        this.leftHandSide = lhs;
+        this.source = new ArrayList<Integer>(src);
+        this.target = new ArrayList<Integer>(trg);
+    }
+
     public Rule(List<Integer> src, List<Integer> trg) {
         this.leftHandSide = 0; // TODO modify this to make general
         this.source = new ArrayList<Integer>(src);
@@ -286,10 +292,32 @@ public final class Rule { // final because immutable class
      * @return
      */
     public boolean isStartingGlue() {
-        if (source.size() == 1 && source.get(0) == V && target.size() == 1
-                && target.get(0) == V)
+        if (source.size() == 1 && source.get(0) == X && target.size() == 1
+                && target.get(0) == X)
             return true;
         return false;
+    }
+
+    public boolean isStartSentence() {
+        return (source.size() == 1 && source.get(0) == 1 && target.size() == 1
+        && target.get(0) == 1);
+    }
+
+    public boolean isEndSentence() {
+        return (source.size() == 1 && source.get(0) == 2 && target.size() == 1
+        && target.get(0) == 2);
+    }
+
+    public boolean isDeletion() {
+        return (target.size() == 1 && target.get(0) == 0);
+    }
+
+    public boolean isOov() {
+        return (leftHandSide == -1 && source.size() == 1 && target.size() == 0);
+    }
+
+    public boolean isAscii() {
+        return (leftHandSide == -1 && source.size() == 1 && target.size() == 1);
     }
 
     public boolean isSwapping() {

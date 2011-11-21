@@ -19,4 +19,6 @@ public interface Feature {
     public double
             valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures);
 
+    public double valueGlue(Rule r, ArrayWritable mapReduceFeatures);
+
 }

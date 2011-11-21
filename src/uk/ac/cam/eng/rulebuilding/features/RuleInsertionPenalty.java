@@ -38,4 +38,17 @@ public class RuleInsertionPenalty implements Feature {
         return 0;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see uk.ac.cam.eng.rulebuilding.features.Feature#valueGlue(uk.ac.cam.eng.
+     * extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
+     */
+    @Override
+    public double valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
+        if (r.isStartSentence() || r.isEndSentence()) {
+            return 1;
+        }
+        return 0;
+    }
+
 }

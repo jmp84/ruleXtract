@@ -134,6 +134,40 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         return sb.toString();
     }
 
+    /**
+     * Prints a rule as found in shallow grammar (.lex.gz)
+     * 
+     * @return
+     */
+    public String toStringShallow() {
+        Rule r = new Rule(this);
+        // glue rules
+        if (r.isConcatenatingGlue()) {
+            return "S S_X S_X";
+        }
+        if (r.isStartSentence()) {
+            return "X 1 <s><s><s>";
+        }
+        if (r.isEndSentence()) {
+            return "X 2 </s>";
+        }
+        if (r.isStartingGlue()) {
+            return "X V V";
+        }
+        // deletion, oov, ascii rules
+        if (r.isDeletion()) {
+            return "X " + source.toString() + " <dr>";
+        }
+        if (r.isOov()) {
+            return "X " + source.toString() + " <oov>";
+        }
+        if (r.isAscii()) {
+            return "X " + source.toString() + " " + target.toString();
+        }
+        // TODO finish this
+        return "";
+    }
+
     /*
      * (non-Javadoc)
      * @see org.apache.hadoop.io.Writable#readFields(java.io.DataInput)

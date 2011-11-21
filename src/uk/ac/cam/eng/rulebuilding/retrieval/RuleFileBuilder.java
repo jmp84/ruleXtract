@@ -131,7 +131,7 @@ public class RuleFileBuilder {
                     for (String ts: targetString) {
                         target.add(Integer.parseInt(ts));
                     }
-                    Rule rule = new Rule(source, target);
+                    Rule rule = new Rule(-1, source, target);
                     res.add(rule);
                 }
                 else {
@@ -185,8 +185,8 @@ public class RuleFileBuilder {
             // for (Rule rule: sourceRules) {
             List<Integer> source = new ArrayList<Integer>();
             source.add(testWord);
-            Rule rule = new Rule(source, new ArrayList<Integer>());
-            Rule asciiRule = new Rule(source, source);
+            Rule rule = new Rule(-1, source, new ArrayList<Integer>());
+            Rule asciiRule = new Rule(-1, source, source);
             if (asciiRules.contains(asciiRule)) {
                 continue;
             }
@@ -202,13 +202,39 @@ public class RuleFileBuilder {
                 List<Integer> deletion = new ArrayList<Integer>();
                 // deletion is represented by a zero
                 deletion.add(0);
-                Rule deletionRule = new Rule(source, deletion);
+                Rule deletionRule = new Rule(-1, source, deletion);
                 RuleWritable deletionRuleWritable =
                         new RuleWritable(deletionRule);
                 res.add(new PairWritable3(deletionRuleWritable,
                         new ArrayWritable(DoubleWritable.class)));
             }
         }
+        return res;
+    }
+
+    List<PairWritable3> getGlueRules() {
+        List<PairWritable3> res = new ArrayList<PairWritable3>();
+        List<Integer> sideGlueRule1 = new ArrayList<Integer>();
+        sideGlueRule1.add(-4);
+        sideGlueRule1.add(-1);
+        Rule glueRule1 = new Rule(-4, sideGlueRule1, sideGlueRule1);
+        res.add(new PairWritable3(new RuleWritable(glueRule1),
+                new ArrayWritable(DoubleWritable.class)));
+        List<Integer> sideGlueRule2 = new ArrayList<Integer>();
+        sideGlueRule2.add(-1);
+        Rule glueRule2 = new Rule(-1, sideGlueRule2, sideGlueRule2);
+        res.add(new PairWritable3(new RuleWritable(glueRule2),
+                new ArrayWritable(DoubleWritable.class)));
+        List<Integer> startSentenceSide = new ArrayList<Integer>();
+        startSentenceSide.add(1);
+        Rule startSentence = new Rule(-1, startSentenceSide, startSentenceSide);
+        res.add(new PairWritable3(new RuleWritable(startSentence),
+                new ArrayWritable(DoubleWritable.class)));
+        List<Integer> endSentenceSide = new ArrayList<Integer>();
+        endSentenceSide.add(2);
+        Rule endSentence = new Rule(-1, endSentenceSide, endSentenceSide);
+        res.add(new PairWritable3(new RuleWritable(endSentence),
+                new ArrayWritable(DoubleWritable.class)));
         return res;
     }
 
@@ -297,6 +323,9 @@ public class RuleFileBuilder {
         List<PairWritable3> asciiOovDeletionRulesWithFeatures =
                 featureCreator
                         .createFeaturesAsciiOovDeletion(asciiOovDeletionRules);
+        List<PairWritable3> glueRules = ruleFileBuilder.getGlueRules();
+        List<PairWritable3> glueRulesWithFeatures =
+                featureCreator.createFeaturesGlueRules(glueRules);
         try (BufferedOutputStream bos =
                 new BufferedOutputStream(new GZIPOutputStream(
                         new FileOutputStream(outRuleFile)))) {
@@ -314,6 +343,14 @@ public class RuleFileBuilder {
                         .getBytes());
                 Writable[] features =
                         asciiOovDeletionRuleWithFeatures.second.get();
+                for (Writable w: features) {
+                    bos.write((" " + w.toString()).getBytes());
+                }
+                bos.write("\n".getBytes());
+            }
+            for (PairWritable3 glueRuleWithFeatures: glueRulesWithFeatures) {
+                bos.write(glueRuleWithFeatures.first.toString().getBytes());
+                Writable[] features = glueRuleWithFeatures.second.get();
                 for (Writable w: features) {
                     bos.write((" " + w.toString()).getBytes());
                 }
