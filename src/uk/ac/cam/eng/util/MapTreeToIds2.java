@@ -45,11 +45,16 @@ public class MapTreeToIds2 {
         }
         try (BufferedReader br =
                 new BufferedReader(new FileReader(args[1]));
-        		BufferedReader brWords = new BufferedReader(new FileReader(args[2]))) {
+                BufferedReader brWords =
+                        new BufferedReader(new FileReader(args[2]))) {
             String line;
             String lineWords;
-            while ((line = br.readLine()) != null && (lineWords = brWords.readLine()) != null) {
-            	String[] words = lineWords.split("\\s+");
+            while ((line = br.readLine()) != null
+                    && (lineWords = brWords.readLine()) != null) {
+                if (line.equals("(())")) {
+                    continue; // empty parse
+                }
+                String[] words = lineWords.split("\\s+");
                 Tree parseTree = Trees.PennTreeReader.parseEasy(line);
                 Iterator<Tree> parseTreeIterator =
                         parseTree.iterator();
@@ -60,15 +65,19 @@ public class MapTreeToIds2 {
                         String word = (String) next.getLabel();
                         String wordCheck = words[index];
                         if (word.equals(wordCheck)) {
-                        	next.setLabel(wordMap.get(word));
+                            next.setLabel(wordMap.get(word));
                         }
                         // this means that the word was discarded in parsing and
-                        // only the tag was left
+                        // only the tag was left. I an empty tag was left, we
+                        // set the tag to be 'X'
                         else {
-                        	//next.setLabel(wordMap.get(wordCheck));
-                        	List<Tree> children = new ArrayList<Tree>();
-                        	children.add(new Tree(wordMap.get(wordCheck)));
-                        	next.setChildren(children);
+                            // next.setLabel(wordMap.get(wordCheck));
+                            List<Tree> children = new ArrayList<Tree>();
+                            children.add(new Tree(wordMap.get(wordCheck)));
+                            next.setChildren(children);
+                            if (((String) next.getLabel()).isEmpty()) {
+                                next.setLabel("X");
+                            }
                         }
                         index++;
                     }
