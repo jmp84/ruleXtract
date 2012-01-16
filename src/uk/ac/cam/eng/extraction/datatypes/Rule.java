@@ -384,8 +384,9 @@ public final class Rule { // final because immutable class
     public List<Integer> getTargetWords() {
         List<Integer> res = new ArrayList<Integer>();
         for (int targetElement: target) {
-            // if positive then it is a terminal
-            if (targetElement > 0) {
+            // if nonnegative then it is a terminal
+            // if zero, then it is a deletion rule
+            if (targetElement >= 0) {
                 res.add(targetElement);
             }
         }

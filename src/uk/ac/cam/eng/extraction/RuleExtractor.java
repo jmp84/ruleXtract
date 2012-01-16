@@ -5,7 +5,9 @@
 package uk.ac.cam.eng.extraction;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import org.apache.hadoop.conf.Configuration;
@@ -36,6 +38,14 @@ public class RuleExtractor {
     protected int MAX_NONTERMINAL_LENGTH = 10; // TODO revise this value, put in
                                                // constructor or something
 
+    // in case of monotonic alignment of a block, a nonterminal can cover
+    // different areas, and the same rule can be extracted several times. If
+    // the following variable is true, then the same rule is only counted once.
+    protected boolean REMOVE_MONOTONIC_REPEATS = false;
+    private Map<Integer, Map<Integer, Boolean>> XtermX;
+    private Map<Integer, Map<Integer, Boolean>> termX;
+    private Map<Integer, Map<Integer, Boolean>> Xterm;
+
     private boolean source2target;
 
     public RuleExtractor(Configuration conf) {
@@ -44,6 +54,11 @@ public class RuleExtractor {
         MAX_TERMINAL_LENGTH = conf.getInt("max_terminal_length", 5);
         MAX_NONTERMINAL_LENGTH = conf.getInt("max_nonterminal_length", 10);
         source2target = conf.getBoolean("source2target", true);
+        REMOVE_MONOTONIC_REPEATS =
+                conf.getBoolean("remove_monotonic_repeats", false);
+        XtermX = new HashMap<Integer, Map<Integer, Boolean>>();
+        termX = new HashMap<Integer, Map<Integer, Boolean>>();
+        Xterm = new HashMap<Integer, Map<Integer, Boolean>>();
     }
 
     private static String usage() {
@@ -66,6 +81,11 @@ public class RuleExtractor {
         // for (Rule r: res) {
         // System.err.println(r);
         // }
+        if (REMOVE_MONOTONIC_REPEATS) {
+            XtermX.clear();
+            termX.clear();
+            Xterm.clear();
+        }
         res.addAll(extractHieroRule(a, sp));
         // for (Rule r: res) {
         // System.err.println(r);
@@ -643,12 +663,22 @@ public class RuleExtractor {
 
     private boolean filterPassOneNonTerminalRule(int sourceStartIndex,
             int sourceEndIndex, int sourceStartIndexX, int sourceEndIndexX) {
-        return (((sourceEndIndex - sourceStartIndex + 1)
-                - (sourceEndIndexX - sourceStartIndexX + 1) + 1) <= MAX_SOURCE_ELEMENTS
-                && sourceStartIndexX - sourceStartIndex <= MAX_TERMINAL_LENGTH
-                && sourceEndIndex - sourceEndIndexX <= MAX_TERMINAL_LENGTH && sourceEndIndexX
-                - sourceStartIndexX + 1 <= MAX_NONTERMINAL_LENGTH);
+        boolean res =
+                (((sourceEndIndex - sourceStartIndex + 1)
+                        - (sourceEndIndexX - sourceStartIndexX + 1) + 1) <= MAX_SOURCE_ELEMENTS
+                        && sourceStartIndexX - sourceStartIndex <= MAX_TERMINAL_LENGTH
+                        && sourceEndIndex - sourceEndIndexX <= MAX_TERMINAL_LENGTH && sourceEndIndexX
+                        - sourceStartIndexX + 1 <= MAX_NONTERMINAL_LENGTH);
+        if (!res) {
+            return false;
+        }
         // TODO something about monotonic repetitions
+        if (REMOVE_MONOTONIC_REPEATS
+                && isMonotonicRepeatOneNonterminal(sourceStartIndex,
+                        sourceEndIndex, sourceStartIndexX, sourceEndIndexX)) {
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -670,14 +700,81 @@ public class RuleExtractor {
                 break;
             }
         }
-        return (middleTerminalAligned
-                && ((sourceEndIndex - sourceStartIndex + 1)
-                        - (sourceEndIndexX - sourceStartIndexX + 1)
-                        - (sourceEndIndexX2 - sourceStartIndexX2 + 1) + 2) <= MAX_SOURCE_ELEMENTS
-                && sourceStartIndexX - sourceStartIndex <= MAX_TERMINAL_LENGTH
-                && sourceStartIndexX2 - sourceEndIndexX <= MAX_TERMINAL_LENGTH
-                && sourceEndIndex - sourceEndIndexX2 <= MAX_TERMINAL_LENGTH
-                && sourceEndIndexX - sourceStartIndexX + 1 <= MAX_NONTERMINAL_LENGTH && sourceEndIndexX2
-                - sourceStartIndexX2 + 1 <= MAX_NONTERMINAL_LENGTH);
+        boolean res =
+                (middleTerminalAligned
+                        && ((sourceEndIndex - sourceStartIndex + 1)
+                                - (sourceEndIndexX - sourceStartIndexX + 1)
+                                - (sourceEndIndexX2 - sourceStartIndexX2 + 1) + 2) <= MAX_SOURCE_ELEMENTS
+                        && sourceStartIndexX - sourceStartIndex <= MAX_TERMINAL_LENGTH
+                        && sourceStartIndexX2 - sourceEndIndexX <= MAX_TERMINAL_LENGTH
+                        && sourceEndIndex - sourceEndIndexX2 <= MAX_TERMINAL_LENGTH
+                        && sourceEndIndexX - sourceStartIndexX + 1 <= MAX_NONTERMINAL_LENGTH && sourceEndIndexX2
+                        - sourceStartIndexX2 + 1 <= MAX_NONTERMINAL_LENGTH);
+        if (!res) {
+            return res;
+        }
+        if (REMOVE_MONOTONIC_REPEATS
+                && isMonotonicRepeatTwoNonterminal(sourceStartIndex,
+                        sourceEndIndex, sourceStartIndexX, sourceEndIndexX,
+                        sourceStartIndexX2, sourceEndIndexX2)) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean isMonotonicRepeatOneNonterminal(int sourceStartIndex,
+            int sourceEndIndex, int sourceStartIndexX, int sourceEndIndexX) {
+        if (sourceStartIndexX == sourceStartIndex) {
+            if (Xterm.containsKey(sourceEndIndexX)
+                    && Xterm.get(sourceEndIndexX).containsKey(sourceEndIndex)) {
+                return true;
+            }
+            if (!Xterm.containsKey(sourceEndIndexX)) {
+                Map<Integer, Boolean> newElt = new HashMap<Integer, Boolean>();
+                newElt.put(sourceEndIndex, true);
+                Xterm.put(sourceEndIndexX, newElt);
+            }
+            else {
+                Xterm.get(sourceEndIndexX).put(sourceEndIndex, true);
+            }
+        }
+        if (sourceEndIndexX == sourceEndIndex) {
+            if (termX.containsKey(sourceStartIndex)
+                    && termX.get(sourceStartIndex).containsKey(
+                            sourceStartIndexX)) {
+                return true;
+            }
+            if (!termX.containsKey(sourceStartIndex)) {
+                Map<Integer, Boolean> newElt = new HashMap<Integer, Boolean>();
+                newElt.put(sourceStartIndexX, true);
+                termX.put(sourceStartIndex, newElt);
+            }
+            else {
+                termX.get(sourceStartIndex).put(sourceStartIndexX, true);
+            }
+        }
+        return false;
+    }
+
+    private boolean isMonotonicRepeatTwoNonterminal(int sourceStartIndex,
+            int sourceEndIndex, int sourceStartIndexX, int sourceEndIndexX,
+            int sourceStartIndexX2, int sourceEndIndexX2) {
+        if (sourceStartIndexX == sourceStartIndex
+                && sourceEndIndexX2 == sourceEndIndex) {
+            if (XtermX.containsKey(sourceEndIndexX)
+                    && XtermX.get(sourceEndIndexX).containsKey(
+                            sourceStartIndexX2)) {
+                return true;
+            }
+            if (!XtermX.containsKey(sourceEndIndexX)) {
+                Map<Integer, Boolean> newElt = new HashMap<Integer, Boolean>();
+                newElt.put(sourceStartIndexX2, true);
+                XtermX.put(sourceEndIndexX, newElt);
+            }
+            else {
+                XtermX.get(sourceEndIndexX).put(sourceStartIndexX2, true);
+            }
+        }
+        return false;
     }
 }

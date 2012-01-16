@@ -34,7 +34,12 @@ public class InsertScale implements Feature {
     @Override
     public double
             valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
+        // deletion rule
         if (r.getTargetWords().size() == 1 && r.getTargetWords().get(0) == 0) {
+            return -1;
+        }
+        // oov rule
+        if (r.getTargetWords().size() == 0) {
             return -1;
         }
         return 0;

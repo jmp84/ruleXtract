@@ -185,7 +185,7 @@ public class RuleFileBuilder {
             // for (Rule rule: sourceRules) {
             List<Integer> source = new ArrayList<Integer>();
             source.add(testWord);
-            Rule rule = new Rule(-1, source, new ArrayList<Integer>());
+            Rule rule = new Rule(source, new ArrayList<Integer>());
             Rule asciiRule = new Rule(-1, source, source);
             if (asciiRules.contains(asciiRule)) {
                 continue;
@@ -195,7 +195,9 @@ public class RuleFileBuilder {
             byte[] ruleBytes = object2ByteArray(ruleWritable);
             int success = hfileScanner.seekTo(ruleBytes);
             if (success != 0) { // did not found the source: add an oov rule
-                res.add(new PairWritable3(new RuleWritable(rule),
+                // TODO find a better way to represent an oov rule
+                Rule oovRule = new Rule(-1, source, new ArrayList<Integer>());
+                res.add(new PairWritable3(new RuleWritable(oovRule),
                         new ArrayWritable(DoubleWritable.class)));
             }
             else { // found it: add deletion rule
