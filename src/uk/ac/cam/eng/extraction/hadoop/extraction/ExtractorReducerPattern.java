@@ -20,6 +20,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Reducer;
 
+import uk.ac.cam.eng.extraction.hadoop.datatypes.DoubleArrayWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3Pattern;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3PatternArrayWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritablePattern;
@@ -41,7 +42,7 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
  */
 public class ExtractorReducerPattern
         extends
-        Reducer<BytesWritable, PairWritablePattern, BytesWritable, PairWritable3PatternArrayWritable> {
+        Reducer<RulePatternWritable, PairWritablePattern, RulePatternWritable, DoubleArrayWritable> {
 
     private static class ValueComparator<K extends Comparable<K>, V extends Comparable<V>>
             implements Comparator<K> {
@@ -76,19 +77,11 @@ public class ExtractorReducerPattern
         return sortedMap;
     }
 
-    private byte[] object2ByteArray(Writable obj) throws IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        DataOutputStream out = new DataOutputStream(buffer);
-        obj.write(out);
-        return buffer.toByteArray();
-    }
-
-    protected void reduce(BytesWritable key,
+    protected void reduce(RulePatternWritable key,
             Iterable<PairWritablePattern> values,
             Context context) throws java.io.IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
         // default is 3: source-to-target, target-to-source, count
-        // TODO check config
         int nbFeatures = conf.getInt("nb_features", 3);
         // default value is true: source-to-target extraction
         boolean source2target = conf.getBoolean("source2target", true);
@@ -125,7 +118,6 @@ public class ExtractorReducerPattern
         // sorting by probability because here the denominator is the same)
         PairWritable3Pattern[] outputValueArray =
                 new PairWritable3Pattern[ruleCounts.size()];
-        int i = 0;
         for (RulePatternWritable rw: ruleCounts.keySet()) {
             double countRule = ruleCounts.get(rw);
             DoubleWritable probability = new DoubleWritable(countRule
@@ -134,15 +126,10 @@ public class ExtractorReducerPattern
             features[0] = source2target ? probability : new DoubleWritable(0);
             features[1] = source2target ? new DoubleWritable(0) : probability;
             features[2] = new DoubleWritable(countRule);
-            ArrayWritable featuresWritable =
-                    new ArrayWritable(DoubleWritable.class, features);
-            outputValueArray[i] =
-                    new PairWritable3Pattern(rw, featuresWritable);
-            i++;
+            DoubleArrayWritable featuresWritable = new DoubleArrayWritable();
+            featuresWritable.set(features);
+            RulePatternWritable outputKey = new RulePatternWritable(key, rw);
+            context.write(outputKey, featuresWritable);
         }
-        PairWritable3PatternArrayWritable outputValue =
-                new PairWritable3PatternArrayWritable();
-        outputValue.set(outputValueArray);
-        context.write(key, outputValue);
     }
 }

@@ -33,16 +33,9 @@ import uk.ac.cam.eng.rulebuilding.retrieval.RulePattern;
 
 public class ExtractorMapperPattern
         extends
-        Mapper<IntWritable, TextArrayWritable, BytesWritable, PairWritablePattern> {
+        Mapper<IntWritable, TextArrayWritable, RulePatternWritable, PairWritablePattern> {
 
     private final static IntWritable one = new IntWritable(1);
-
-    private byte[] object2ByteArray(Writable obj) throws IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        DataOutputStream out = new DataOutputStream(buffer);
-        obj.write(out);
-        return buffer.toByteArray();
-    }
 
     /**                                                                                                                                                                                                    
      *                                                                                                                                  
@@ -70,20 +63,16 @@ public class ExtractorMapperPattern
             RulePatternWritable targetMarginal =
                     RulePatternWritable.makeTargetMarginal(pattern);
             PairWritablePattern sideCountPair = null;
-            BytesWritable ruleMarginalBytes = null;
             if (source2target) {
                 sideCountPair =
                         new PairWritablePattern(targetMarginal, one);
-                ruleMarginalBytes =
-                        new BytesWritable(object2ByteArray(sourceMarginal));
+                context.write(sourceMarginal, sideCountPair);
             }
             else {
                 sideCountPair =
                         new PairWritablePattern(sourceMarginal, one);
-                ruleMarginalBytes =
-                        new BytesWritable(object2ByteArray(targetMarginal));
+                context.write(targetMarginal, sideCountPair);
             }
-            context.write(ruleMarginalBytes, sideCountPair);
         }
     }
 }

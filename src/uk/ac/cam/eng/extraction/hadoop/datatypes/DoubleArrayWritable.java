@@ -5,15 +5,16 @@
 package uk.ac.cam.eng.extraction.hadoop.datatypes;
 
 import org.apache.hadoop.io.ArrayWritable;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Writable;
 
 /**
  * @author jmp84
  */
-public class PairWritable3PatternArrayWritable extends ArrayWritable {
+public class DoubleArrayWritable extends ArrayWritable {
 
-    public PairWritable3PatternArrayWritable() {
-        super(PairWritable3Pattern.class);
+    public DoubleArrayWritable() {
+        super(DoubleWritable.class);
     }
 
     /*
@@ -21,11 +22,11 @@ public class PairWritable3PatternArrayWritable extends ArrayWritable {
      * @see org.apache.hadoop.io.ArrayWritable#get()
      */
     @Override
-    public PairWritable3Pattern[] get() {
+    public DoubleWritable[] get() {
         Writable[] values = super.get();
-        PairWritable3Pattern[] res = new PairWritable3Pattern[values.length];
+        DoubleWritable[] res = new DoubleWritable[values.length];
         for (int i = 0; i < values.length; i++) {
-            res[i] = (PairWritable3Pattern) values[i];
+            res[i] = (DoubleWritable) values[i];
         }
         return res;
     }
@@ -36,7 +37,7 @@ public class PairWritable3PatternArrayWritable extends ArrayWritable {
 	@Override
 	public String toString() {
 		StringBuilder res = new StringBuilder();
-		PairWritable3Pattern[] elements = get();
+		DoubleWritable[] elements = get();
 		if (elements.length > 0) {
 			res.append(elements[0].toString());
 		}

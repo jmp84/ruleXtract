@@ -18,8 +18,10 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import uk.ac.cam.eng.extraction.hadoop.datatypes.DoubleArrayWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3PatternArrayWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritablePattern;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 
 public class ExtractorPatternJob extends Configured implements Tool {
 
@@ -46,10 +48,10 @@ public class ExtractorPatternJob extends Configured implements Tool {
         // because
         // it is different than the final output key (respectively value) class
         // may not be needed for key
-        job.setMapOutputKeyClass(BytesWritable.class);
+        job.setMapOutputKeyClass(RulePatternWritable.class);
         job.setMapOutputValueClass(PairWritablePattern.class);
-        job.setOutputKeyClass(BytesWritable.class);
-        job.setOutputValueClass(PairWritable3PatternArrayWritable.class);
+        job.setOutputKeyClass(RulePatternWritable.class);
+        job.setOutputValueClass(DoubleArrayWritable.class);
         job.setMapperClass(ExtractorMapperPattern.class);
         job.setReducerClass(ExtractorReducerPattern.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
