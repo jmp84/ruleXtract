@@ -29,5 +29,4 @@ public class PairWritable3ArrayWritable extends ArrayWritable {
         }
         return res;
     }
-
 }

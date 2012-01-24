@@ -7,6 +7,7 @@ package uk.ac.cam.eng.rulebuilding.retrieval;
 import java.util.ArrayList;
 import java.util.List;
 
+import uk.ac.cam.eng.extraction.datatypes.Rule;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -72,12 +73,38 @@ public class SidePattern {
         return new SidePattern(pattern);
     }
 
+    private static SidePattern getPattern(List<Integer> ruleSide) {
+        List<String> pattern = new ArrayList<String>();
+        boolean consecutiveTerminals = false;
+        for (Integer elt: ruleSide) {
+            if (elt < 0) {
+                pattern.add(elt.toString());
+                consecutiveTerminals = false;
+            } // TODO change formatting for if else
+            else {
+                if (!consecutiveTerminals) {
+                    pattern.add("w");
+                }
+                consecutiveTerminals = true;
+            }
+        }
+        return new SidePattern(pattern);
+    }
+
     public static SidePattern getSourcePattern(RuleWritable rule) {
         return getPattern(rule.getSource().toString());
     }
 
     public static SidePattern getTargetPattern(RuleWritable rule) {
         return getPattern(rule.getTarget().toString());
+    }
+
+    public static SidePattern getSourcePattern(Rule rule) {
+        return getPattern(rule.getSource());
+    }
+
+    public static SidePattern getTargetPattern(Rule rule) {
+        return getPattern(rule.getTarget());
     }
 
     public boolean isPhrase() {
@@ -116,5 +143,21 @@ public class SidePattern {
         else if (!pattern.equals(other.pattern))
             return false;
         return true;
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        StringBuilder res = new StringBuilder();
+        if (!pattern.isEmpty()) {
+            res.append(pattern.get(0));
+        }
+        for (int i = 1; i < pattern.size(); i++) {
+            res.append("_").append(pattern.get(i));
+        }
+        return res.toString();
     }
 }

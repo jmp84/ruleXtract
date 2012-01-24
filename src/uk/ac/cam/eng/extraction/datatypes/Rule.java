@@ -370,6 +370,10 @@ public final class Rule { // final because immutable class
         return source;
     }
 
+    public List<Integer> getTarget() {
+        return target;
+    }
+
     public List<Integer> getSourceWords() {
         List<Integer> res = new ArrayList<Integer>();
         for (int sourceElement: source) {

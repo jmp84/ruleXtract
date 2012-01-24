@@ -4,9 +4,7 @@
 
 package uk.ac.cam.eng.rulebuilding.retrieval;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import uk.ac.cam.eng.extraction.datatypes.Rule;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -37,6 +35,11 @@ public class RulePattern {
             RuleWritable target) {
         return new RulePattern(SidePattern.getSourcePattern(source),
                 SidePattern.getTargetPattern(target));
+    }
+
+    public static RulePattern getPattern(Rule rule) {
+        return new RulePattern(SidePattern.getSourcePattern(rule),
+                SidePattern.getTargetPattern(rule));
     }
 
     /*
@@ -80,5 +83,14 @@ public class RulePattern {
         else if (!targetPattern.equals(other.targetPattern))
             return false;
         return true;
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return sourcePattern.toString() + " " + targetPattern.toString();
     }
 }
