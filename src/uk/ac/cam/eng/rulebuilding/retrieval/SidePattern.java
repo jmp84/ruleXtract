@@ -54,6 +54,15 @@ public class SidePattern {
         return new SidePattern(elements);
     }
 
+    public static SidePattern parsePattern2(String patternString) {
+        String[] parts = patternString.split("_");
+        List<String> elements = new ArrayList<String>();
+        for (String part: parts) {
+            elements.add(part);
+        }
+        return new SidePattern(elements);
+    }
+
     private static SidePattern getPattern(String patternString) {
         String parts[] = patternString.split("_");
         List<String> pattern = new ArrayList<String>();

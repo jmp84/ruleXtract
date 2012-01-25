@@ -7,6 +7,8 @@ package uk.ac.cam.eng.rulebuilding.retrieval;
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
+// TODO be clear about one single format
+
 /**
  * @author jmp84 This class represents a pattern (e.g. wXw-wXw)
  */
@@ -29,6 +31,12 @@ public class RulePattern {
         }
         return new RulePattern(SidePattern.parsePattern(sourceTarget[0]),
                 SidePattern.parsePattern(sourceTarget[1]));
+    }
+
+    public static RulePattern parsePattern(
+            String sourcePatternString, String targetPatternString) {
+        return new RulePattern(SidePattern.parsePattern2(sourcePatternString),
+                SidePattern.parsePattern2(targetPatternString));
     }
 
     public static RulePattern getPattern(RuleWritable source,

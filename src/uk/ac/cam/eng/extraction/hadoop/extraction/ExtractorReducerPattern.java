@@ -4,25 +4,17 @@
 
 package uk.ac.cam.eng.extraction.hadoop.extraction;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.ArrayWritable;
-import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.DoubleArrayWritable;
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3Pattern;
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3PatternArrayWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritablePattern;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 
@@ -116,8 +108,6 @@ public class ExtractorReducerPattern
         // do a second pass for normalization
         // first sort ruleCounts by value (sorting by count is the same as
         // sorting by probability because here the denominator is the same)
-        PairWritable3Pattern[] outputValueArray =
-                new PairWritable3Pattern[ruleCounts.size()];
         for (RulePatternWritable rw: ruleCounts.keySet()) {
             double countRule = ruleCounts.get(rw);
             DoubleWritable probability = new DoubleWritable(countRule
@@ -128,7 +118,14 @@ public class ExtractorReducerPattern
             features[2] = new DoubleWritable(countRule);
             DoubleArrayWritable featuresWritable = new DoubleArrayWritable();
             featuresWritable.set(features);
-            RulePatternWritable outputKey = new RulePatternWritable(key, rw);
+            RulePatternWritable outputKey = null;
+            if (source2target) {
+                outputKey = new RulePatternWritable(key, rw);
+            }
+            else {
+                outputKey = new RulePatternWritable(rw, key);
+                outputKey.invertNonterminals();
+            }
             context.write(outputKey, featuresWritable);
         }
     }

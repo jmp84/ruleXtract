@@ -115,6 +115,24 @@ public class RulePatternWritable implements
         return res;
     }
 
+    public void invertNonterminals() {
+        String sourceString = source.toString();
+        String targetString = target.toString();
+        if (sourceString.matches("^.*-3.*-2.*$")
+                && targetString.matches("^.*-2.*-3.*$")) {
+            sourceString = sourceString.replaceAll("-3", "-3temp");
+            sourceString = sourceString.replaceAll("-2", "-3");
+            sourceString = sourceString.replaceAll("-3temp", "-2");
+            targetString = targetString.replaceAll("-3", "-3temp");
+            targetString = targetString.replaceAll("-2", "-3");
+            targetString = targetString.replaceAll("-3temp", "-2");
+            setSource(new Text(sourceString));
+            setTarget(new Text(targetString));
+            // source.set(sourceString);
+            // target.set(targetString);
+        }
+    }
+
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(source);
