@@ -97,6 +97,7 @@ public class RuleFileBuilder {
                 null, false);
         hfileReader.loadFileInfo();
         HFileScanner hfileScanner = hfileReader.getScanner();
+        int counter = 0;
         for (Rule rule: sourceRules) {
             RuleWritable ruleWritable = RuleWritable
                     .makeSourceMarginal(rule);
@@ -107,6 +108,10 @@ public class RuleFileBuilder {
                         ruleWritable,
                         convertValueBytes(hfileScanner.getValue()));
                 res.addAll(filteredRules);
+            }
+            counter++;
+            if (counter % 50000 == 0) {
+                System.err.println("Processed " + counter + " sources");
             }
         }
         return res;
@@ -331,8 +336,20 @@ public class RuleFileBuilder {
         try (BufferedOutputStream bos =
                 new BufferedOutputStream(new GZIPOutputStream(
                         new FileOutputStream(outRuleFile)))) {
+            // TODO should be called only once
+            Set<Rule> asciiRules =
+                    ruleFileBuilder.getAsciiConstraints(asciiConstraints);
             for (PairWritable3 ruleWithFeatures: rulesWithFeatures) {
                 // bw.write((ruleWithFeatures.toString() + "\n").getBytes());
+                // check if rule is not an ascii rule
+                Rule checkNotAscii = new Rule(ruleWithFeatures.first);
+                if (asciiRules.contains(checkNotAscii)) {
+                    // this rule will be included as an ascii rule, don't
+                    // include it here
+                    System.err.println("Ascii rule has been extracted: "
+                            + checkNotAscii.toString());
+                    continue;
+                }
                 bos.write(ruleWithFeatures.first.toString().getBytes());
                 Writable[] features = ruleWithFeatures.second.get();
                 for (Writable w: features) {

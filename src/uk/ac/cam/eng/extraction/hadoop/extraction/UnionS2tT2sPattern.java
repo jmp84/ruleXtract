@@ -4,15 +4,21 @@
 
 package uk.ac.cam.eng.extraction.hadoop.extraction;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.SequenceFile;
+
+import uk.ac.cam.eng.extraction.hadoop.datatypes.DoubleArrayWritable;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 import uk.ac.cam.eng.rulebuilding.retrieval.RulePattern;
 
 /**
@@ -25,63 +31,54 @@ public class UnionS2tT2sPattern {
     public static void union(
             String s2tInputFile, String t2sInputFile, String outputFile)
             throws FileNotFoundException, IOException {
-        Map<RulePattern, double[]> union = new HashMap<RulePattern, double[]>();
-        try (BufferedReader brS2t =
-                new BufferedReader(new FileReader(s2tInputFile));
-                BufferedReader brT2s =
-                        new BufferedReader(new FileReader(t2sInputFile))) {
-            String lineS2t = null, lineT2s = null;
-            while ((lineS2t = brS2t.readLine()) != null
-                    && (lineT2s = brT2s.readLine()) != null) {
-                String[] partsS2t = lineS2t.split("\\s+");
-                String[] partsT2s = lineT2s.split("\\s+");
-                if (partsS2t.length != partsT2s.length) {
-                    System.err.println(
-                            "Malformed lines: \n" + lineS2t + "\n" + lineT2s);
-                    System.exit(1);
+        Map<RulePattern, double[]> union = new HashMap<>();
+        Configuration conf = new Configuration();
+        FileSystem fs = FileSystem.get(conf);
+        SequenceFile.Reader sequenceReader =
+                new SequenceFile.Reader(fs, new Path(s2tInputFile), conf);
+        SequenceFile.Reader sequenceReader2 =
+                new SequenceFile.Reader(fs, new Path(t2sInputFile), conf);
+        // try (BufferedReader brS2t =
+        // new BufferedReader(new FileReader(s2tInputFile));
+        // BufferedReader brT2s =
+        // new BufferedReader(new FileReader(t2sInputFile))) {
+        RulePatternWritable key = new RulePatternWritable();
+        RulePatternWritable key2 = new RulePatternWritable();
+        DoubleArrayWritable value = new DoubleArrayWritable();
+        DoubleArrayWritable value2 = new DoubleArrayWritable();
+        while (sequenceReader.next(key, value) &&
+                sequenceReader2.next(key2, value2)) {
+            RulePattern rulePattern = 
+            if (union.containsKey(key)) {
+                //DoubleWritable[] oldValue = union.get(key).get();
+                double[]
+                // TODO features config size
+                for (int i = 0; i < 2; i++) {
+                    oldValue[i].set(oldValue[i].get() + value.get()[i].get());
                 }
-                RulePattern s2tPattern =
-                        RulePattern.parsePattern(partsS2t[0], partsS2t[1]);
-                if (union.containsKey(s2tPattern)) {
-                    double[] value = union.get(s2tPattern);
-                    // TODO features config size
-                    for (int i = 0; i < 2; i++) {
-                        value[i] += Double.parseDouble(partsS2t[i + 2]);
-                    }
-                    union.put(s2tPattern, value);
+                union.get(key).set(oldValue);
+            }
+            else {
+                union.put(key, value);
+            }
+            if (union.containsKey(key2)) {
+                DoubleWritable[] oldValue = union.get(key2).get();
+                // TODO features config size
+                for (int i = 0; i < 2; i++) {
+                    oldValue[i].set(oldValue[i].get() + value2.get()[i].get());
                 }
-                else {
-                    double[] value = new double[partsS2t.length - 2];
-                    for (int i = 0; i < value.length; i++) {
-                        value[i] = Double.parseDouble(partsS2t[i + 2]);
-                    }
-                    union.put(s2tPattern, value);
-                }
-                RulePattern t2sPattern =
-                        RulePattern.parsePattern(partsT2s[0], partsT2s[1]);
-                if (union.containsKey(t2sPattern)) {
-                    double[] value = union.get(t2sPattern);
-                    // TODO features config size
-                    for (int i = 0; i < 2; i++) {
-                        value[i] += Double.parseDouble(partsT2s[i + 2]);
-                    }
-                    union.put(t2sPattern, value);
-                }
-                else {
-                    double[] value = new double[partsT2s.length - 2];
-                    for (int i = 0; i < value.length; i++) {
-                        value[i] = Double.parseDouble(partsT2s[i + 2]);
-                    }
-                    union.put(t2sPattern, value);
-                }
+                union.get(key2).set(oldValue);
+            }
+            else {
+                union.put(key2, value2);
             }
         }
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile))) {
-            for (RulePattern rp: union.keySet()) {
+            for (RulePatternWritable rp: union.keySet()) {
                 StringBuilder outputLine = new StringBuilder();
                 outputLine.append(rp.toString());
-                for (double feature: union.get(rp)) {
-                    outputLine.append(" " + feature);
+                for (DoubleWritable feature: union.get(rp).get()) {
+                    outputLine.append(" " + feature.get());
                 }
                 bw.write(outputLine.toString() + "\n");
             }

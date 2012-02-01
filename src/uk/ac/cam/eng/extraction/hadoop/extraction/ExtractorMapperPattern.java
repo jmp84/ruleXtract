@@ -4,15 +4,9 @@
 
 package uk.ac.cam.eng.extraction.hadoop.extraction;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import uk.ac.cam.eng.extraction.RuleExtractor;
@@ -30,6 +24,9 @@ import uk.ac.cam.eng.rulebuilding.retrieval.RulePattern;
  *         probability. It's the same as for rules except that we replace rules
  *         by their patterns.
  */
+
+// TODO change this mapper so we don't redo extraction. Take the output of the
+// extraction job instead
 
 public class ExtractorMapperPattern
         extends

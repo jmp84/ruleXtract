@@ -5,9 +5,12 @@
 package uk.ac.cam.eng.util;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -35,18 +38,41 @@ public class MapTreeToIds2 {
             System.exit(1);
         }
         Map<String, String> wordMap = new HashMap<String, String>();
+        Map<String, String> wordMapReverse = new HashMap<String, String>();
         try (BufferedReader br =
-                new BufferedReader(new FileReader(args[0]))) {
+                // new BufferedReader(new FileReader(args[0]))) {
+                new BufferedReader(new InputStreamReader(new FileInputStream(
+                        args[0]), "UTF-16"))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split("\\s+");
+                System.out.println(line);
                 wordMap.put(parts[1], parts[0]);
+                if (parts[0].equals("108897") || parts[0].equals("939751")) {
+                    System.out.println(line);
+                }
+                wordMapReverse.put(parts[0], parts[1]);
             }
         }
+        System.err.println(wordMapReverse.get("939751").equals(
+                wordMapReverse.get("108897")));
+        System.out.println(wordMapReverse.get("939751"));
+        System.out.println(wordMapReverse.get("108897"));
+        System.out.println((int) wordMapReverse.get("108897").charAt(9));
+        System.out.println((int) wordMapReverse.get("939751").charAt(9));
+        System.out.println((int) wordMapReverse.get("939751").charAt(10));
         try (BufferedReader br =
-                new BufferedReader(new FileReader(args[1]));
+                // new BufferedReader(new FileReader(args[1]));
+                new BufferedReader(new InputStreamReader(new FileInputStream(
+                        args[1]), "UTF-8"));
                 BufferedReader brWords =
-                        new BufferedReader(new FileReader(args[2]))) {
+                        // new BufferedReader(new FileReader(args[2]))) {
+                        new BufferedReader(new InputStreamReader(
+                                new FileInputStream(args[2]), "UTF-8"));
+                BufferedWriter bw =
+                        new BufferedWriter(
+                                new FileWriter(
+                                        "/home/blue9/jmp84/exps/0065-ZHENc4v1p1/sub3/etrees/tempmirror"))) {
             String line;
             String lineWords;
             while ((line = br.readLine()) != null
@@ -64,6 +90,8 @@ public class MapTreeToIds2 {
                     if (next.isLeaf()) {
                         String word = (String) next.getLabel();
                         String wordCheck = words[index];
+                        bw.write(wordCheck + " ");
+                        String id = wordMap.get(wordCheck);
                         if (word.equals(wordCheck)) {
                             next.setLabel(wordMap.get(word));
                         }
