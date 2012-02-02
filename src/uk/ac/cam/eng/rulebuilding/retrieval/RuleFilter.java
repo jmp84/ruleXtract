@@ -9,11 +9,14 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DoubleWritable;
@@ -25,6 +28,39 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
  * @author jmp84 This class filters rules according to constraints in a config
  */
 public class RuleFilter {
+
+    private static class ValueComparator<K extends Comparable<K>, V extends Comparable<V>>
+            implements Comparator<K> {
+
+        private final Map<K, V> map;
+
+        public ValueComparator(Map<K, V> map) {
+            super();
+            this.map = map;
+        }
+
+        public int compare(K key1, K key2) {
+            V value1 = this.map.get(key1);
+            V value2 = this.map.get(key2);
+            int c = value2.compareTo(value1);
+            if (c != 0) {
+                return c;
+            }
+            // compare the keys because in case of ties, we want to keep the
+            // most frequent source rules (smaller integers correspond to more
+            // frequent words)
+            return key1.compareTo(key2);
+        }
+    }
+
+    private static <K extends Comparable<K>, V extends Comparable<V>> Map<K, V>
+            sortMapByValue(
+                    Map<K, V> unsortedMap) {
+        SortedMap<K, V> sortedMap = new TreeMap<K, V>(
+                new ValueComparator<K, V>(unsortedMap));
+        sortedMap.putAll(unsortedMap);
+        return sortedMap;
+    }
 
     // TODO put the default in the code
     private double minSource2TargetPhrase;
@@ -109,8 +145,30 @@ public class RuleFilter {
         }
     }
 
+    private ArrayWritable sortByCount(ArrayWritable listTargetAndProb) {
+        Map<RuleWritable, Double> targetsAndCounts = new HashMap<>();
+        Map<RuleWritable, Integer> indices = new HashMap<>();
+        for (int i = 0; i < listTargetAndProb.get().length; i++) {
+            targetsAndCounts
+                    .put(((PairWritable3) listTargetAndProb.get()[i]).first,
+                            ((DoubleWritable) ((PairWritable3) listTargetAndProb
+                                    .get()[i]).second.get()[2]).get());
+            indices.put(((PairWritable3) listTargetAndProb.get()[i]).first, i);
+        }
+        Map<RuleWritable, Double> sortedMap = sortMapByValue(targetsAndCounts);
+        PairWritable3[] valueRes = new PairWritable3[sortedMap.size()];
+        int i = 0;
+        for (RuleWritable rw: sortedMap.keySet()) {
+            valueRes[i] =
+                    (PairWritable3) listTargetAndProb.get()[indices.get(rw)];
+            i++;
+        }
+        return new ArrayWritable(PairWritable3.class, valueRes);
+    }
+
     public List<PairWritable3> filter(RuleWritable source,
             ArrayWritable listTargetAndProb) {
+        ArrayWritable listTargetAndProbSorted = sortByCount(listTargetAndProb);
         List<PairWritable3> res = new ArrayList<PairWritable3>();
         SidePattern sourcePattern = SidePattern.getSourcePattern(source);
         if (!sourcePattern.isPhrase()
@@ -118,9 +176,9 @@ public class RuleFilter {
             return res;
         }
         int numberTranslations = 0;
-        for (int i = 0; i < listTargetAndProb.get().length; i++) {
-            PairWritable3 targetAndProb = (PairWritable3) listTargetAndProb
-                    .get()[i];
+        for (int i = 0; i < listTargetAndProbSorted.get().length; i++) {
+            PairWritable3 targetAndProb =
+                    (PairWritable3) listTargetAndProbSorted.get()[i];
             RulePattern rulePattern = RulePattern.getPattern(source,
                     targetAndProb.first);
             if (!sourcePattern.isPhrase()
