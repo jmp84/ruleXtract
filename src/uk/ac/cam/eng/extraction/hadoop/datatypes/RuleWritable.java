@@ -207,68 +207,47 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         return cmp;
     }
 
-    // /* (non-Javadoc)
-    // * @see java.lang.Object#hashCode()
-    // */
-    // @Override
-    // public int hashCode() {
-    // final int prime = 31;
-    // int result = 1;
-    // result = prime * result
-    // + ((leftHandSide == null) ? 0 : leftHandSide.hashCode());
-    // result = prime * result + ((source == null) ? 0 : source.hashCode());
-    // result = prime * result + ((target == null) ? 0 : target.hashCode());
-    // return result;
-    // }
-    //
-    //
-    // /* (non-Javadoc)
-    // * @see java.lang.Object#equals(java.lang.Object)
-    // */
-    // @Override
-    // public boolean equals(Object obj) {
-    // if (this == obj)
-    // return true;
-    // if (obj == null)
-    // return false;
-    // if (getClass() != obj.getClass())
-    // return false;
-    // RuleWritable other = (RuleWritable) obj;
-    // if (leftHandSide == null) {
-    // if (other.leftHandSide != null)
-    // return false;
-    // } else if (!leftHandSide.equals(other.leftHandSide))
-    // return false;
-    // if (source == null) {
-    // if (other.source != null)
-    // return false;
-    // } else if (!source.equals(other.source))
-    // return false;
-    // if (target == null) {
-    // if (other.target != null)
-    // return false;
-    // } else if (!target.equals(other.target))
-    // return false;
-    // return true;
-    // }
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((leftHandSide == null) ? 0 : leftHandSide.hashCode());
+		result = prime * result + ((source == null) ? 0 : source.hashCode());
+		result = prime * result + ((target == null) ? 0 : target.hashCode());
+		return result;
+	}
 
-    public boolean equals(Object o) {
-        if (o instanceof RuleWritable) {
-            RuleWritable that = (RuleWritable) o;
-            return (leftHandSide.equals(that.leftHandSide)
-                    && source.equals(that.source) && target.equals(that.target));
-        }
-        return false;
-    }
-
-    // TODO review this, best practice
-    public int hashCode() {
-        return leftHandSide.hashCode() + source.hashCode() + target.hashCode();
-        /*
-         * int result = 163; result = 37 * result + leftHandSide.hashCode();
-         * result = 37 * result + source.hashCode(); result = 37 * result +
-         * target.hashCode(); return result;
-         */
-    }
-
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		RuleWritable other = (RuleWritable) obj;
+		if (leftHandSide == null) {
+			if (other.leftHandSide != null)
+				return false;
+		} else if (!leftHandSide.equals(other.leftHandSide))
+			return false;
+		if (source == null) {
+			if (other.source != null)
+				return false;
+		} else if (!source.equals(other.source))
+			return false;
+		if (target == null) {
+			if (other.target != null)
+				return false;
+		} else if (!target.equals(other.target))
+			return false;
+		return true;
+	}
 }

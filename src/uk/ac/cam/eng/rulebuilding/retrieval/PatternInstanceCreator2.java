@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.hadoop.conf.Configuration;
+
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 
 // TODO rename this to PatternInstanceCreator
@@ -38,6 +40,14 @@ public class PatternInstanceCreator2 {
     protected int MAX_NONTERMINAL_LENGTH = 10; // TODO revise this value, put in
 
     protected int HR_MAX_HEIGHT = 10;
+    
+    public PatternInstanceCreator2(Configuration conf) {
+        MAX_SOURCE_PHRASE = conf.getInt("max_source_phrase", 5);
+        MAX_SOURCE_ELEMENTS = conf.getInt("max_source_elements", 5);
+        MAX_TERMINAL_LENGTH = conf.getInt("max_terminal_length", 5);
+        MAX_NONTERMINAL_LENGTH = conf.getInt("max_nonterminal_length", 10);
+        HR_MAX_HEIGHT = conf.getInt("hr_max_height", 10);
+    }
 
     public List<SidePattern> createSourcePatterns(String patternFile)
             throws FileNotFoundException, IOException {

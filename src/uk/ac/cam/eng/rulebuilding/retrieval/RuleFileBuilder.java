@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.hfile.HFile;
@@ -32,10 +33,13 @@ import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
+import uk.ac.cam.eng.extraction.hadoop.extraction.ExtractorJob;
 import uk.ac.cam.eng.rulebuilding.features.FeatureCreator;
 
 /**
@@ -43,7 +47,7 @@ import uk.ac.cam.eng.rulebuilding.features.FeatureCreator;
  *         set and other configurations, retrieves the relevant rules and
  *         returns a rule file ready to be used by the decoder
  */
-public class RuleFileBuilder {
+public class RuleFileBuilder extends Configured implements Tool{
 
     private RuleFilter ruleFilter;
     private PatternInstanceCreator2 patternInstanceCreator;
@@ -52,7 +56,20 @@ public class RuleFileBuilder {
             IOException {
         ruleFilter = new RuleFilter();
         ruleFilter.loadConfig(filterConfig);
-        patternInstanceCreator = new PatternInstanceCreator2();
+        Properties p = new Properties();
+        try {
+            p.load(new FileInputStream(filterConfig));
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        //Configuration conf = getConf();
+        Configuration conf = new Configuration();
+        for (String prop: p.stringPropertyNames()) {
+            conf.set(prop, p.getProperty(prop));
+        }
+        patternInstanceCreator = new PatternInstanceCreator2(conf);
     }
 
     private static byte[] object2ByteArray(Writable obj) throws IOException {
@@ -148,6 +165,34 @@ public class RuleFileBuilder {
         }
         return res;
     }
+    
+    private Set<Integer> getAsciiVocab(String filename) throws IOException {
+    	// TODO simplify all template writing
+    	// TODO getAsciiVocab is redundant with getAsciiConstraints
+        Set<Integer> res = new HashSet<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+            String line;
+            Pattern regex = Pattern.compile(".*: (.*) # (.*)");
+            Matcher matcher;
+            while ((line = br.readLine()) != null) {
+                matcher = regex.matcher(line);
+                if (matcher.matches()) {
+                    String[] sourceString = matcher.group(1).split(" ");
+                    List<Integer> source = new ArrayList<Integer>();
+                    // only one word
+                    if (sourceString.length == 1) {
+                    	res.add(Integer.parseInt(sourceString[0]));
+                    }
+                }
+                else {
+                    System.err.println("Malformed ascii constraint file: "
+                            + filename);
+                    System.exit(1);
+                }
+            }
+        }
+        return res;    	
+    }
 
     private Set<Integer> getTestVocab(String testFile)
             throws FileNotFoundException, IOException {
@@ -173,6 +218,7 @@ public class RuleFileBuilder {
     private List<PairWritable3> getAsciiOovDeletionRules(String testFile,
             String hfile, String asciiConstraints) throws IOException {
         Set<Rule> asciiRules = getAsciiConstraints(asciiConstraints);
+        Set<Integer> asciiVocab = getAsciiVocab(asciiConstraints);
         List<PairWritable3> res = new ArrayList<PairWritable3>();
         // read the HFile and select the rules matching the source phrases
         Configuration conf = new Configuration();
@@ -187,14 +233,16 @@ public class RuleFileBuilder {
                     new ArrayWritable(DoubleWritable.class)));
         }
         for (Integer testWord: testVocab) {
-            // for (Rule rule: sourceRules) {
+            if (asciiVocab.contains(testWord)) {
+            	continue;
+            }
             List<Integer> source = new ArrayList<Integer>();
             source.add(testWord);
             Rule rule = new Rule(source, new ArrayList<Integer>());
-            Rule asciiRule = new Rule(-1, source, source);
-            if (asciiRules.contains(asciiRule)) {
-                continue;
-            }
+            //Rule asciiRule = new Rule(-1, source, source);
+            //if (asciiRules.contains(asciiRule)) {
+            //    continue;
+            //}
             RuleWritable ruleWritable = RuleWritable
                     .makeSourceMarginal(rule);
             byte[] ruleBytes = object2ByteArray(ruleWritable);
@@ -249,11 +297,7 @@ public class RuleFileBuilder {
      * @param args
      * @throws IOException
      */
-    public static void main(String[] args) throws IOException {
-        if (args.length != 1) {
-            System.err.println("Required arg: config file");
-            System.exit(1);
-        }
+    public int run(String[] args) throws IOException {
         Properties p = new Properties();
         try {
             p.load(new FileInputStream(args[0]));
@@ -278,7 +322,6 @@ public class RuleFileBuilder {
             System.err.println("Missing property 'patternfile' in the config");
             System.exit(1);
         }
-        RuleFileBuilder ruleFileBuilder = new RuleFileBuilder(args[0]);
         // read the HFile and select the rules matching the source phrases and
         // write them to a file
         String outRuleFile = p.getProperty("outrulefile");
@@ -291,8 +334,7 @@ public class RuleFileBuilder {
             System.err.println("Missing property 'hfile' in the config");
             System.exit(1);
         }
-        List<PairWritable3> rules =
-                ruleFileBuilder.getRules(patternFile, testFile, hfile);
+        List<PairWritable3> rules = getRules(patternFile, testFile, hfile);
         String source2TargetLexicalModel =
                 p.getProperty("source2target_lexical_model");
         if (source2TargetLexicalModel == null) {
@@ -324,21 +366,18 @@ public class RuleFileBuilder {
                     .println("Missing property 'ascii_constraints' in the config");
             System.exit(1);
         }
-        List<PairWritable3> asciiOovDeletionRules =
-                ruleFileBuilder.getAsciiOovDeletionRules(testFile, hfile,
-                        asciiConstraints);
+        List<PairWritable3> asciiOovDeletionRules = getAsciiOovDeletionRules(testFile, hfile, asciiConstraints);
         List<PairWritable3> asciiOovDeletionRulesWithFeatures =
                 featureCreator
                         .createFeaturesAsciiOovDeletion(asciiOovDeletionRules);
-        List<PairWritable3> glueRules = ruleFileBuilder.getGlueRules();
+        List<PairWritable3> glueRules = getGlueRules();
         List<PairWritable3> glueRulesWithFeatures =
                 featureCreator.createFeaturesGlueRules(glueRules);
         try (BufferedOutputStream bos =
                 new BufferedOutputStream(new GZIPOutputStream(
                         new FileOutputStream(outRuleFile)))) {
             // TODO should be called only once
-            Set<Rule> asciiRules =
-                    ruleFileBuilder.getAsciiConstraints(asciiConstraints);
+            Set<Rule> asciiRules = getAsciiConstraints(asciiConstraints);
             for (PairWritable3 ruleWithFeatures: rulesWithFeatures) {
                 // bw.write((ruleWithFeatures.toString() + "\n").getBytes());
                 // check if rule is not an ascii rule
@@ -376,5 +415,15 @@ public class RuleFileBuilder {
                 bos.write("\n".getBytes());
             }
         }
+        return 0;
     }
+    
+    public static void main(String[] args) throws Exception {
+        if (args.length != 1) {
+            System.err.println("Usage args: configFile");
+        }
+        int res = ToolRunner.run(new RuleFileBuilder(args[0]), args);
+        System.exit(res);
+    }
+
 }
