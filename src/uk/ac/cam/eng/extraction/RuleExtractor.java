@@ -241,9 +241,9 @@ public class RuleExtractor {
         // pairs that would be extracted
         // these are maximum width blocks, they cannot be extended
         List<Block> regularBlocks = getRegularBlocks(a, sp);
-        // for (Block b: regularBlocks) {
-        // System.err.println(b);
-        // }
+        for (Block b: regularBlocks) {
+            System.err.println(b);
+        }
 
         // something here about monotonic repetitions
         res.addAll(extractInternalBlockRules(regularBlocks, a, sp));
@@ -267,12 +267,6 @@ public class RuleExtractor {
                 && targetStartIndex < sp.getTarget().getWords().length) {
             Block next = findNextBlock(sourceStartIndex, sourceEndIndex,
                     targetStartIndex, targetEndIndex, a, sp);
-            // if (next.targetStartIndex >= sp.getTarget().getWords().length - 1
-            // || next.sourceStartIndex >= sp.getSource().getWords().length - 1)
-            // {
-            // break;
-            // }
-
             int nextSourceStartIndex = next.sourceStartIndex;
             int nextSourceEndIndex = next.sourceEndIndex;
             int nextTargetStartIndex = next.targetStartIndex;
@@ -284,43 +278,18 @@ public class RuleExtractor {
             }
             else if (next.targetStartIndex < sp.getTarget().getWords().length - 1
                     && !a.isTargetAligned(next.targetStartIndex)) {
-                // next.sourceEndIndex--;
                 nextSourceEndIndex--;
             }
             else if (next.sourceStartIndex < sp.getSource().getWords().length - 1
                     && !a.isSourceAligned(next.sourceStartIndex)) {
-                // next.targetEndIndex--;
                 nextTargetEndIndex--;
             }
 
-            // if (next.targetStartIndex >= sp.getTarget().getWords().length - 1
-            // || next.sourceStartIndex >= sp.getSource().getWords().length - 1)
-            // {
-            // break;
-            // }
-
-            // if (next.targetStartIndex < sp.getTarget().getWords().length - 1
-            // && !a.isTargetAligned(next.targetStartIndex)) {
-            // next.sourceEndIndex--;
-            // }
-            // if (next.sourceStartIndex < sp.getSource().getWords().length - 1
-            // && !a.isSourceAligned(next.sourceStartIndex)) {
-            // next.targetEndIndex--;
-            // }
-
-            // if (next.sourceStartIndex <= next.sourceEndIndex
-            // && next.targetStartIndex <= next.targetEndIndex) {
             if (nextSourceStartIndex <= nextSourceEndIndex
                     && nextTargetStartIndex <= nextTargetEndIndex) {
-                // System.err.println("block:" + next.sourceStartIndex + " " +
-                // next.sourceEndIndex + " " + next.targetStartIndex + " " +
-                // next.targetEndIndex);
-                // res.add(next);
                 res.add(new Block(nextSourceStartIndex, nextSourceEndIndex,
                         nextTargetStartIndex, nextTargetEndIndex));
             }
-            // sourceStartIndex = next.sourceEndIndex + 1;
-            // targetStartIndex = next.targetEndIndex + 1;
             sourceStartIndex = nextSourceEndIndex + 1;
             targetStartIndex = nextTargetEndIndex + 1;
             sourceEndIndex = sourceStartIndex;
