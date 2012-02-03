@@ -263,35 +263,44 @@ public class RuleExtractor {
         int sourceEndIndex = 0;
         int targetStartIndex = 0;
         int targetEndIndex = 0;
-        while (sourceStartIndex < sp.getSource().getWords().length
-                && targetStartIndex < sp.getTarget().getWords().length) {
+        while (sourceStartIndex <= sp.getSource().getWords().length
+                && targetStartIndex <= sp.getTarget().getWords().length) {
             Block next = findNextBlock(sourceStartIndex, sourceEndIndex,
                     targetStartIndex, targetEndIndex, a, sp);
-            int nextSourceStartIndex = next.sourceStartIndex;
-            int nextSourceEndIndex = next.sourceEndIndex;
-            int nextTargetStartIndex = next.targetStartIndex;
-            int nextTargetEndIndex = next.targetEndIndex;
+//            int nextSourceStartIndex = next.sourceStartIndex;
+//            int nextSourceEndIndex = next.sourceEndIndex;
+//            int nextTargetStartIndex = next.targetStartIndex;
+//            int nextTargetEndIndex = next.targetEndIndex;
+            
+            sourceStartIndex = next.sourceStartIndex;
+            sourceEndIndex = next.sourceEndIndex;
+            targetStartIndex = next.targetStartIndex;
+            targetEndIndex = next.targetEndIndex;
 
-            if (next.targetStartIndex >= sp.getTarget().getWords().length - 1
-                    && next.sourceStartIndex >= sp.getSource().getWords().length - 1) {
+            if (targetStartIndex >= sp.getTarget().getWords().length
+                    && sourceStartIndex >= sp.getSource().getWords().length) {
                 // do nothing
             }
-            else if (next.targetStartIndex < sp.getTarget().getWords().length - 1
-                    && !a.isTargetAligned(next.targetStartIndex)) {
-                nextSourceEndIndex--;
+            else if (targetStartIndex < sp.getTarget().getWords().length
+                    && !a.isTargetAligned(targetStartIndex)) {
+                sourceEndIndex--;
             }
-            else if (next.sourceStartIndex < sp.getSource().getWords().length - 1
-                    && !a.isSourceAligned(next.sourceStartIndex)) {
-                nextTargetEndIndex--;
+            else if (sourceStartIndex < sp.getSource().getWords().length
+                    && !a.isSourceAligned(sourceStartIndex)) {
+                targetEndIndex--;
             }
-
-            if (nextSourceStartIndex <= nextSourceEndIndex
-                    && nextTargetStartIndex <= nextTargetEndIndex) {
-                res.add(new Block(nextSourceStartIndex, nextSourceEndIndex,
-                        nextTargetStartIndex, nextTargetEndIndex));
+    
+            if (targetStartIndex >= sp.getTarget().getWords().length
+            		|| sourceStartIndex >= sp.getSource().getWords().length) {
+            	break;
             }
-            sourceStartIndex = nextSourceEndIndex + 1;
-            targetStartIndex = nextTargetEndIndex + 1;
+            if (sourceStartIndex <= sourceEndIndex
+                    && targetStartIndex <= targetEndIndex) {
+                res.add(new Block(sourceStartIndex, sourceEndIndex,
+                        targetStartIndex, targetEndIndex));
+            }
+            sourceStartIndex = sourceEndIndex + 1;
+            targetStartIndex = targetEndIndex + 1;
             sourceEndIndex = sourceStartIndex;
             targetEndIndex = targetStartIndex;
         }
