@@ -53,6 +53,20 @@ public final class Rule { // final because immutable class
         this.source = new ArrayList<Integer>(src);
         this.target = new ArrayList<Integer>(trg);
     }
+    
+    public Rule(String srcString, String trgString) {
+    	this.leftHandSide = 0;
+    	this.source = new ArrayList<>();
+    	this.target = new ArrayList<>();
+    	String[] sourceParts = srcString.split("_");
+    	String[] targetParts = trgString.split("_");
+    	for (String sourcePart: sourceParts) {
+    		this.source.add(Integer.parseInt(sourcePart));
+    	}
+    	for (String targetPart: targetParts) {
+    		this.target.add(Integer.parseInt(targetPart));
+    	}
+    }
 
     /**
      * @param sourceStartIndex
