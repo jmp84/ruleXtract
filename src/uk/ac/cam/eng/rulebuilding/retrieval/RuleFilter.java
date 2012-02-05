@@ -71,7 +71,11 @@ public class RuleFilter {
     private int maxSourceElements;
     private double minSource2TargetRule;
     private double minTarget2SourceRule;
+    // allowed patterns
     private Set<RulePattern> allowedPatterns;
+    // skipped patterns: they count towards the maximum number of translation per source
+    // threshold but are not included in the filtered rule file
+    private Set<RulePattern> skipPatterns;
     private Map<SidePattern, Map<String, Double>> sourcePatternConstraints;
 
     public void loadConfig(String configFile) throws FileNotFoundException,
@@ -141,6 +145,12 @@ public class RuleFilter {
                     allowedPatterns.add(RulePattern
                             .parsePattern(featureValue[1]));
                 }
+                else if (featureValue[0].equals("skip_pattern")) {
+                	if (skipPatterns == null) {
+                		skipPatterns = new HashSet<>();
+                	}
+                	skipPatterns.add(RulePattern.parsePattern(featureValue[1]));
+                }
             }
         }
     }
@@ -182,7 +192,8 @@ public class RuleFilter {
             RulePattern rulePattern = RulePattern.getPattern(source,
                     targetAndProb.first);
             if (!sourcePattern.isPhrase()
-                    && !allowedPatterns.contains(rulePattern)) {
+                    && !allowedPatterns.contains(rulePattern)
+                    && !skipPatterns.contains(rulePattern)) {
                 continue;
             }
             if (sourcePattern.isPhrase()) {
@@ -225,8 +236,12 @@ public class RuleFilter {
                     break;
                 }
             }
-            res.add(new PairWritable3(new RuleWritable(source,
-                    targetAndProb.first), targetAndProb.second));
+            // don't need to add !allowedPatterns.contains(rulePattern) because
+            // this is checked above
+            if (sourcePattern.isPhrase() || !skipPatterns.contains(rulePattern)) {
+            	res.add(new PairWritable3(new RuleWritable(source,
+            			targetAndProb.first), targetAndProb.second));
+            }
             numberTranslations++;
         }
         return res;
