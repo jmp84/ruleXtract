@@ -60,11 +60,15 @@ public final class Rule { // final because immutable class
     	this.target = new ArrayList<>();
     	String[] sourceParts = srcString.split("_");
     	String[] targetParts = trgString.split("_");
-    	for (String sourcePart: sourceParts) {
-    		this.source.add(Integer.parseInt(sourcePart));
+    	if (!srcString.equals("")) {
+    		for (String sourcePart: sourceParts) {
+    			this.source.add(Integer.parseInt(sourcePart));
+    		}
     	}
-    	for (String targetPart: targetParts) {
-    		this.target.add(Integer.parseInt(targetPart));
+    	if (!trgString.equals("")) {
+    		for (String targetPart: targetParts) {
+    			this.target.add(Integer.parseInt(targetPart));
+    		}
     	}
     }
 
