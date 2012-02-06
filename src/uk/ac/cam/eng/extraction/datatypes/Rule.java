@@ -358,6 +358,7 @@ public final class Rule { // final because immutable class
         // if (nbNonTerminal < 2) {
         // return false;
         // }
+    	// TODO check this, must be wrong
         for (int sourceElement: source) {
             if (sourceElement < 0) {
                 if (sourceElement == X2) {

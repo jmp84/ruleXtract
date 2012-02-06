@@ -49,7 +49,14 @@ public class RulePattern {
         return new RulePattern(SidePattern.getSourcePattern(rule),
                 SidePattern.getTargetPattern(rule));
     }
-
+    
+    public boolean isSwappingNT() {
+    	if (!sourcePattern.hasMoreThan1NT()) {
+    		return false;
+    	}
+    	return (sourcePattern.getFirstNT() != targetPattern.getFirstNT());
+    }
+        
     /*
      * (non-Javadoc)
      * @see java.lang.Object#hashCode()

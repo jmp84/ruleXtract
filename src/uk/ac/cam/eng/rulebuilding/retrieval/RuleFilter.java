@@ -186,6 +186,8 @@ public class RuleFilter {
             return res;
         }
         int numberTranslations = 0;
+        int numberTranslationsMonotone = 0; // case with more than 1 NT
+        int numberTranslationsInvert = 0;
         for (int i = 0; i < listTargetAndProbSorted.get().length; i++) {
             PairWritable3 targetAndProb =
                     (PairWritable3) listTargetAndProbSorted.get()[i];
@@ -207,7 +209,7 @@ public class RuleFilter {
                     // instead of a continue. In the current pipeline, the
                     // maximum number of translation per source relies on this
                     // ordering
-                    continue;
+                    break;
                 }
                 // target-to-source threshold
                 if (((DoubleWritable) targetAndProb.second.get()[1]).get() <= minTarget2SourcePhrase) {
@@ -217,8 +219,7 @@ public class RuleFilter {
             else {
                 // source-to-target threshold
                 if (((DoubleWritable) targetAndProb.second.get()[0]).get() <= minSource2TargetRule) {
-                    // break;
-                    continue;
+                	break;
                 }
                 // target-to-source threshold
                 if (((DoubleWritable) targetAndProb.second.get()[1]).get() <= minTarget2SourceRule) {
@@ -229,18 +230,52 @@ public class RuleFilter {
                         "nocc")) {
                     if (((DoubleWritable) targetAndProb.second.get()[2]).get() < sourcePatternConstraints
                             .get(sourcePattern).get("nocc")) {
-                        continue;
+                        break;
                     }
                 }
-                if (sourcePatternConstraints.get(sourcePattern).get("ntrans") <= numberTranslations) {
+                if (sourcePattern.hasMoreThan1NT()) {
+                	if (sourcePatternConstraints.get(sourcePattern).get("ntrans") <= numberTranslationsMonotone
+                			&& sourcePatternConstraints.get(sourcePattern).get("ntrans") <= numberTranslationsInvert) {
+                        break;
+                    }
+                }
+                else if (sourcePatternConstraints.get(sourcePattern).get("ntrans") <= numberTranslations) {
                     break;
                 }
             }
             // don't need to add !allowedPatterns.contains(rulePattern) because
             // this is checked above
-            if (sourcePattern.isPhrase() || !skipPatterns.contains(rulePattern)) {
+            if (sourcePattern.isPhrase()) {
             	res.add(new PairWritable3(new RuleWritable(source,
             			targetAndProb.first), targetAndProb.second));
+            }
+            else if (sourcePattern.hasMoreThan1NT()) {
+            	if (!skipPatterns.contains(rulePattern)) {
+            		if (rulePattern.isSwappingNT()) {
+            			if (sourcePatternConstraints.get(sourcePattern).get("ntrans") > numberTranslationsInvert) {
+            				res.add(new PairWritable3(new RuleWritable(source,
+            						targetAndProb.first), targetAndProb.second));
+            			}
+            		}
+            		else {
+            			if (sourcePatternConstraints.get(sourcePattern).get("ntrans") > numberTranslationsMonotone) {
+            				res.add(new PairWritable3(new RuleWritable(source,
+            						targetAndProb.first), targetAndProb.second));
+            			}
+            		}            		
+            	}
+            }
+            else if (!skipPatterns.contains(rulePattern)) {
+            	res.add(new PairWritable3(new RuleWritable(source,
+            			targetAndProb.first), targetAndProb.second));
+            }
+            if (sourcePattern.hasMoreThan1NT()) {
+            	if (rulePattern.isSwappingNT()) {
+            		numberTranslationsInvert++;
+            	}
+            	else {
+            		numberTranslationsMonotone++;
+            	}
             }
             numberTranslations++;
         }

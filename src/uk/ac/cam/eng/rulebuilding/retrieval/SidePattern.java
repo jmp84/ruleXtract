@@ -17,9 +17,16 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 public class SidePattern {
 
     private List<String> pattern;
+    private int numberOfNT;
 
     public SidePattern(List<String> pattern) {
         this.pattern = pattern;
+        numberOfNT = 0;
+        for (String elt: pattern) {
+        	if (!elt.equals("w")) {
+        		numberOfNT++;
+        	}
+        }
     }
 
     public int size() {
@@ -118,6 +125,19 @@ public class SidePattern {
 
     public boolean isPhrase() {
         return (pattern.size() == 1 && pattern.get(0).equals("w"));
+    }
+    
+    public boolean hasMoreThan1NT() {
+    	return (numberOfNT > 1);
+    }
+    
+    public int getFirstNT() {
+    	for (String elt: pattern) {
+    		if (!elt.equals("w")) {
+    			return Integer.parseInt(elt);
+    		}
+    	}
+    	return 0;
     }
 
     /*
