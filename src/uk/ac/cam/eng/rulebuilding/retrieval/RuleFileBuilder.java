@@ -381,7 +381,7 @@ public class RuleFileBuilder extends Configured implements Tool{
             for (PairWritable3 ruleWithFeatures: rulesWithFeatures) {
                 // bw.write((ruleWithFeatures.toString() + "\n").getBytes());
                 // check if rule is not an ascii rule
-                Rule checkNotAscii = new Rule(ruleWithFeatures.first);
+                Rule checkNotAscii = new Rule(-1, ruleWithFeatures.first);
                 if (asciiRules.contains(checkNotAscii)) {
                     // this rule will be included as an ascii rule, don't
                     // include it here

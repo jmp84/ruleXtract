@@ -133,9 +133,10 @@ public class Source2TargetLexicalProbability implements Feature {
     @Override
     public double
             valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
-        // if ascii rule, return logMinSum
+        // if ascii rule, return the usual value. this can be different than
+    	// logMinSum in case the ascii constraint is actually part of the corpus
         if (r.getTargetWords().size() == 1 && r.getTargetWords().get(0) != 0) {
-            return logMinSum;
+            return value(r, mapReduceFeatures);
         }
         return 0;
     }

@@ -243,6 +243,22 @@ public final class Rule { // final because immutable class
             }
         }
     }
+    
+    public Rule(int leftHandSide, RuleWritable rw) {
+        this.leftHandSide = leftHandSide;
+        this.source = new ArrayList<Integer>();
+        String[] rwSource = rw.getSource().toString().split("_");
+        for (String rws: rwSource) {
+            this.source.add(Integer.parseInt(rws));
+        }
+        this.target = new ArrayList<Integer>();
+        String[] rwTarget = rw.getTarget().toString().split("_");
+        for (String rwt: rwTarget) {
+            if (!rwt.isEmpty()) { // check in case the target was empty
+                this.target.add(Integer.parseInt(rwt));
+            }
+        }
+    }
 
     public Rule(RuleWritable source, RuleWritable target) {
         this.leftHandSide =
