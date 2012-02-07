@@ -73,10 +73,14 @@ public class RuleFilter {
     private double minTarget2SourceRule;
     // allowed patterns
     private Set<RulePattern> allowedPatterns;
-    // skipped patterns: they count towards the maximum number of translation per source
+    // skipped patterns: they count towards the maximum number of translation
+    // per source
     // threshold but are not included in the filtered rule file
     private Set<RulePattern> skipPatterns;
     private Map<SidePattern, Map<String, Double>> sourcePatternConstraints;
+    // decides whether to keep all the rules that fall within the number
+    // of translations per source threshold in case of a tie
+    private boolean keepTiedRules = true;
 
     public void loadConfig(String configFile) throws FileNotFoundException,
             IOException {
@@ -146,10 +150,13 @@ public class RuleFilter {
                             .parsePattern(featureValue[1]));
                 }
                 else if (featureValue[0].equals("skip_pattern")) {
-                	if (skipPatterns == null) {
-                		skipPatterns = new HashSet<>();
-                	}
-                	skipPatterns.add(RulePattern.parsePattern(featureValue[1]));
+                    if (skipPatterns == null) {
+                        skipPatterns = new HashSet<>();
+                    }
+                    skipPatterns.add(RulePattern.parsePattern(featureValue[1]));
+                }
+                else if (featureValue[0].equals("keep_tied_rules")) {
+                    keepTiedRules = Boolean.parseBoolean(featureValue[1]);
                 }
             }
         }
@@ -188,9 +195,26 @@ public class RuleFilter {
         int numberTranslations = 0;
         int numberTranslationsMonotone = 0; // case with more than 1 NT
         int numberTranslationsInvert = 0;
+        // used in case of ties in number of occurrences
+        double previousNumberOfOccurrences = -1;
+        boolean tie = false;
         for (int i = 0; i < listTargetAndProbSorted.get().length; i++) {
             PairWritable3 targetAndProb =
                     (PairWritable3) listTargetAndProbSorted.get()[i];
+            // TODO replace hardcoded feature indices
+            double source2targetProbability =
+                    ((DoubleWritable) targetAndProb.second.get()[0]).get();
+            double target2sourceProbability =
+                    ((DoubleWritable) targetAndProb.second.get()[1]).get();
+            double numberOfOccurrences =
+                    ((DoubleWritable) targetAndProb.second.get()[2]).get();
+            if (numberOfOccurrences == previousNumberOfOccurrences) {
+                tie = true;
+            }
+            else {
+                tie = false;
+            }
+            previousNumberOfOccurrences = numberOfOccurrences;
             RulePattern rulePattern = RulePattern.getPattern(source,
                     targetAndProb.first);
             if (!sourcePattern.isPhrase()
@@ -199,83 +223,87 @@ public class RuleFilter {
                 continue;
             }
             if (sourcePattern.isPhrase()) {
-                // TODO replace hardcoded feature indices
                 // source-to-target threshold
-                if (((DoubleWritable) targetAndProb.second.get()[0]).get() <= minSource2TargetPhrase) {
-                    // break;
-                    // TODO currently targets are sorted in alphabetical order.
-                    // We need to sort them by count (or equivalently by
-                    // source-to-target probability), so we can use a break
-                    // instead of a continue. In the current pipeline, the
-                    // maximum number of translation per source relies on this
-                    // ordering
+                if (source2targetProbability <= minSource2TargetPhrase) {
                     break;
                 }
                 // target-to-source threshold
-                if (((DoubleWritable) targetAndProb.second.get()[1]).get() <= minTarget2SourcePhrase) {
+                if (target2sourceProbability <= minTarget2SourcePhrase) {
                     continue;
                 }
             }
             else {
                 // source-to-target threshold
-                if (((DoubleWritable) targetAndProb.second.get()[0]).get() <= minSource2TargetRule) {
-                	break;
+                if (source2targetProbability <= minSource2TargetRule) {
+                    break;
                 }
                 // target-to-source threshold
-                if (((DoubleWritable) targetAndProb.second.get()[1]).get() <= minTarget2SourceRule) {
+                if (target2sourceProbability <= minTarget2SourceRule) {
                     continue;
                 }
                 // minimum number of occurrence threshold
                 if (sourcePatternConstraints.get(sourcePattern).containsKey(
                         "nocc")) {
-                    if (((DoubleWritable) targetAndProb.second.get()[2]).get() < sourcePatternConstraints
+                    if (numberOfOccurrences < sourcePatternConstraints
                             .get(sourcePattern).get("nocc")) {
                         break;
                     }
                 }
+                // number of translations per source threshold
+                // in case of ties we either keep or don't keep the ties
+                // depending on the config
                 if (sourcePattern.hasMoreThan1NT()) {
-                	if (sourcePatternConstraints.get(sourcePattern).get("ntrans") <= numberTranslationsMonotone
-                			&& sourcePatternConstraints.get(sourcePattern).get("ntrans") <= numberTranslationsInvert) {
+                    if (sourcePatternConstraints.get(sourcePattern).get(
+                            "ntrans") <= numberTranslationsMonotone
+                            && sourcePatternConstraints.get(sourcePattern).get(
+                                    "ntrans") <= numberTranslationsInvert &&
+                            (!keepTiedRules || (keepTiedRules && !tie))) {
                         break;
                     }
                 }
-                else if (sourcePatternConstraints.get(sourcePattern).get("ntrans") <= numberTranslations) {
+                else if (sourcePatternConstraints.get(sourcePattern).get(
+                        "ntrans") <= numberTranslations &&
+                        (!keepTiedRules || (keepTiedRules && !tie))) {
                     break;
                 }
             }
             // don't need to add !allowedPatterns.contains(rulePattern) because
             // this is checked above
             if (sourcePattern.isPhrase()) {
-            	res.add(new PairWritable3(new RuleWritable(source,
-            			targetAndProb.first), targetAndProb.second));
+                res.add(new PairWritable3(new RuleWritable(source,
+                        targetAndProb.first), targetAndProb.second));
             }
             else if (sourcePattern.hasMoreThan1NT()) {
-            	if (!skipPatterns.contains(rulePattern)) {
-            		if (rulePattern.isSwappingNT()) {
-            			if (sourcePatternConstraints.get(sourcePattern).get("ntrans") > numberTranslationsInvert) {
-            				res.add(new PairWritable3(new RuleWritable(source,
-            						targetAndProb.first), targetAndProb.second));
-            			}
-            		}
-            		else {
-            			if (sourcePatternConstraints.get(sourcePattern).get("ntrans") > numberTranslationsMonotone) {
-            				res.add(new PairWritable3(new RuleWritable(source,
-            						targetAndProb.first), targetAndProb.second));
-            			}
-            		}            		
-            	}
+                if (!skipPatterns.contains(rulePattern)) {
+                    if (rulePattern.isSwappingNT()) {
+                        if (sourcePatternConstraints.get(sourcePattern).get(
+                                "ntrans") > numberTranslationsInvert ||
+                                (keepTiedRules && tie)) {
+                            res.add(new PairWritable3(new RuleWritable(source,
+                                    targetAndProb.first), targetAndProb.second));
+                        }
+                    }
+                    else {
+                        if (sourcePatternConstraints.get(sourcePattern).get(
+                                "ntrans") > numberTranslationsMonotone ||
+                                (keepTiedRules && tie)) {
+                            res.add(new PairWritable3(new RuleWritable(source,
+                                    targetAndProb.first), targetAndProb.second));
+                        }
+                    }
+                }
             }
             else if (!skipPatterns.contains(rulePattern)) {
-            	res.add(new PairWritable3(new RuleWritable(source,
-            			targetAndProb.first), targetAndProb.second));
+                res.add(new PairWritable3(new RuleWritable(source,
+                        targetAndProb.first), targetAndProb.second));
             }
             if (sourcePattern.hasMoreThan1NT()) {
-            	if (rulePattern.isSwappingNT()) {
-            		numberTranslationsInvert++;
-            	}
-            	else {
-            		numberTranslationsMonotone++;
-            	}
+                if (rulePattern.isSwappingNT()) {
+                    numberTranslationsInvert++;
+                }
+                else {
+                    numberTranslationsMonotone++;
+                }
             }
             numberTranslations++;
         }
