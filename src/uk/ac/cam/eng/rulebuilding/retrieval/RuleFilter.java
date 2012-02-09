@@ -245,7 +245,7 @@ public class RuleFilter {
             }
             if (!sourcePattern.isPhrase()
                     && !allowedPatterns.contains(rulePattern)
-                    && !skipPatterns.contains(rulePattern)) {
+                    && (skipPatterns == null || !skipPatterns.contains(rulePattern))) {
                 continue;
             }
             if (sourcePattern.isPhrase()) {
@@ -300,7 +300,7 @@ public class RuleFilter {
                         targetAndProb.first), targetAndProb.second));
             }
             else if (sourcePattern.hasMoreThan1NT()) {
-                if (!skipPatterns.contains(rulePattern)) {
+                if (skipPatterns == null || !skipPatterns.contains(rulePattern)) {
                     if (rulePattern.isSwappingNT()) {
                         if (sourcePatternConstraints.get(sourcePattern).get(
                                 "ntrans") > numberTranslationsInvert ||
@@ -319,7 +319,7 @@ public class RuleFilter {
                     }
                 }
             }
-            else if (!skipPatterns.contains(rulePattern)) {
+            else if (skipPatterns == null || !skipPatterns.contains(rulePattern)) {
                 res.add(new PairWritable3(new RuleWritable(source,
                         targetAndProb.first), targetAndProb.second));
             }
