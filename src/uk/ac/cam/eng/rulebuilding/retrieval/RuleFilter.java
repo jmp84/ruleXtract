@@ -196,8 +196,14 @@ public class RuleFilter {
         int numberTranslationsMonotone = 0; // case with more than 1 NT
         int numberTranslationsInvert = 0;
         // used in case of ties in number of occurrences
+        // we separate ties for rules with two nonterminals that
+        // are monotone or inverting
         double previousNumberOfOccurrences = -1;
+        double previousNumberOfOccurrences2NTmonotone = -1;
+        double previousNumberOfOccurrences2NTinvert = -1;
         boolean tie = false;
+        boolean twoNTmonotoneTie = false;
+        boolean twoNTinvertTie = false;
         for (int i = 0; i < listTargetAndProbSorted.get().length; i++) {
             PairWritable3 targetAndProb =
                     (PairWritable3) listTargetAndProbSorted.get()[i];
@@ -217,6 +223,26 @@ public class RuleFilter {
             previousNumberOfOccurrences = numberOfOccurrences;
             RulePattern rulePattern = RulePattern.getPattern(source,
                     targetAndProb.first);
+            if (sourcePattern.hasMoreThan1NT()) {
+            	if (rulePattern.isSwappingNT()) {
+            		if (numberOfOccurrences == previousNumberOfOccurrences2NTinvert) {
+            			twoNTinvertTie = true;
+            		}
+            		else {
+            			twoNTinvertTie = false;
+            		}
+            		previousNumberOfOccurrences2NTinvert = numberOfOccurrences;
+            	}
+            	else {
+            		if (numberOfOccurrences == previousNumberOfOccurrences2NTmonotone) {
+            			twoNTmonotoneTie = true;
+            		}
+            		else {
+            			twoNTmonotoneTie = false;
+            		}
+            		previousNumberOfOccurrences2NTmonotone = numberOfOccurrences;
+            	}
+            }
             if (!sourcePattern.isPhrase()
                     && !allowedPatterns.contains(rulePattern)
                     && !skipPatterns.contains(rulePattern)) {
@@ -257,7 +283,7 @@ public class RuleFilter {
                             "ntrans") <= numberTranslationsMonotone
                             && sourcePatternConstraints.get(sourcePattern).get(
                                     "ntrans") <= numberTranslationsInvert &&
-                            (!keepTiedRules || (keepTiedRules && !tie))) {
+                            (!keepTiedRules || (keepTiedRules && !twoNTmonotoneTie && !twoNTinvertTie))) {
                         break;
                     }
                 }
@@ -278,7 +304,7 @@ public class RuleFilter {
                     if (rulePattern.isSwappingNT()) {
                         if (sourcePatternConstraints.get(sourcePattern).get(
                                 "ntrans") > numberTranslationsInvert ||
-                                (keepTiedRules && tie)) {
+                                (keepTiedRules && twoNTinvertTie)) {
                             res.add(new PairWritable3(new RuleWritable(source,
                                     targetAndProb.first), targetAndProb.second));
                         }
@@ -286,7 +312,7 @@ public class RuleFilter {
                     else {
                         if (sourcePatternConstraints.get(sourcePattern).get(
                                 "ntrans") > numberTranslationsMonotone ||
-                                (keepTiedRules && tie)) {
+                                (keepTiedRules && twoNTmonotoneTie)) {
                             res.add(new PairWritable3(new RuleWritable(source,
                                     targetAndProb.first), targetAndProb.second));
                         }
