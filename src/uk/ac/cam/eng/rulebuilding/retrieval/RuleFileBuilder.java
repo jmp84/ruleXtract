@@ -145,13 +145,25 @@ public class RuleFileBuilder extends Configured implements Tool{
                 if (matcher.matches()) {
                     String[] sourceString = matcher.group(1).split(" ");
                     String[] targetString = matcher.group(2).split(" ");
+                    if (sourceString.length != targetString.length) {
+                        System.err.println("Malformed ascii constraint file: "
+                                + filename);
+                        System.exit(1);
+                    }                    	
                     List<Integer> source = new ArrayList<Integer>();
                     List<Integer> target = new ArrayList<Integer>();
-                    for (String ss: sourceString) {
-                        source.add(Integer.parseInt(ss));
-                    }
-                    for (String ts: targetString) {
-                        target.add(Integer.parseInt(ts));
+                    //for (String ss: sourceString) {
+                    int i = 0;
+                    while (i < sourceString.length) {
+                    	if (i % patternInstanceCreator.MAX_SOURCE_PHRASE == 0 && i > 0) {
+                            Rule rule = new Rule(-1, source, target);
+                            res.add(rule);
+                            source.clear();
+                            target.clear();
+                    	}
+                        source.add(Integer.parseInt(sourceString[i]));
+                        target.add(Integer.parseInt(targetString[i]));
+                        i++;
                     }
                     Rule rule = new Rule(-1, source, target);
                     res.add(rule);
