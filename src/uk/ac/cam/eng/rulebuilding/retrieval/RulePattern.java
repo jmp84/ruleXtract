@@ -5,6 +5,7 @@
 package uk.ac.cam.eng.rulebuilding.retrieval;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 // TODO be clear about one single format
@@ -45,18 +46,23 @@ public class RulePattern {
                 SidePattern.getTargetPattern(target));
     }
 
+    public static RulePattern getPattern(RulePatternWritable rpw) {
+        return new RulePattern(SidePattern.getSourcePattern(rpw),
+                SidePattern.getTargetPattern(rpw));
+    }
+
     public static RulePattern getPattern(Rule rule) {
         return new RulePattern(SidePattern.getSourcePattern(rule),
                 SidePattern.getTargetPattern(rule));
     }
-    
+
     public boolean isSwappingNT() {
-    	if (!sourcePattern.hasMoreThan1NT()) {
-    		return false;
-    	}
-    	return (sourcePattern.getFirstNT() != targetPattern.getFirstNT());
+        if (!sourcePattern.hasMoreThan1NT()) {
+            return false;
+        }
+        return (sourcePattern.getFirstNT() != targetPattern.getFirstNT());
     }
-        
+
     /*
      * (non-Javadoc)
      * @see java.lang.Object#hashCode()

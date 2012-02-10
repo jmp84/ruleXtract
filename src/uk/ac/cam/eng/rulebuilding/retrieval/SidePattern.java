@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -23,9 +24,9 @@ public class SidePattern {
         this.pattern = pattern;
         numberOfNT = 0;
         for (String elt: pattern) {
-        	if (!elt.equals("w")) {
-        		numberOfNT++;
-        	}
+            if (!elt.equals("w")) {
+                numberOfNT++;
+            }
         }
     }
 
@@ -123,21 +124,29 @@ public class SidePattern {
         return getPattern(rule.getTarget());
     }
 
+    public static SidePattern getSourcePattern(RulePatternWritable rpw) {
+        return getPattern(rpw.getSource().toString());
+    }
+
+    public static SidePattern getTargetPattern(RulePatternWritable rpw) {
+        return getPattern(rpw.getTarget().toString());
+    }
+
     public boolean isPhrase() {
         return (pattern.size() == 1 && pattern.get(0).equals("w"));
     }
-    
+
     public boolean hasMoreThan1NT() {
-    	return (numberOfNT > 1);
+        return (numberOfNT > 1);
     }
-    
+
     public int getFirstNT() {
-    	for (String elt: pattern) {
-    		if (!elt.equals("w")) {
-    			return Integer.parseInt(elt);
-    		}
-    	}
-    	return 0;
+        for (String elt: pattern) {
+            if (!elt.equals("w")) {
+                return Integer.parseInt(elt);
+            }
+        }
+        return 0;
     }
 
     /*

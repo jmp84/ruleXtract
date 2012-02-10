@@ -22,14 +22,17 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
  */
 public class FeatureCreator {
 
+    // TODO may integrate this with Rory's rulefile feature that uses spring.
+
     // list of all features
     private Map<String, Feature> features;
     // list of selected features in order
     private String[] selectedFeatures;
 
     public FeatureCreator(String source2targetLexicalModel,
-            String target2sourceLexicalModel, List<PairWritable3> rules,
-            String[] selectedFeatures)
+            String target2sourceLexicalModel,
+            String rulePatternAndFeaturesFile,
+            List<PairWritable3> rules, String[] selectedFeatures)
             throws FileNotFoundException, IOException {
         features = new HashMap<String, Feature>();
         features.put("source2target_probability",
@@ -50,17 +53,16 @@ public class FeatureCreator {
         features.put("target2source_lexical_probability",
                 new Target2SourceLexicalProbability(target2sourceLexicalModel,
                         rules));
+        if (rulePatternAndFeaturesFile != null) {
+            features.put("source2target_pattern_probability",
+                    new Source2TargetPatternProbability(
+                            rulePatternAndFeaturesFile));
+            features.put("target2source_pattern_probability",
+                    new Target2SourcePatternProbability(
+                            rulePatternAndFeaturesFile));
+        }
         this.selectedFeatures = selectedFeatures;
     }
-
-    /*
-     * public FeatureCreator(String listFeatureFile) throws
-     * FileNotFoundException, IOException { featureNames = new
-     * ArrayList<String>(); try (BufferedReader br = new BufferedReader(new
-     * FileReader(listFeatureFile))) { String line; while ((line =
-     * br.readLine()) != null) { if (line.matches("^#")) { continue; } line =
-     * line.trim(); featureNames.add(line); } } }
-     */
 
     private double createFeature(String featureName,
             PairWritable3 ruleAndMapReduceFeatures) {

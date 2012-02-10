@@ -39,7 +39,6 @@ import org.apache.hadoop.util.ToolRunner;
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
-import uk.ac.cam.eng.extraction.hadoop.extraction.ExtractorJob;
 import uk.ac.cam.eng.rulebuilding.features.FeatureCreator;
 
 /**
@@ -47,7 +46,7 @@ import uk.ac.cam.eng.rulebuilding.features.FeatureCreator;
  *         set and other configurations, retrieves the relevant rules and
  *         returns a rule file ready to be used by the decoder
  */
-public class RuleFileBuilder extends Configured implements Tool{
+public class RuleFileBuilder extends Configured implements Tool {
 
     private RuleFilter ruleFilter;
     private PatternInstanceCreator2 patternInstanceCreator;
@@ -64,7 +63,7 @@ public class RuleFileBuilder extends Configured implements Tool{
             e.printStackTrace();
             System.exit(1);
         }
-        //Configuration conf = getConf();
+        // Configuration conf = getConf();
         Configuration conf = new Configuration();
         for (String prop: p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
@@ -149,18 +148,19 @@ public class RuleFileBuilder extends Configured implements Tool{
                         System.err.println("Malformed ascii constraint file: "
                                 + filename);
                         System.exit(1);
-                    }                    	
+                    }
                     List<Integer> source = new ArrayList<Integer>();
                     List<Integer> target = new ArrayList<Integer>();
-                    //for (String ss: sourceString) {
+                    // for (String ss: sourceString) {
                     int i = 0;
                     while (i < sourceString.length) {
-                    	if (i % patternInstanceCreator.MAX_SOURCE_PHRASE == 0 && i > 0) {
+                        if (i % patternInstanceCreator.MAX_SOURCE_PHRASE == 0
+                                && i > 0) {
                             Rule rule = new Rule(-1, source, target);
                             res.add(rule);
                             source.clear();
                             target.clear();
-                    	}
+                        }
                         source.add(Integer.parseInt(sourceString[i]));
                         target.add(Integer.parseInt(targetString[i]));
                         i++;
@@ -177,10 +177,10 @@ public class RuleFileBuilder extends Configured implements Tool{
         }
         return res;
     }
-    
+
     private Set<Integer> getAsciiVocab(String filename) throws IOException {
-    	// TODO simplify all template writing
-    	// TODO getAsciiVocab is redundant with getAsciiConstraints
+        // TODO simplify all template writing
+        // TODO getAsciiVocab is redundant with getAsciiConstraints
         Set<Integer> res = new HashSet<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
             String line;
@@ -193,7 +193,7 @@ public class RuleFileBuilder extends Configured implements Tool{
                     List<Integer> source = new ArrayList<Integer>();
                     // only one word
                     if (sourceString.length == 1) {
-                    	res.add(Integer.parseInt(sourceString[0]));
+                        res.add(Integer.parseInt(sourceString[0]));
                     }
                 }
                 else {
@@ -203,7 +203,7 @@ public class RuleFileBuilder extends Configured implements Tool{
                 }
             }
         }
-        return res;    	
+        return res;
     }
 
     private Set<Integer> getTestVocab(String testFile)
@@ -246,15 +246,15 @@ public class RuleFileBuilder extends Configured implements Tool{
         }
         for (Integer testWord: testVocab) {
             if (asciiVocab.contains(testWord)) {
-            	continue;
+                continue;
             }
             List<Integer> source = new ArrayList<Integer>();
             source.add(testWord);
             Rule rule = new Rule(source, new ArrayList<Integer>());
-            //Rule asciiRule = new Rule(-1, source, source);
-            //if (asciiRules.contains(asciiRule)) {
-            //    continue;
-            //}
+            // Rule asciiRule = new Rule(-1, source, source);
+            // if (asciiRules.contains(asciiRule)) {
+            // continue;
+            // }
             RuleWritable ruleWritable = RuleWritable
                     .makeSourceMarginal(rule);
             byte[] ruleBytes = object2ByteArray(ruleWritable);
@@ -361,6 +361,8 @@ public class RuleFileBuilder extends Configured implements Tool{
                     "'target2source_lexical_model' in the config");
             System.exit(1);
         }
+        String rulePatternAndFeaturesFile =
+                p.getProperty("rulepattern_and_features");
         String selectedFeaturesString = p.getProperty("features");
         if (selectedFeaturesString == null) {
             System.err.println("Missing property 'features' in the config");
@@ -369,7 +371,8 @@ public class RuleFileBuilder extends Configured implements Tool{
         String[] selectedFeatures = selectedFeaturesString.split(",");
         FeatureCreator featureCreator =
                 new FeatureCreator(source2TargetLexicalModel,
-                        target2SourceLexicalModel, rules, selectedFeatures);
+                        target2SourceLexicalModel, rulePatternAndFeaturesFile,
+                        rules, selectedFeatures);
         List<PairWritable3> rulesWithFeatures =
                 featureCreator.createFeatures(rules);
         String asciiConstraints = p.getProperty("ascii_constraints");
@@ -378,7 +381,8 @@ public class RuleFileBuilder extends Configured implements Tool{
                     .println("Missing property 'ascii_constraints' in the config");
             System.exit(1);
         }
-        List<PairWritable3> asciiOovDeletionRules = getAsciiOovDeletionRules(testFile, hfile, asciiConstraints);
+        List<PairWritable3> asciiOovDeletionRules =
+                getAsciiOovDeletionRules(testFile, hfile, asciiConstraints);
         List<PairWritable3> asciiOovDeletionRulesWithFeatures =
                 featureCreator
                         .createFeaturesAsciiOovDeletion(asciiOovDeletionRules);
@@ -429,7 +433,7 @@ public class RuleFileBuilder extends Configured implements Tool{
         }
         return 0;
     }
-    
+
     public static void main(String[] args) throws Exception {
         if (args.length != 1) {
             System.err.println("Usage args: configFile");

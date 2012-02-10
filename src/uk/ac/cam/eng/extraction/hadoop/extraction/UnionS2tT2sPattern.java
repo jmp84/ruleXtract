@@ -31,53 +31,47 @@ public class UnionS2tT2sPattern {
     public static void union(
             String s2tInputFile, String t2sInputFile, String outputFile)
             throws FileNotFoundException, IOException {
-        Map<RulePattern, double[]> union = new HashMap<>();
+        Map<RulePattern, DoubleWritable[]> union = new HashMap<>();
         Configuration conf = new Configuration();
         FileSystem fs = FileSystem.get(conf);
         SequenceFile.Reader sequenceReader =
                 new SequenceFile.Reader(fs, new Path(s2tInputFile), conf);
         SequenceFile.Reader sequenceReader2 =
                 new SequenceFile.Reader(fs, new Path(t2sInputFile), conf);
-        // try (BufferedReader brS2t =
-        // new BufferedReader(new FileReader(s2tInputFile));
-        // BufferedReader brT2s =
-        // new BufferedReader(new FileReader(t2sInputFile))) {
         RulePatternWritable key = new RulePatternWritable();
         RulePatternWritable key2 = new RulePatternWritable();
         DoubleArrayWritable value = new DoubleArrayWritable();
         DoubleArrayWritable value2 = new DoubleArrayWritable();
         while (sequenceReader.next(key, value) &&
                 sequenceReader2.next(key2, value2)) {
-            RulePattern rulePattern = 
-            if (union.containsKey(key)) {
-                //DoubleWritable[] oldValue = union.get(key).get();
-                double[]
-                // TODO features config size
+            RulePattern rulePattern = RulePattern.getPattern(key);
+            RulePattern rulePattern2 = RulePattern.getPattern(key2);
+            if (union.containsKey(rulePattern)) {
+                DoubleWritable[] oldValue = union.get(rulePattern);
                 for (int i = 0; i < 2; i++) {
                     oldValue[i].set(oldValue[i].get() + value.get()[i].get());
                 }
-                union.get(key).set(oldValue);
             }
             else {
-                union.put(key, value);
+                union.put(rulePattern, value.get());
             }
-            if (union.containsKey(key2)) {
-                DoubleWritable[] oldValue = union.get(key2).get();
-                // TODO features config size
+            // TODO duplicated code
+            if (union.containsKey(rulePattern2)) {
+                DoubleWritable[] oldValue = union.get(rulePattern2);
                 for (int i = 0; i < 2; i++) {
                     oldValue[i].set(oldValue[i].get() + value2.get()[i].get());
                 }
-                union.get(key2).set(oldValue);
+                // union.get(key2).set(oldValue);
             }
             else {
-                union.put(key2, value2);
+                union.put(rulePattern2, value2.get());
             }
         }
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile))) {
-            for (RulePatternWritable rp: union.keySet()) {
+            for (RulePattern rp: union.keySet()) {
                 StringBuilder outputLine = new StringBuilder();
                 outputLine.append(rp.toString());
-                for (DoubleWritable feature: union.get(rp).get()) {
+                for (DoubleWritable feature: union.get(rp)) {
                     outputLine.append(" " + feature.get());
                 }
                 bw.write(outputLine.toString() + "\n");
