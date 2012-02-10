@@ -41,7 +41,7 @@ public class ExtractorPatternJob extends Configured implements Tool {
         conf.set("mapreduce.tasktracker.map.tasks.maximum", "6");
         Job job = Job.getInstance(new Cluster(conf), conf);
         job.setJarByClass(ExtractorPatternJob.class);
-        job.setJobName("Rule Extraction");
+        job.setJobName("Rule Pattern Translation");
         // needs to specify the map output key (respectively value) class
         // because
         // it is different than the final output key (respectively value) class
@@ -50,8 +50,8 @@ public class ExtractorPatternJob extends Configured implements Tool {
         job.setMapOutputValueClass(PairWritablePattern.class);
         job.setOutputKeyClass(RulePatternWritable.class);
         job.setOutputValueClass(DoubleArrayWritable.class);
-        job.setMapperClass(ExtractorMapperPattern.class);
-        job.setReducerClass(ExtractorReducerPattern.class);
+        job.setMapperClass(PatternTranslationMapper.class);
+        job.setReducerClass(PatternTranslationReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("inputPaths"));

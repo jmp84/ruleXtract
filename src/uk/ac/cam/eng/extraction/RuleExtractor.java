@@ -241,9 +241,9 @@ public class RuleExtractor {
         // pairs that would be extracted
         // these are maximum width blocks, they cannot be extended
         List<Block> regularBlocks = getRegularBlocks(a, sp);
-        for (Block b: regularBlocks) {
-            System.err.println(b);
-        }
+//        for (Block b: regularBlocks) {
+//            System.err.println(b);
+//        }
 
         // something here about monotonic repetitions
         res.addAll(extractInternalBlockRules(regularBlocks, a, sp));
