@@ -42,6 +42,18 @@ public final class Rule { // final because immutable class
      */
     private final List<Integer> target;
 
+    // additional information useful for features
+
+    /**
+     * Number of unaligned source words in the rule
+     */
+    private int numberUnalignedSourceWords;
+
+    /**
+     * Number of unaligned target words in the rule
+     */
+    private int numberUnalignedTargetWords;
+
     public Rule(int lhs, List<Integer> src, List<Integer> trg) {
         this.leftHandSide = lhs;
         this.source = new ArrayList<Integer>(src);
@@ -53,30 +65,30 @@ public final class Rule { // final because immutable class
         this.source = new ArrayList<Integer>(src);
         this.target = new ArrayList<Integer>(trg);
     }
-    
+
     public Rule(String srcString, String trgString) {
-    	this.leftHandSide = 0;
-    	this.source = new ArrayList<>();
-    	this.target = new ArrayList<>();
-    	String[] sourceParts = srcString.split("_");
-    	String[] targetParts = trgString.split("_");
-    	if (!srcString.equals("")) {
-    		for (String sourcePart: sourceParts) {
-    			this.source.add(Integer.parseInt(sourcePart));
-    		}
-    	}
-    	if (!trgString.equals("")) {
-    		for (String targetPart: targetParts) {
-    			this.target.add(Integer.parseInt(targetPart));
-    		}
-    	}
+        this.leftHandSide = 0;
+        this.source = new ArrayList<>();
+        this.target = new ArrayList<>();
+        String[] sourceParts = srcString.split("_");
+        String[] targetParts = trgString.split("_");
+        if (!srcString.equals("")) {
+            for (String sourcePart: sourceParts) {
+                this.source.add(Integer.parseInt(sourcePart));
+            }
+        }
+        if (!trgString.equals("")) {
+            for (String targetPart: targetParts) {
+                this.target.add(Integer.parseInt(targetPart));
+            }
+        }
     }
 
     /**
      * @param sourceStartIndex
      * @param sourceEndIndex
      * @param targetStartIndex
-     * @param targetExtendIndex
+     * @param targetEndIndex
      * @param sp
      */
     public Rule(int sourceStartIndex, int sourceEndIndex, int targetStartIndex,
@@ -90,6 +102,42 @@ public final class Rule { // final because immutable class
         target = new ArrayList<Integer>();
         for (int targetIndex = targetStartIndex; targetIndex <= targetEndIndex; targetIndex++) {
             target.add(sp.getTarget().getWords()[targetIndex]);
+        }
+    }
+
+    /**
+     * Constructor for a phrase based rule. The constructor uses the alignment
+     * information to compute the number of unaligned words in the source and in
+     * the target.
+     * 
+     * @param sourceStartIndex
+     * @param sourceEndIndex
+     * @param targetStartIndex
+     * @param targetEndIndex
+     * @param sp
+     * @param a
+     */
+    public Rule(int sourceStartIndex, int sourceEndIndex, int targetStartIndex,
+            int targetEndIndex, SentencePair sp, Alignment a) {
+        // TODO if this turns out to be slow, change the constructor for one
+        // that takes as input the source phrase and target phrase already built
+        this.leftHandSide = 0;
+        this.nbNonTerminal = 0;
+        source = new ArrayList<Integer>();
+        numberUnalignedSourceWords = 0;
+        numberUnalignedTargetWords = 0;
+        for (int sourceIndex = sourceStartIndex; sourceIndex <= sourceEndIndex; sourceIndex++) {
+            source.add(sp.getSource().getWords()[sourceIndex]);
+            if (!a.isSourceAligned(sourceIndex)) {
+                numberUnalignedSourceWords++;
+            }
+        }
+        target = new ArrayList<Integer>();
+        for (int targetIndex = targetStartIndex; targetIndex <= targetEndIndex; targetIndex++) {
+            target.add(sp.getTarget().getWords()[targetIndex]);
+            if (!a.isTargetAligned(targetIndex)) {
+                numberUnalignedTargetWords++;
+            }
         }
     }
 
@@ -124,6 +172,59 @@ public final class Rule { // final because immutable class
         target.add(X);
         for (int targetIndex = maxTargetIndexX + 1; targetIndex <= maxTargetIndex; targetIndex++) {
             target.add(sp.getTarget().getWords()[targetIndex]);
+        }
+    }
+
+    /**
+     * Constructor for a hierarchical rule with one nonterminal. This
+     * constructor uses alignment information to compute the number of unaligned
+     * words in the source and in the target.
+     * 
+     * @param sourceStartIndex
+     * @param sourceEndIndex
+     * @param minTargetIndex
+     * @param maxTargetIndex
+     * @param sourceStartIndexX
+     * @param sourceEndIndexX
+     * @param minTargetIndexX
+     * @param maxTargetIndexX
+     * @param sp
+     */
+    public Rule(int sourceStartIndex, int sourceEndIndex, int minTargetIndex,
+            int maxTargetIndex, int sourceStartIndexX, int sourceEndIndexX,
+            int minTargetIndexX, int maxTargetIndexX, SentencePair sp,
+            Alignment a) {
+        this.leftHandSide = 0;
+        this.nbNonTerminal = 1;
+        source = new ArrayList<Integer>();
+        numberUnalignedSourceWords = 0;
+        numberUnalignedTargetWords = 0;
+        for (int sourceIndex = sourceStartIndex; sourceIndex < sourceStartIndexX; sourceIndex++) {
+            source.add(sp.getSource().getWords()[sourceIndex]);
+            if (!a.isSourceAligned(sourceIndex)) {
+                numberUnalignedSourceWords++;
+            }
+        }
+        source.add(X);
+        for (int sourceIndex = sourceEndIndexX + 1; sourceIndex <= sourceEndIndex; sourceIndex++) {
+            source.add(sp.getSource().getWords()[sourceIndex]);
+            if (!a.isSourceAligned(sourceIndex)) {
+                numberUnalignedSourceWords++;
+            }
+        }
+        target = new ArrayList<Integer>();
+        for (int targetIndex = minTargetIndex; targetIndex < minTargetIndexX; targetIndex++) {
+            target.add(sp.getTarget().getWords()[targetIndex]);
+            if (!a.isTargetAligned(targetIndex)) {
+                numberUnalignedTargetWords++;
+            }
+        }
+        target.add(X);
+        for (int targetIndex = maxTargetIndexX + 1; targetIndex <= maxTargetIndex; targetIndex++) {
+            target.add(sp.getTarget().getWords()[targetIndex]);
+            if (!a.isTargetAligned(targetIndex)) {
+                numberUnalignedTargetWords++;
+            }
         }
     }
 
@@ -228,6 +329,150 @@ public final class Rule { // final because immutable class
         }
     }
 
+    /**
+     * Constructor for a hierarchical rule with two nonterminals. This
+     * constructor uses alignment information to compute the number of unaligned
+     * words in the source and in the target.
+     * 
+     * @param sourceStartIndex
+     * @param sourceEndIndex
+     * @param minTargetIndex
+     * @param maxTargetIndex
+     * @param sourceStartIndexX
+     * @param sourceEndIndexX
+     * @param minTargetIndexX
+     * @param maxTargetIndexX
+     * @param sourceStartIndexX2
+     * @param sourceEndIndexX2
+     * @param minTargetIndexX2
+     * @param maxTargetIndexX2
+     * @param sp
+     * @param a
+     */
+    public Rule(int sourceStartIndex, int sourceEndIndex, int minTargetIndex,
+            int maxTargetIndex, int sourceStartIndexX, int sourceEndIndexX,
+            int minTargetIndexX, int maxTargetIndexX, int sourceStartIndexX2,
+            int sourceEndIndexX2, int minTargetIndexX2, int maxTargetIndexX2,
+            SentencePair sp, boolean source2target, Alignment a) {
+        this.leftHandSide = 0;
+        this.nbNonTerminal = 2;
+        source = new ArrayList<Integer>();
+        target = new ArrayList<Integer>();
+        numberUnalignedSourceWords = 0;
+        numberUnalignedTargetWords = 0;
+        if (minTargetIndexX2 > maxTargetIndexX) {
+            for (int sourceIndex = sourceStartIndex; sourceIndex < sourceStartIndexX; sourceIndex++) {
+                source.add(sp.getSource().getWords()[sourceIndex]);
+                if (!a.isSourceAligned(sourceIndex)) {
+                    numberUnalignedSourceWords++;
+                }
+            }
+            source.add(X1);
+            for (int sourceIndex = sourceEndIndexX + 1; sourceIndex < sourceStartIndexX2; sourceIndex++) {
+                source.add(sp.getSource().getWords()[sourceIndex]);
+                if (!a.isSourceAligned(sourceIndex)) {
+                    numberUnalignedSourceWords++;
+                }
+            }
+            source.add(X2);
+            for (int sourceIndex = sourceEndIndexX2 + 1; sourceIndex <= sourceEndIndex; sourceIndex++) {
+                source.add(sp.getSource().getWords()[sourceIndex]);
+                if (!a.isSourceAligned(sourceIndex)) {
+                    numberUnalignedSourceWords++;
+                }
+            }
+            for (int targetIndex = minTargetIndex; targetIndex < minTargetIndexX; targetIndex++) {
+                target.add(sp.getTarget().getWords()[targetIndex]);
+                if (!a.isTargetAligned(targetIndex)) {
+                    numberUnalignedTargetWords++;
+                }
+            }
+            target.add(X1);
+            for (int targetIndex = maxTargetIndexX + 1; targetIndex < minTargetIndexX2; targetIndex++) {
+                target.add(sp.getTarget().getWords()[targetIndex]);
+                if (!a.isTargetAligned(targetIndex)) {
+                    numberUnalignedTargetWords++;
+                }
+            }
+            target.add(X2);
+            for (int targetIndex = maxTargetIndexX2 + 1; targetIndex <= maxTargetIndex; targetIndex++) {
+                target.add(sp.getTarget().getWords()[targetIndex]);
+                if (!a.isTargetAligned(targetIndex)) {
+                    numberUnalignedTargetWords++;
+                }
+            }
+        }
+        // when there is a non terminal swap, we prefer having the nonterminals
+        // ordered in the source
+        // (X1 ... X2) and swaped in the target (X2 ... X1) because otherwise,
+        // when computing
+        // source-to-target probability, the denominator would include two kinds
+        // of source, the sources
+        // with non terminal in order and the sources with nonterminal swaped.
+        else {
+            for (int sourceIndex = sourceStartIndex; sourceIndex < sourceStartIndexX; sourceIndex++) {
+                source.add(sp.getSource().getWords()[sourceIndex]);
+                if (!a.isSourceAligned(sourceIndex)) {
+                    numberUnalignedSourceWords++;
+                }
+            }
+            if (source2target) {
+                source.add(X1);
+            }
+            else {
+                source.add(X2);
+            }
+            for (int sourceIndex = sourceEndIndexX + 1; sourceIndex < sourceStartIndexX2; sourceIndex++) {
+                source.add(sp.getSource().getWords()[sourceIndex]);
+                if (!a.isSourceAligned(sourceIndex)) {
+                    numberUnalignedSourceWords++;
+                }
+            }
+            if (source2target) {
+                source.add(X2);
+            }
+            else {
+                source.add(X1);
+            }
+            for (int sourceIndex = sourceEndIndexX2 + 1; sourceIndex <= sourceEndIndex; sourceIndex++) {
+                source.add(sp.getSource().getWords()[sourceIndex]);
+                if (!a.isSourceAligned(sourceIndex)) {
+                    numberUnalignedSourceWords++;
+                }
+            }
+            for (int targetIndex = minTargetIndex; targetIndex < minTargetIndexX2; targetIndex++) {
+                target.add(sp.getTarget().getWords()[targetIndex]);
+                if (!a.isTargetAligned(targetIndex)) {
+                    numberUnalignedTargetWords++;
+                }
+            }
+            if (source2target) {
+                target.add(X2);
+            }
+            else {
+                target.add(X1);
+            }
+            for (int targetIndex = maxTargetIndexX2 + 1; targetIndex < minTargetIndexX; targetIndex++) {
+                target.add(sp.getTarget().getWords()[targetIndex]);
+                if (!a.isTargetAligned(targetIndex)) {
+                    numberUnalignedTargetWords++;
+                }
+            }
+            if (source2target) {
+                target.add(X1);
+            }
+            else {
+                target.add(X2);
+            }
+            for (int targetIndex = maxTargetIndexX + 1; targetIndex <= maxTargetIndex; targetIndex++) {
+                target.add(sp.getTarget().getWords()[targetIndex]);
+                if (!a.isTargetAligned(targetIndex)) {
+                    numberUnalignedTargetWords++;
+                }
+            }
+        }
+    }
+
     public Rule(RuleWritable rw) {
         this.leftHandSide = Integer.parseInt(rw.getLeftHandSide().toString());
         this.source = new ArrayList<Integer>();
@@ -243,7 +488,7 @@ public final class Rule { // final because immutable class
             }
         }
     }
-    
+
     public Rule(int leftHandSide, RuleWritable rw) {
         this.leftHandSide = leftHandSide;
         this.source = new ArrayList<Integer>();
@@ -358,7 +603,7 @@ public final class Rule { // final because immutable class
         // if (nbNonTerminal < 2) {
         // return false;
         // }
-    	// TODO check this, must be wrong
+        // TODO check this, must be wrong
         for (int sourceElement: source) {
             if (sourceElement < 0) {
                 if (sourceElement == X2) {

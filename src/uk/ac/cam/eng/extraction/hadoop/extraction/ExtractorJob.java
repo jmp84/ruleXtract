@@ -23,6 +23,9 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3ArrayWritable;
 
 public class ExtractorJob extends Configured implements Tool {
 
+    // TODO consider to do the following pipeline: use only a mapper
+    // for extraction and then run different reducers for each feature.
+
     public int run(String[] args) throws Exception {
 
         // load the property config file

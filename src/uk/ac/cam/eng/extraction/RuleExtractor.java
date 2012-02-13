@@ -78,18 +78,12 @@ public class RuleExtractor {
      */
     public List<Rule> extract(Alignment a, SentencePair sp) {
         List<Rule> res = extractPhrasePairs(a, sp);
-        // for (Rule r: res) {
-        // System.err.println(r);
-        // }
         if (REMOVE_MONOTONIC_REPEATS) {
             XtermX.clear();
             termX.clear();
             Xterm.clear();
         }
         res.addAll(extractHieroRule(a, sp));
-        // for (Rule r: res) {
-        // System.err.println(r);
-        // }
         return res;
     }
 
@@ -152,15 +146,16 @@ public class RuleExtractor {
 
                 // we found a phrase pair
                 if (consistent) {
-                    Rule r = new Rule(sourcePhrase, targetPhrase);
-                    // Rule r = new Rule(sourceStartIndex, sourceEndIndex,
-                    // minTargetIndex, maxTargetIndex, sp);
+                    // Rule r = new Rule(sourcePhrase, targetPhrase);
+                    Rule r =
+                            new Rule(
+                                    sourceStartIndex, sourceEndIndex,
+                                    minTargetIndex, maxTargetIndex, sp, a);
                     res.add(r);
                     List<Rule> extendedUnaligned = extendUnalignedBoundaryWord(
                             sourceStartIndex, sourceEndIndex, minTargetIndex,
                             maxTargetIndex, a, sp);
                     res.addAll(extendedUnaligned);
-                    // res.add(new Rule(sourcePhrase, targetPhrase));
                 }
             }
         }
@@ -194,7 +189,7 @@ public class RuleExtractor {
         while (targetExtendIndex >= 0 && !a.isTargetAligned(targetExtendIndex)) {
             prev++;
             Rule r = new Rule(sourceStartIndex, sourceEndIndex,
-                    targetExtendIndex, targetEndIndex, sp);
+                    targetExtendIndex, targetEndIndex, sp, a);
             res.add(r);
             targetExtendIndex--;
         }
@@ -204,7 +199,7 @@ public class RuleExtractor {
                 && !a.isTargetAligned(targetExtendIndex)) {
             foll++;
             Rule r = new Rule(sourceStartIndex, sourceEndIndex,
-                    targetStartIndex, targetExtendIndex, sp);
+                    targetStartIndex, targetExtendIndex, sp, a);
             res.add(r);
             targetExtendIndex++;
         }
@@ -224,7 +219,7 @@ public class RuleExtractor {
                                                   // least one following)
                     int end = targetEndIndex + k;
                     Rule r = new Rule(sourceStartIndex, sourceEndIndex, start,
-                            end, sp);
+                            end, sp, a);
                     res.add(r);
                 }
             }
@@ -241,9 +236,9 @@ public class RuleExtractor {
         // pairs that would be extracted
         // these are maximum width blocks, they cannot be extended
         List<Block> regularBlocks = getRegularBlocks(a, sp);
-//        for (Block b: regularBlocks) {
-//            System.err.println(b);
-//        }
+        // for (Block b: regularBlocks) {
+        // System.err.println(b);
+        // }
 
         // something here about monotonic repetitions
         res.addAll(extractInternalBlockRules(regularBlocks, a, sp));
@@ -267,11 +262,11 @@ public class RuleExtractor {
                 && targetStartIndex <= sp.getTarget().getWords().length) {
             Block next = findNextBlock(sourceStartIndex, sourceEndIndex,
                     targetStartIndex, targetEndIndex, a, sp);
-//            int nextSourceStartIndex = next.sourceStartIndex;
-//            int nextSourceEndIndex = next.sourceEndIndex;
-//            int nextTargetStartIndex = next.targetStartIndex;
-//            int nextTargetEndIndex = next.targetEndIndex;
-            
+            // int nextSourceStartIndex = next.sourceStartIndex;
+            // int nextSourceEndIndex = next.sourceEndIndex;
+            // int nextTargetStartIndex = next.targetStartIndex;
+            // int nextTargetEndIndex = next.targetEndIndex;
+
             sourceStartIndex = next.sourceStartIndex;
             sourceEndIndex = next.sourceEndIndex;
             targetStartIndex = next.targetStartIndex;
@@ -289,10 +284,10 @@ public class RuleExtractor {
                     && !a.isSourceAligned(sourceStartIndex)) {
                 targetEndIndex--;
             }
-    
+
             if (targetStartIndex >= sp.getTarget().getWords().length
-            		|| sourceStartIndex >= sp.getSource().getWords().length) {
-            	break;
+                    || sourceStartIndex >= sp.getSource().getWords().length) {
+                break;
             }
             if (sourceStartIndex <= sourceEndIndex
                     && targetStartIndex <= targetEndIndex) {
@@ -478,7 +473,7 @@ public class RuleExtractor {
                                 minTargetIndex, maxTargetIndex,
                                 sourceStartIndexX, sourceEndIndexX,
                                 targetLimit.getFirst(),
-                                targetLimit.getSecond(), sp);
+                                targetLimit.getSecond(), sp, a);
                         res.add(r);
                     }
                 }
@@ -588,7 +583,7 @@ public class RuleExtractor {
                                                     targetLimitX2.getFirst(),
                                                     // maxTargetIndexX2, sp);
                                                     targetLimitX2.getSecond(),
-                                                    sp, source2target);
+                                                    sp, source2target, a);
                                     res.add(r);
                                 }
                             }
