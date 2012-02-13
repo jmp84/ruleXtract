@@ -8,6 +8,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
@@ -23,6 +24,10 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
     private Text leftHandSide;
     private Text source;
     private Text target;
+    
+    // additional info for features
+    private DoubleWritable numberUnalignedSourceWords;
+    private DoubleWritable numberUnalignedTargetWords;
 
     public Text getLeftHandSide() {
         return leftHandSide;
@@ -66,10 +71,42 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         this.target = target;
     }
 
-    public RuleWritable() {
+	/**
+	 * @return the numberUnalignedSourceWords
+	 */
+	public DoubleWritable getNumberUnalignedSourceWords() {
+		return numberUnalignedSourceWords;
+	}
+
+	/**
+	 * @param numberUnalignedSourceWords the numberUnalignedSourceWords to set
+	 */
+	public void setNumberUnalignedSourceWords(
+			DoubleWritable numberUnalignedSourceWords) {
+		this.numberUnalignedSourceWords = numberUnalignedSourceWords;
+	}
+
+	/**
+	 * @return the numberUnalignedTargetWords
+	 */
+	public DoubleWritable getNumberUnalignedTargetWords() {
+		return numberUnalignedTargetWords;
+	}
+
+	/**
+	 * @param numberUnalignedTargetWords the numberUnalignedTargetWords to set
+	 */
+	public void setNumberUnalignedTargetWords(
+			DoubleWritable numberUnalignedTargetWords) {
+		this.numberUnalignedTargetWords = numberUnalignedTargetWords;
+	}
+
+	public RuleWritable() {
         leftHandSide = new Text();
         source = new Text();
         target = new Text();
+        numberUnalignedSourceWords = new DoubleWritable();
+        numberUnalignedTargetWords = new DoubleWritable();
     }
 
     public RuleWritable(Rule r) {
@@ -82,12 +119,16 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         else {
             target = new Text();
         }
+        numberUnalignedSourceWords = new DoubleWritable(r.getNumberUnalignedSourceWords());
+        numberUnalignedTargetWords = new DoubleWritable(r.getNumberUnalignedTargetWords());
     }
 
     public RuleWritable(RuleWritable source, RuleWritable target) {
         leftHandSide = source.leftHandSide;
         this.source = source.source;
         this.target = target.target;
+        this.numberUnalignedSourceWords = target.numberUnalignedSourceWords;
+        this.numberUnalignedTargetWords = target.numberUnalignedTargetWords;
     }
 
     public static RuleWritable makeSourceMarginal(Rule r) {
@@ -113,6 +154,8 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         res.leftHandSide = new Text(parts[0]);
         res.target = new Text(parts[2]);
         res.source = new Text();
+        res.numberUnalignedSourceWords = new DoubleWritable(r.getNumberUnalignedSourceWords());
+        res.numberUnalignedTargetWords = new DoubleWritable(r.getNumberUnalignedTargetWords());
         return res;
     }
 
@@ -121,6 +164,8 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         res.leftHandSide = new Text(r.leftHandSide);
         res.source = new Text();
         res.target = new Text(r.target);
+        res.numberUnalignedSourceWords = r.numberUnalignedSourceWords;
+        res.numberUnalignedTargetWords = r.numberUnalignedTargetWords;
         return res;
     }
 
@@ -177,6 +222,8 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         leftHandSide.readFields(arg0);
         source.readFields(arg0);
         target.readFields(arg0);
+        numberUnalignedSourceWords.readFields(arg0);
+        numberUnalignedTargetWords.readFields(arg0);
     }
 
     /*
@@ -188,6 +235,8 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         leftHandSide.write(arg0);
         source.write(arg0);
         target.write(arg0);
+        numberUnalignedSourceWords.write(arg0);
+        numberUnalignedTargetWords.write(arg0);
     }
 
     /*
@@ -202,9 +251,13 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         cmp = source.compareTo(arg0.source);
         if (cmp != 0)
             return cmp;
-        // TODO return directly
         cmp = target.compareTo(arg0.target);
-        return cmp;
+        if (cmp != 0)
+        	return cmp;
+        cmp = numberUnalignedSourceWords.compareTo(arg0.numberUnalignedSourceWords);
+        if (cmp != 0)
+        	return cmp;
+        return numberUnalignedTargetWords.compareTo(arg0.numberUnalignedTargetWords);
     }
 
 	/* (non-Javadoc)
@@ -221,33 +274,47 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
 		return result;
 	}
 
+	// for the equals and hashcode methods, we don't use the
+	// numberUnalignedSourceWords and numberUnalignedTargetWords
+	// fields because in a hash map we group together rules
+	// that come from different alignments
+	
 	/* (non-Javadoc)
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		RuleWritable other = (RuleWritable) obj;
 		if (leftHandSide == null) {
-			if (other.leftHandSide != null)
+			if (other.leftHandSide != null) {
 				return false;
-		} else if (!leftHandSide.equals(other.leftHandSide))
+			}
+		} else if (!leftHandSide.equals(other.leftHandSide)) {
 			return false;
+		}
 		if (source == null) {
-			if (other.source != null)
+			if (other.source != null) {
 				return false;
-		} else if (!source.equals(other.source))
+			}
+		} else if (!source.equals(other.source)) {
 			return false;
+		}
 		if (target == null) {
-			if (other.target != null)
+			if (other.target != null) {
 				return false;
-		} else if (!target.equals(other.target))
+			}
+		} else if (!target.equals(other.target)) {
 			return false;
+		}
 		return true;
 	}
 }

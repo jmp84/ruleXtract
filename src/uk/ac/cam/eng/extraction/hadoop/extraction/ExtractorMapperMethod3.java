@@ -49,21 +49,18 @@ public class ExtractorMapperMethod3 extends
     protected void
             map(IntWritable key, TextArrayWritable value, Context context)
                     throws java.io.IOException, InterruptedException {
+    	Configuration conf = context.getConfiguration();    	
         // System.err.println("record number: " + key);
         // Get the associated records from the input array
         String sentenceAlign = ((Text) value.get()[0]).toString();
         String wordAlign = ((Text) value.get()[1]).toString();
-
         // Preprocess the lines
         SentencePair sp = new SentencePair(sentenceAlign, false);
-        Alignment a = new Alignment(wordAlign, sp, false); // TODO replace 2 by
-                                                           // side, get side
-                                                           // from a config file
-        Configuration conf = context.getConfiguration();
+        boolean side1source = conf.getBoolean("side1source", false);
+        Alignment a = new Alignment(wordAlign, sp, side1source);
         RuleExtractor re = new RuleExtractor(conf);
         boolean source2target = conf.getBoolean("source2target", true);
         for (Rule r: re.extract(a, sp)) {
-            // context.progress();
             // TODO replace this by a write method instead of creating an object
             RuleWritable sourceMarginal = RuleWritable.makeSourceMarginal(r);
             RuleWritable targetMarginal = RuleWritable.makeTargetMarginal(r);

@@ -677,7 +677,21 @@ public final class Rule { // final because immutable class
         return res;
     }
 
-    /*
+    /**
+	 * @return the numberUnalignedSourceWords
+	 */
+	public int getNumberUnalignedSourceWords() {
+		return numberUnalignedSourceWords;
+	}
+
+	/**
+	 * @return the numberUnalignedTargetWords
+	 */
+	public int getNumberUnalignedTargetWords() {
+		return numberUnalignedTargetWords;
+	}
+
+	/*
      * (non-Javadoc)
      * @see java.lang.Object#hashCode()
      */
