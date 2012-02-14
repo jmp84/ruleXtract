@@ -24,7 +24,7 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
     private Text leftHandSide;
     private Text source;
     private Text target;
-    
+
     // additional info for features
     private DoubleWritable numberUnalignedSourceWords;
     private DoubleWritable numberUnalignedTargetWords;
@@ -71,37 +71,39 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         this.target = target;
     }
 
-	/**
-	 * @return the numberUnalignedSourceWords
-	 */
-	public DoubleWritable getNumberUnalignedSourceWords() {
-		return numberUnalignedSourceWords;
-	}
+    /**
+     * @return the numberUnalignedSourceWords
+     */
+    public DoubleWritable getNumberUnalignedSourceWords() {
+        return numberUnalignedSourceWords;
+    }
 
-	/**
-	 * @param numberUnalignedSourceWords the numberUnalignedSourceWords to set
-	 */
-	public void setNumberUnalignedSourceWords(
-			DoubleWritable numberUnalignedSourceWords) {
-		this.numberUnalignedSourceWords = numberUnalignedSourceWords;
-	}
+    /**
+     * @param numberUnalignedSourceWords
+     *            the numberUnalignedSourceWords to set
+     */
+    public void setNumberUnalignedSourceWords(
+            DoubleWritable numberUnalignedSourceWords) {
+        this.numberUnalignedSourceWords = numberUnalignedSourceWords;
+    }
 
-	/**
-	 * @return the numberUnalignedTargetWords
-	 */
-	public DoubleWritable getNumberUnalignedTargetWords() {
-		return numberUnalignedTargetWords;
-	}
+    /**
+     * @return the numberUnalignedTargetWords
+     */
+    public DoubleWritable getNumberUnalignedTargetWords() {
+        return numberUnalignedTargetWords;
+    }
 
-	/**
-	 * @param numberUnalignedTargetWords the numberUnalignedTargetWords to set
-	 */
-	public void setNumberUnalignedTargetWords(
-			DoubleWritable numberUnalignedTargetWords) {
-		this.numberUnalignedTargetWords = numberUnalignedTargetWords;
-	}
+    /**
+     * @param numberUnalignedTargetWords
+     *            the numberUnalignedTargetWords to set
+     */
+    public void setNumberUnalignedTargetWords(
+            DoubleWritable numberUnalignedTargetWords) {
+        this.numberUnalignedTargetWords = numberUnalignedTargetWords;
+    }
 
-	public RuleWritable() {
+    public RuleWritable() {
         leftHandSide = new Text();
         source = new Text();
         target = new Text();
@@ -119,8 +121,10 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         else {
             target = new Text();
         }
-        numberUnalignedSourceWords = new DoubleWritable(r.getNumberUnalignedSourceWords());
-        numberUnalignedTargetWords = new DoubleWritable(r.getNumberUnalignedTargetWords());
+        numberUnalignedSourceWords =
+                new DoubleWritable(r.getNumberUnalignedSourceWords());
+        numberUnalignedTargetWords =
+                new DoubleWritable(r.getNumberUnalignedTargetWords());
     }
 
     public RuleWritable(RuleWritable source, RuleWritable target) {
@@ -131,41 +135,61 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         this.numberUnalignedTargetWords = target.numberUnalignedTargetWords;
     }
 
-    public static RuleWritable makeSourceMarginal(Rule r) {
+    public static RuleWritable makeSourceMarginal(
+            Rule r, boolean source2target) {
         String[] parts = r.toString().split("\\s+");
         RuleWritable res = new RuleWritable();
         res.leftHandSide = new Text(parts[0]);
         res.source = new Text(parts[1]);
         res.target = new Text();
+        if (!source2target) {
+            res.numberUnalignedSourceWords =
+                    new DoubleWritable(r.getNumberUnalignedSourceWords());
+            res.numberUnalignedTargetWords =
+                    new DoubleWritable(r.getNumberUnalignedTargetWords());
+        }
         return res;
     }
 
-    public static RuleWritable makeSourceMarginal(RuleWritable r) {
+    public static RuleWritable makeSourceMarginal(
+            RuleWritable r, boolean source2target) {
         RuleWritable res = new RuleWritable();
         res.leftHandSide = new Text(r.leftHandSide);
         res.source = new Text(r.source);
         res.target = new Text();
+        if (!source2target) {
+            res.numberUnalignedSourceWords = r.numberUnalignedSourceWords;
+            res.numberUnalignedTargetWords = r.numberUnalignedTargetWords;
+        }
         return res;
     }
 
-    public static RuleWritable makeTargetMarginal(Rule r) {
+    public static RuleWritable makeTargetMarginal(
+            Rule r, boolean source2target) {
         String[] parts = r.toString().split("\\s+");
         RuleWritable res = new RuleWritable();
         res.leftHandSide = new Text(parts[0]);
         res.target = new Text(parts[2]);
         res.source = new Text();
-        res.numberUnalignedSourceWords = new DoubleWritable(r.getNumberUnalignedSourceWords());
-        res.numberUnalignedTargetWords = new DoubleWritable(r.getNumberUnalignedTargetWords());
+        if (source2target) {
+            res.numberUnalignedSourceWords =
+                    new DoubleWritable(r.getNumberUnalignedSourceWords());
+            res.numberUnalignedTargetWords =
+                    new DoubleWritable(r.getNumberUnalignedTargetWords());
+        }
         return res;
     }
 
-    public static RuleWritable makeTargetMarginal(RuleWritable r) {
+    public static RuleWritable makeTargetMarginal(
+            RuleWritable r, boolean source2target) {
         RuleWritable res = new RuleWritable();
         res.leftHandSide = new Text(r.leftHandSide);
         res.source = new Text();
         res.target = new Text(r.target);
-        res.numberUnalignedSourceWords = r.numberUnalignedSourceWords;
-        res.numberUnalignedTargetWords = r.numberUnalignedTargetWords;
+        if (source2target) {
+            res.numberUnalignedSourceWords = r.numberUnalignedSourceWords;
+            res.numberUnalignedTargetWords = r.numberUnalignedTargetWords;
+        }
         return res;
     }
 
@@ -213,6 +237,11 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         return "";
     }
 
+    // for the equals, compareTo, hashcode, readFields and write, methods,
+    // we don't use the numberUnalignedSourceWords and
+    // numberUnalignedTargetWords fields because in a hash map we group together
+    // rules that come from different alignments
+
     /*
      * (non-Javadoc)
      * @see org.apache.hadoop.io.Writable#readFields(java.io.DataInput)
@@ -253,68 +282,101 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
             return cmp;
         cmp = target.compareTo(arg0.target);
         if (cmp != 0)
-        	return cmp;
-        cmp = numberUnalignedSourceWords.compareTo(arg0.numberUnalignedSourceWords);
+            return cmp;
+        cmp =
+                numberUnalignedSourceWords
+                        .compareTo(arg0.numberUnalignedSourceWords);
         if (cmp != 0)
-        	return cmp;
-        return numberUnalignedTargetWords.compareTo(arg0.numberUnalignedTargetWords);
+            return cmp;
+        return numberUnalignedTargetWords
+                .compareTo(arg0.numberUnalignedTargetWords);
     }
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result
-				+ ((leftHandSide == null) ? 0 : leftHandSide.hashCode());
-		result = prime * result + ((source == null) ? 0 : source.hashCode());
-		result = prime * result + ((target == null) ? 0 : target.hashCode());
-		return result;
-	}
+    /*
+     * (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result =
+                prime
+                        * result
+                        + ((leftHandSide == null) ? 0 : leftHandSide.hashCode());
+        result =
+                prime
+                        * result
+                        + ((numberUnalignedSourceWords == null) ? 0
+                                : numberUnalignedSourceWords.hashCode());
+        result =
+                prime
+                        * result
+                        + ((numberUnalignedTargetWords == null) ? 0
+                                : numberUnalignedTargetWords.hashCode());
+        result = prime * result + ((source == null) ? 0 : source.hashCode());
+        result = prime * result + ((target == null) ? 0 : target.hashCode());
+        return result;
+    }
 
-	// for the equals and hashcode methods, we don't use the
-	// numberUnalignedSourceWords and numberUnalignedTargetWords
-	// fields because in a hash map we group together rules
-	// that come from different alignments
-	
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		RuleWritable other = (RuleWritable) obj;
-		if (leftHandSide == null) {
-			if (other.leftHandSide != null) {
-				return false;
-			}
-		} else if (!leftHandSide.equals(other.leftHandSide)) {
-			return false;
-		}
-		if (source == null) {
-			if (other.source != null) {
-				return false;
-			}
-		} else if (!source.equals(other.source)) {
-			return false;
-		}
-		if (target == null) {
-			if (other.target != null) {
-				return false;
-			}
-		} else if (!target.equals(other.target)) {
-			return false;
-		}
-		return true;
-	}
+    /*
+     * (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        RuleWritable other = (RuleWritable) obj;
+        if (leftHandSide == null) {
+            if (other.leftHandSide != null) {
+                return false;
+            }
+        }
+        else if (!leftHandSide.equals(other.leftHandSide)) {
+            return false;
+        }
+        if (numberUnalignedSourceWords == null) {
+            if (other.numberUnalignedSourceWords != null) {
+                return false;
+            }
+        }
+        else if (!numberUnalignedSourceWords
+                .equals(other.numberUnalignedSourceWords)) {
+            return false;
+        }
+        if (numberUnalignedTargetWords == null) {
+            if (other.numberUnalignedTargetWords != null) {
+                return false;
+            }
+        }
+        else if (!numberUnalignedTargetWords
+                .equals(other.numberUnalignedTargetWords)) {
+            return false;
+        }
+        if (source == null) {
+            if (other.source != null) {
+                return false;
+            }
+        }
+        else if (!source.equals(other.source)) {
+            return false;
+        }
+        if (target == null) {
+            if (other.target != null) {
+                return false;
+            }
+        }
+        else if (!target.equals(other.target)) {
+            return false;
+        }
+        return true;
+    }
 }

@@ -115,8 +115,9 @@ public class RuleFileBuilder extends Configured implements Tool {
         HFileScanner hfileScanner = hfileReader.getScanner();
         int counter = 0;
         for (Rule rule: sourceRules) {
+            // don't include the unaligned word info which is not there anyway
             RuleWritable ruleWritable = RuleWritable
-                    .makeSourceMarginal(rule);
+                    .makeSourceMarginal(rule, true);
             byte[] ruleBytes = object2ByteArray(ruleWritable);
             int success = hfileScanner.seekTo(ruleBytes);
             if (success == 0) { // found the source rule
@@ -251,12 +252,9 @@ public class RuleFileBuilder extends Configured implements Tool {
             List<Integer> source = new ArrayList<Integer>();
             source.add(testWord);
             Rule rule = new Rule(source, new ArrayList<Integer>());
-            // Rule asciiRule = new Rule(-1, source, source);
-            // if (asciiRules.contains(asciiRule)) {
-            // continue;
-            // }
+            // don't include the unaligned word info which is not there anyway
             RuleWritable ruleWritable = RuleWritable
-                    .makeSourceMarginal(rule);
+                    .makeSourceMarginal(rule, true);
             byte[] ruleBytes = object2ByteArray(ruleWritable);
             int success = hfileScanner.seekTo(ruleBytes);
             if (success != 0) { // did not found the source: add an oov rule

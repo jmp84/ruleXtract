@@ -25,7 +25,7 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3ArrayWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
-//TODO upgrade to hbase 0.90
+// TODO upgrade to hbase 0.90
 /**
  * @author jmp84 This class takes the outputs of a source-to-target and a
  *         target-to-source job and converts them to an HFile
@@ -93,25 +93,20 @@ public class HFileLoader2 extends Configured {
                         + targetsAndFeatures2Array[i].first);
                 System.exit(1);
             }
-            // DoubleWritable[] features =
-            // (DoubleWritable[]) targetsAndFeaturesArray[i].second.get();
             Writable[] features = targetsAndFeaturesArray[i].second.get();
-            // DoubleWritable[] features2 =
-            // (DoubleWritable[]) targetsAndFeatures2Array[i].second.get();
             Writable[] features2 = targetsAndFeatures2Array[i].second.get();
-            if (features.length != features2.length) {
-                System.err.println("Error: the source-to-target and " +
-                        "target-to-source jobs should have produced the same " +
-                        "number of features: " + features.length + " "
-                        + features2.length);
-                System.exit(1);
-            }
+            // we don't ensure that the length is the same
+            // for example, in the source-to-target direction, there are
+            // unaligned word features
+            int featuresLength = Math.max(features.length, features2.length);
             DoubleWritable[] mergedFeaturesArray =
-                    new DoubleWritable[features.length];
-            for (int j = 0; j < features.length; j++) {
+                    new DoubleWritable[featuresLength];
+            for (int j = 0; j < featuresLength; j++) {
                 // for j=0,1 we add the probability
-                // for j>=2, we don't (otherwise the occurrence is doubled for
-                // example)
+                // for j > 1, we only keep the feature coming from s2t (we avoid
+                // double counting for the count feature for example) and if
+                // the two arrays have different length, we keep the features
+                // of the longest array
                 if (j < 2) {
                     mergedFeaturesArray[j] =
                             new DoubleWritable(
@@ -120,9 +115,25 @@ public class HFileLoader2 extends Configured {
                                                     .get());
                 }
                 else {
-                    mergedFeaturesArray[j] =
-                            new DoubleWritable(
-                                    ((DoubleWritable) features[j]).get());
+                    if (j < features.length && j < features2.length) {
+                        mergedFeaturesArray[j] =
+                                new DoubleWritable(
+                                        ((DoubleWritable) features[j]).get());
+                    }
+                    else {
+                        if (j < features.length) {
+                            mergedFeaturesArray[j] =
+                                    new DoubleWritable(
+                                            ((DoubleWritable) features[j])
+                                                    .get());
+                        }
+                        else {
+                            mergedFeaturesArray[j] =
+                                    new DoubleWritable(
+                                            ((DoubleWritable) features2[j])
+                                                    .get());
+                        }
+                    }
                 }
             }
             mergedFeatures.set(mergedFeaturesArray);
@@ -184,8 +195,8 @@ public class HFileLoader2 extends Configured {
     }
 
     /**
-     * @param args 
-     * @throws IOException 
+     * @param args
+     * @throws IOException
      */
     public static void main(String[] args) throws IOException {
         if (args.length != 3) {

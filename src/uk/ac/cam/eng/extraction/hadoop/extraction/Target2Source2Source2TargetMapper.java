@@ -111,14 +111,16 @@ public class Target2Source2Source2TargetMapper
             PairWritable3 targetAndFeatures =
                     new PairWritable3(
                             // target
-                            RuleWritable.makeTargetMarginal(nonterminalsInvertedRule),
+                            RuleWritable.makeTargetMarginal(
+                                    nonterminalsInvertedRule, false),
                             sourceAndFeatures.second);
             BytesWritable outputKey =
                     new BytesWritable(
                             // object2ByteArray(sourceAndFeaturesCast.first));
                             // object2ByteArray(sourceAndFeatures.first));
                             object2ByteArray(RuleWritable
-                                    .makeSourceMarginal(nonterminalsInvertedRule)));
+                                    .makeSourceMarginal(
+                                            nonterminalsInvertedRule, false)));
             context.write(outputKey, targetAndFeatures);
         }
     }

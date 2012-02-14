@@ -103,9 +103,9 @@ public class ExtractorReducerMethod3
                 new TreeMap<RuleWritable, Integer>();
         // maps from a rule to the number of unaligned source/target words
         Map<RuleWritable, Double> ruleAndUnalignedSourceWords =
-        		new HashMap<>();
+                new HashMap<>();
         Map<RuleWritable, Double> ruleAndUnalignedTargetWords =
-        		new HashMap<>();
+                new HashMap<>();
         // sideCountPair is either a target and a count (source-to-target
         // extraction) or a source and a count (target-to-source extraction)
         for (PairWritable sideCountPair: values) {
@@ -115,12 +115,6 @@ public class ExtractorReducerMethod3
                 rw.setSource(new Text());
                 rw.setTarget(new Text(sideCountPair.first.getTarget()));
                 rw.setLeftHandSide(new Text("0"));
-//                rw.setNumberUnalignedSourceWords(
-//                		new DoubleWritable(
-//                				sideCountPair.first.getNumberUnalignedSourceWords().get()));
-//                rw.setNumberUnalignedTargetWords(
-//                		new DoubleWritable(
-//                				sideCountPair.first.getNumberUnalignedTargetWords().get()));
             }
             else {
                 rw.setSource(new Text(sideCountPair.first.getSource()));
@@ -128,21 +122,34 @@ public class ExtractorReducerMethod3
                 rw.setLeftHandSide(new Text("0"));
             }
             if (!ruleCounts.containsKey(rw)) {
-            	ruleCounts.put(rw, sideCountPair.second.get());
+                ruleCounts.put(rw, sideCountPair.second.get());
             }
             else {
                 ruleCounts.put(rw,
                         ruleCounts.get(rw) + sideCountPair.second.get());
             }
-            // only compute unaligned word feature in the source2target direction
-            if (source2target) {
-            	if (!ruleAndUnalignedSourceWords.containsKey(rw)) {
-            		ruleAndUnalignedSourceWords.put(rw, sideCountPair.first.getNumberUnalignedSourceWords().get());
-            	}
-            	else {
-            		ruleAndUnalignedSourceWords.put(rw,
-            				ruleAndUnalignedSourceWords.get(rw) + sideCountPair.first.getNumberUnalignedSourceWords().get());
-            	}
+            // compute unaligned word feature in the source2target
+            if (!ruleAndUnalignedSourceWords.containsKey(rw)) {
+                ruleAndUnalignedSourceWords.put(rw, sideCountPair.first
+                        .getNumberUnalignedSourceWords().get());
+            }
+            else {
+                ruleAndUnalignedSourceWords.put(rw,
+                        ruleAndUnalignedSourceWords.get(rw)
+                                + sideCountPair.first
+                                        .getNumberUnalignedSourceWords()
+                                        .get());
+            }
+            if (!ruleAndUnalignedTargetWords.containsKey(rw)) {
+                ruleAndUnalignedTargetWords.put(rw, sideCountPair.first
+                        .getNumberUnalignedTargetWords().get());
+            }
+            else {
+                ruleAndUnalignedTargetWords.put(rw,
+                        ruleAndUnalignedTargetWords.get(rw)
+                                + sideCountPair.first
+                                        .getNumberUnalignedTargetWords()
+                                        .get());
             }
         }
         // do a second pass for normalization
@@ -160,25 +167,24 @@ public class ExtractorReducerMethod3
             features[0] = source2target ? probability : new DoubleWritable(0);
             features[1] = source2target ? new DoubleWritable(0) : probability;
             features[2] = new DoubleWritable(countRule);
-            if (source2target) { // unaligned word feature
-            	DoubleWritable averageUnalignedSource =
-            			new DoubleWritable(ruleAndUnalignedSourceWords.get(rw) / countRule);
-            	DoubleWritable averageUnalignedTarget =
-            			new DoubleWritable(ruleAndUnalignedTargetWords.get(rw) / countRule);
-            	features[3] = averageUnalignedSource;
-            	features[4] = averageUnalignedTarget;
+            if (source2target && nbFeatures >= 5) { // unaligned word feature
+                DoubleWritable averageUnalignedSource =
+                        new DoubleWritable(ruleAndUnalignedSourceWords.get(rw)
+                                / countRule);
+                DoubleWritable averageUnalignedTarget =
+                        new DoubleWritable(ruleAndUnalignedTargetWords.get(rw)
+                                / countRule);
+                features[3] = averageUnalignedSource;
+                features[4] = averageUnalignedTarget;
             }
             ArrayWritable featuresWritable =
                     new ArrayWritable(DoubleWritable.class, features);
             outputValueArray[i] = new PairWritable3(rw, featuresWritable);
             i++;
         }
-        // context.write(rw, probability);
         PairWritable3ArrayWritable outputValue =
                 new PairWritable3ArrayWritable();
         outputValue.set(outputValueArray);
-        // context.write(key, new ArrayWritable(PairWritable3.class,
-        // outputValueArray));
         context.write(key, outputValue);
     }
 }

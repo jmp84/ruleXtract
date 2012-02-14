@@ -61,6 +61,8 @@ public class FeatureCreator {
                     new Target2SourcePatternProbability(
                             rulePatternAndFeaturesFile));
         }
+        features.put("unaligned_source_words", new UnalignedSourceWords());
+        features.put("unaligned_target_words", new UnalignedTargetWords());
         this.selectedFeatures = selectedFeatures;
     }
 
@@ -88,7 +90,8 @@ public class FeatureCreator {
             createFeatures(PairWritable3 ruleAndMapReduceFeatures) {
         PairWritable3 res = new PairWritable3();
         res.first = ruleAndMapReduceFeatures.first;
-        DoubleWritable[] featureValues = new DoubleWritable[features.size()];
+        DoubleWritable[] featureValues =
+                new DoubleWritable[selectedFeatures.length];
         int i = 0;
         for (String featureName: selectedFeatures) {
             double featureValue =
@@ -104,7 +107,8 @@ public class FeatureCreator {
             PairWritable3 asciiOovDeletionRule) {
         PairWritable3 res = new PairWritable3();
         res.first = asciiOovDeletionRule.first;
-        DoubleWritable[] featureValues = new DoubleWritable[features.size()];
+        DoubleWritable[] featureValues =
+                new DoubleWritable[selectedFeatures.length];
         int i = 0;
         for (String featureName: selectedFeatures) {
             double featureValue =
@@ -120,7 +124,8 @@ public class FeatureCreator {
     private PairWritable3 createFeaturesGlueRule(PairWritable3 glueRule) {
         PairWritable3 res = new PairWritable3();
         res.first = glueRule.first;
-        DoubleWritable[] featureValues = new DoubleWritable[features.size()];
+        DoubleWritable[] featureValues =
+                new DoubleWritable[selectedFeatures.length];
         int i = 0;
         for (String featureName: selectedFeatures) {
             double featureValue =
