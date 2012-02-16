@@ -4,6 +4,8 @@
 
 package uk.ac.cam.eng.rulebuilding.features;
 
+import java.util.List;
+
 import org.apache.hadoop.io.ArrayWritable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
@@ -14,11 +16,13 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
  */
 public interface Feature {
 
-    public double value(Rule r, ArrayWritable mapReduceFeatures);
+    public List<Double> value(Rule r, ArrayWritable mapReduceFeatures);
 
-    public double
+    public List<Double>
             valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures);
 
-    public double valueGlue(Rule r, ArrayWritable mapReduceFeatures);
+    public List<Double> valueGlue(Rule r, ArrayWritable mapReduceFeatures);
+    
+    public int getNumberOfFeatures();
 
 }
