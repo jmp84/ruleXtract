@@ -32,7 +32,8 @@ public class FeatureCreator {
     public FeatureCreator(String source2targetLexicalModel,
             String target2sourceLexicalModel,
             String rulePatternAndFeaturesFile,
-            List<PairWritable3> rules, String[] selectedFeatures)
+            List<PairWritable3> rules, String[] selectedFeatures,
+            String[] provenances)
             throws FileNotFoundException, IOException {
         features = new HashMap<String, Feature>();
         features.put("source2target_probability",
@@ -63,23 +64,28 @@ public class FeatureCreator {
         }
         features.put("unaligned_source_words", new UnalignedSourceWords());
         features.put("unaligned_target_words", new UnalignedTargetWords());
-        features.put("provenance_feature", new ProvenanceFeature());
+        if (provenances != null) {
+            features.put("provenance_translation", new ProvenanceTranslation(
+                    provenances));
+            features.put("provenance_lexical", new ProvenanceLexical(
+                    provenances));
+        }
         this.selectedFeatures = selectedFeatures;
     }
-    
+
     private int getNumberOfFeatures() {
-    	int res = 0;
-    	for (String selectedFeature: selectedFeatures) {
-    		res += features.get(selectedFeature).getNumberOfFeatures();
-    	}
-    	return res;
+        int res = 0;
+        for (String selectedFeature: selectedFeatures) {
+            res += features.get(selectedFeature).getNumberOfFeatures();
+        }
+        return res;
     }
 
     private List<Double> createFeatures(String featureName,
             PairWritable3 ruleAndMapReduceFeatures) {
         return features.get(featureName).value(
-        		new Rule(ruleAndMapReduceFeatures.first),
-        		ruleAndMapReduceFeatures.second);
+                new Rule(ruleAndMapReduceFeatures.first),
+                ruleAndMapReduceFeatures.second);
     }
 
     private List<Double> createFeatureAsciiOovDeletion(String featureName,
@@ -104,10 +110,10 @@ public class FeatureCreator {
         int i = 0;
         for (String featureName: selectedFeatures) {
             List<Double> featureValues =
-            		createFeatures(featureName, ruleAndMapReduceFeatures);
+                    createFeatures(featureName, ruleAndMapReduceFeatures);
             for (Double featureValue: featureValues) {
-            	allFeatureValues[i] = new DoubleWritable(featureValue);
-            	i++;
+                allFeatureValues[i] = new DoubleWritable(featureValue);
+                i++;
             }
         }
         res.second = new ArrayWritable(DoubleWritable.class, allFeatureValues);
@@ -126,8 +132,8 @@ public class FeatureCreator {
                     createFeatureAsciiOovDeletion(featureName,
                             asciiOovDeletionRule);
             for (Double featureValue: featureValues) {
-            	allFeatureValues[i] = new DoubleWritable(featureValue);
-            	i++;
+                allFeatureValues[i] = new DoubleWritable(featureValue);
+                i++;
             }
         }
         res.second = new ArrayWritable(DoubleWritable.class, allFeatureValues);
@@ -144,8 +150,8 @@ public class FeatureCreator {
             List<Double> featureValues =
                     createFeatureGlueRule(featureName, glueRule);
             for (Double featureValue: featureValues) {
-            	allFeatureValues[i] = new DoubleWritable(featureValue);
-            	i++;
+                allFeatureValues[i] = new DoubleWritable(featureValue);
+                i++;
             }
         }
         res.second = new ArrayWritable(DoubleWritable.class, allFeatureValues);

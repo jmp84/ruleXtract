@@ -4,18 +4,25 @@
 
 package uk.ac.cam.eng.rulebuilding.features;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.io.ArrayWritable;
-import org.apache.hadoop.io.DoubleWritable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 
 /**
  * @author jmp84
  */
-public class Source2TargetProbability implements Feature {
+public class ProvenanceLexical implements Feature {
+
+    /**
+     * List of source-to-target model 1 files
+     */
+    private String[] source2targetModelFiles;
+
+    public ProvenanceLexical(String[] source2targetModelFiles) {
+        this.source2targetModelFiles = source2targetModelFiles;
+    }
 
     /*
      * (non-Javadoc)
@@ -25,10 +32,8 @@ public class Source2TargetProbability implements Feature {
      */
     @Override
     public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
-        // TODO could use the log in the mapreduce job
-        List<Double> res = new ArrayList<>();
-        res.add(Math.log(((DoubleWritable) mapReduceFeatures.get()[0]).get()));
-        return res;
+        // TODO Auto-generated method stub
+        return null;
     }
 
     /*
@@ -38,11 +43,10 @@ public class Source2TargetProbability implements Feature {
      * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public List<Double>
-            valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<>();
-        res.add((double) 0);
-        return res;
+    public List<Double> valueAsciiOovDeletion(Rule r,
+            ArrayWritable mapReduceFeatures) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     /*
@@ -52,9 +56,8 @@ public class Source2TargetProbability implements Feature {
      */
     @Override
     public List<Double> valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<>();
-        res.add((double) 0);
-        return res;
+        // TODO Auto-generated method stub
+        return null;
     }
 
     /*
@@ -63,6 +66,8 @@ public class Source2TargetProbability implements Feature {
      */
     @Override
     public int getNumberOfFeatures() {
-        return 1;
+        // TODO Auto-generated method stub
+        return 0;
     }
+
 }

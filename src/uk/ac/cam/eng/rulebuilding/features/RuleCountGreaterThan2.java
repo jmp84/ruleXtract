@@ -4,6 +4,9 @@
 
 package uk.ac.cam.eng.rulebuilding.features;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DoubleWritable;
 
@@ -21,9 +24,16 @@ public class RuleCountGreaterThan2 implements Feature {
      * .datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public double value(Rule r, ArrayWritable mapReduceFeatures) {
+    public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
+        List<Double> res = new ArrayList<>();
         double count = ((DoubleWritable) mapReduceFeatures.get()[2]).get();
-        return (int) ((count > 2) ? 1 : 0);
+        if (count > 2) {
+            res.add((double) 1);
+        }
+        else {
+            res.add((double) 0);
+        }
+        return res;
     }
 
     /*
@@ -33,9 +43,11 @@ public class RuleCountGreaterThan2 implements Feature {
      * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public double
+    public List<Double>
             valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
-        return 0;
+        List<Double> res = new ArrayList<>();
+        res.add((double) 0);
+        return res;
     }
 
     /*
@@ -44,11 +56,24 @@ public class RuleCountGreaterThan2 implements Feature {
      * extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public double valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
+    public List<Double> valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
+        List<Double> res = new ArrayList<Double>();
         if (r.isStartSentence() || r.isEndSentence()) {
-            return 1;
+            res.add((double) 1);
         }
-        return 0;
+        else {
+            res.add((double) 0);
+        }
+        return res;
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see uk.ac.cam.eng.rulebuilding.features.Feature#getNumberOfFeatures()
+     */
+    @Override
+    public int getNumberOfFeatures() {
+        return 1;
     }
 
 }

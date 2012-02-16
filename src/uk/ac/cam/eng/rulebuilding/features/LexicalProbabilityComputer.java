@@ -23,9 +23,11 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
 
 /**
- * @author jmp84
+ * @author jmp84 Helper class to compute source-to-target and target-to-source
+ *         lexical probabilities either with the main model or with provenance
+ *         models
  */
-public class Source2TargetLexicalProbability implements Feature {
+public class LexicalProbabilityComputer {
 
     private final double minSum = 4.24e-18; // exp(-40)
     private final double logMinSum = -40;
@@ -47,7 +49,7 @@ public class Source2TargetLexicalProbability implements Feature {
         return res;
     }
 
-    public Source2TargetLexicalProbability(String modelFile,
+    public LexicalProbabilityComputer(String modelFile,
             List<PairWritable3> rules) throws FileNotFoundException,
             IOException {
         Set<Integer> sourceVocabulary = getVocabulary(rules, true);
@@ -84,13 +86,6 @@ public class Source2TargetLexicalProbability implements Feature {
         }
     }
 
-    /*
-     * (non-Javadoc)
-     * @see
-     * uk.ac.cam.eng.rulebuilding.features.Feature#value(uk.ac.cam.eng.extraction
-     * .datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
-     */
-    @Override
     public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
         List<Double> res = new ArrayList<Double>();
         double lexprob = 1;
@@ -125,45 +120,5 @@ public class Source2TargetLexicalProbability implements Feature {
         // TODO could use the log in the computation
         res.add(Math.log(lexprob));
         return res;
-    }
-
-    /*
-     * (non-Javadoc)
-     * @see
-     * uk.ac.cam.eng.rulebuilding.features.Feature#valueAsciiOovDeletion(uk.
-     * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
-     */
-    @Override
-    public List<Double>
-            valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<>();
-        // if ascii rule, return the usual value. this can be different than
-        // logMinSum in case the ascii constraint is actually part of the corpus
-        if (r.getTargetWords().size() == 1 && r.getTargetWords().get(0) != 0) {
-            return value(r, mapReduceFeatures);
-        }
-        res.add((double) 0);
-        return res;
-    }
-
-    /*
-     * (non-Javadoc)
-     * @see uk.ac.cam.eng.rulebuilding.features.Feature#valueGlue(uk.ac.cam.eng.
-     * extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
-     */
-    @Override
-    public List<Double> valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<Double>();
-        res.add((double) 0);
-        return res;
-    }
-
-    /*
-     * (non-Javadoc)
-     * @see uk.ac.cam.eng.rulebuilding.features.Feature#getNumberOfFeatures()
-     */
-    @Override
-    public int getNumberOfFeatures() {
-        return 1;
     }
 }

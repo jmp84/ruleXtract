@@ -8,7 +8,9 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.io.ArrayWritable;
@@ -59,9 +61,11 @@ public class Target2SourcePatternProbability implements Feature {
      * .Rule)
      */
     @Override
-    public double value(Rule r, ArrayWritable mapReduceFeatures) {
+    public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
+        List<Double> res = new ArrayList<>();
         RulePattern rp = RulePattern.getPattern(r);
-        return Math.log(rulePatternAndFeatures.get(rp)[1]);
+        res.add(Math.log(rulePatternAndFeatures.get(rp)[1]));
+        return res;
     }
 
     /*
@@ -71,9 +75,11 @@ public class Target2SourcePatternProbability implements Feature {
      * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public double
+    public List<Double>
             valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
-        return 0;
+        List<Double> res = new ArrayList<>();
+        res.add((double) 0);
+        return res;
     }
 
     /*
@@ -82,8 +88,18 @@ public class Target2SourcePatternProbability implements Feature {
      * extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public double valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
-        return 0;
+    public List<Double> valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
+        List<Double> res = new ArrayList<>();
+        res.add((double) 0);
+        return res;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see uk.ac.cam.eng.rulebuilding.features.Feature#getNumberOfFeatures()
+     */
+    @Override
+    public int getNumberOfFeatures() {
+        return 1;
+    }
 }

@@ -4,6 +4,9 @@
 
 package uk.ac.cam.eng.rulebuilding.features;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DoubleWritable;
 
@@ -21,9 +24,11 @@ public class UnalignedSourceWords implements Feature {
      * .datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public double value(Rule r, ArrayWritable mapReduceFeatures) {
+    public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
         // TODO check length
-        return ((DoubleWritable) mapReduceFeatures.get()[3]).get();
+        List<Double> res = new ArrayList<>();
+        res.add(Math.log(((DoubleWritable) mapReduceFeatures.get()[3]).get()));
+        return res;
     }
 
     /*
@@ -33,9 +38,11 @@ public class UnalignedSourceWords implements Feature {
      * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public double
+    public List<Double>
             valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
-        return 0;
+        List<Double> res = new ArrayList<Double>();
+        res.add((double) 0);
+        return res;
     }
 
     /*
@@ -44,8 +51,18 @@ public class UnalignedSourceWords implements Feature {
      * extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public double valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
-        return 0;
+    public List<Double> valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
+        List<Double> res = new ArrayList<Double>();
+        res.add((double) 0);
+        return res;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see uk.ac.cam.eng.rulebuilding.features.Feature#getNumberOfFeatures()
+     */
+    @Override
+    public int getNumberOfFeatures() {
+        return 1;
+    }
 }

@@ -15,7 +15,13 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
 /**
  * @author jmp84
  */
-public class Source2TargetProbability implements Feature {
+public class ProvenanceTranslation implements Feature {
+
+    private String[] provenances;
+
+    public ProvenanceTranslation(String[] provenances) {
+        this.provenances = provenances;
+    }
 
     /*
      * (non-Javadoc)
@@ -25,9 +31,13 @@ public class Source2TargetProbability implements Feature {
      */
     @Override
     public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
-        // TODO could use the log in the mapreduce job
         List<Double> res = new ArrayList<>();
-        res.add(Math.log(((DoubleWritable) mapReduceFeatures.get()[0]).get()));
+        for (int i = 0; i < provenances.length; i++) {
+            // 5 because the first mapreduce features are s2t, t2s, count, src
+            // unaligned, trg unaligned
+            res.add(Math.log(((DoubleWritable) mapReduceFeatures.get()[i + 5])
+                    .get()));
+        }
         return res;
     }
 
@@ -38,10 +48,14 @@ public class Source2TargetProbability implements Feature {
      * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public List<Double>
-            valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
+    public List<Double> valueAsciiOovDeletion(Rule r,
+            ArrayWritable mapReduceFeatures) {
         List<Double> res = new ArrayList<>();
-        res.add((double) 0);
+        for (int i = 0; i < provenances.length; i++) {
+            // 5 because the first mapreduce features are s2t, t2s, count, src
+            // unaligned, trg unaligned
+            res.add((double) 0);
+        }
         return res;
     }
 
@@ -53,7 +67,11 @@ public class Source2TargetProbability implements Feature {
     @Override
     public List<Double> valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
         List<Double> res = new ArrayList<>();
-        res.add((double) 0);
+        for (int i = 0; i < provenances.length; i++) {
+            // 5 because the first mapreduce features are s2t, t2s, count, src
+            // unaligned, trg unaligned
+            res.add((double) 0);
+        }
         return res;
     }
 
@@ -63,6 +81,6 @@ public class Source2TargetProbability implements Feature {
      */
     @Override
     public int getNumberOfFeatures() {
-        return 1;
+        return provenances.length;
     }
 }

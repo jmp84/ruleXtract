@@ -9,6 +9,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -90,8 +91,9 @@ public class Target2SourceLexicalProbability implements Feature {
      * .datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public double value(Rule r, ArrayWritable mapReduceFeatures) {
-        double res = 1;
+    public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
+        List<Double> res = new ArrayList<Double>();
+        double lexprob = 1;
         List<Integer> sourceWords = r.getSourceWords();
         List<Integer> targetWords = r.getTargetWords();
         if (targetWords.size() > 1) {
@@ -117,15 +119,16 @@ public class Target2SourceLexicalProbability implements Feature {
                 }
             }
             if (sum > 0) {
-                res *= sum;
+                lexprob *= sum;
             }
             else {
-                res *= minSum;
+                lexprob *= minSum;
             }
         }
-        res /= Math.pow(sourceWords.size(), targetWords.size());
+        lexprob /= Math.pow(sourceWords.size(), targetWords.size());
         // TODO could use the log in the computation
-        return Math.log(res);
+        res.add(Math.log(lexprob));
+        return res;
     }
 
     /*
@@ -135,14 +138,16 @@ public class Target2SourceLexicalProbability implements Feature {
      * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public double
+    public List<Double>
             valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
+        List<Double> res = new ArrayList<>();
         // if ascii rule, return the usual value. this can be different than
-    	// logMinSum in case the ascii constraint is actually part of the corpus
+        // logMinSum in case the ascii constraint is actually part of the corpus
         if (r.getTargetWords().size() == 1 && r.getTargetWords().get(0) != 0) {
             return value(r, mapReduceFeatures);
         }
-        return 0;
+        res.add((double) 0);
+        return res;
     }
 
     /*
@@ -151,7 +156,18 @@ public class Target2SourceLexicalProbability implements Feature {
      * extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public double valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
-        return 0;
+    public List<Double> valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
+        List<Double> res = new ArrayList<Double>();
+        res.add((double) 0);
+        return res;
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see uk.ac.cam.eng.rulebuilding.features.Feature#getNumberOfFeatures()
+     */
+    @Override
+    public int getNumberOfFeatures() {
+        return 1;
     }
 }
