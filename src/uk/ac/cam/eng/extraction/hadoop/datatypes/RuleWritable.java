@@ -292,6 +292,16 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
                 .compareTo(arg0.numberUnalignedTargetWords);
     }
 
+    public int compareYield(RuleWritable arg0) {
+        int cmp = leftHandSide.compareTo(arg0.leftHandSide);
+        if (cmp != 0)
+            return cmp;
+        cmp = source.compareTo(arg0.source);
+        if (cmp != 0)
+            return cmp;
+        return target.compareTo(arg0.target);
+    }
+
     /*
      * (non-Javadoc)
      * @see java.lang.Object#hashCode()

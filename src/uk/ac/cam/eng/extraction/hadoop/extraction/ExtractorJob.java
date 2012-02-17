@@ -27,8 +27,6 @@ public class ExtractorJob extends Configured implements Tool {
     // for extraction and then run different reducers for each feature.
 
     public int run(String[] args) throws Exception {
-
-        // load the property config file
         String configFile = args[0];
         Properties p = new Properties();
         try {
