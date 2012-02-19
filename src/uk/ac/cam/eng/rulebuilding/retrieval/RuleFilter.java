@@ -81,7 +81,13 @@ public class RuleFilter {
     // decides whether to keep all the rules that fall within the number
     // of translations per source threshold in case of a tie
     private boolean keepTiedRules = true;
+    // when using provenance features, we can either keep the rules coming
+    // from the main table and add features corresponding to the provenance
+    // tables (default) or keep the union of the rules coming from the main
+    // and provenance tables
+    private boolean provenanceUnion = false;
 
+    // TODO use Properties instead
     public void loadConfig(String configFile) throws FileNotFoundException,
             IOException {
         try (BufferedReader br = new BufferedReader(new FileReader(configFile))) {
@@ -158,18 +164,21 @@ public class RuleFilter {
                 else if (featureValue[0].equals("keep_tied_rules")) {
                     keepTiedRules = Boolean.parseBoolean(featureValue[1]);
                 }
+                else if (featureValue[0].equals("provenance_union")) {
+                	provenanceUnion = Boolean.parseBoolean(featureValue[1]);
+                }
             }
         }
     }
 
-    private ArrayWritable sortByCount(ArrayWritable listTargetAndProb) {
+    private ArrayWritable sortByCount(ArrayWritable listTargetAndProb, int countIndex) {
         Map<RuleWritable, Double> targetsAndCounts = new HashMap<>();
         Map<RuleWritable, Integer> indices = new HashMap<>();
         for (int i = 0; i < listTargetAndProb.get().length; i++) {
             targetsAndCounts
                     .put(((PairWritable3) listTargetAndProb.get()[i]).first,
                             ((DoubleWritable) ((PairWritable3) listTargetAndProb
-                                    .get()[i]).second.get()[2]).get());
+                                    .get()[i]).second.get()[countIndex]).get());
             indices.put(((PairWritable3) listTargetAndProb.get()[i]).first, i);
         }
         Map<RuleWritable, Double> sortedMap = sortMapByValue(targetsAndCounts);
@@ -184,8 +193,8 @@ public class RuleFilter {
     }
 
     public List<PairWritable3> filter(RuleWritable source,
-            ArrayWritable listTargetAndProb) {
-        ArrayWritable listTargetAndProbSorted = sortByCount(listTargetAndProb);
+            ArrayWritable listTargetAndProb, int countIndex) {
+        ArrayWritable listTargetAndProbSorted = sortByCount(listTargetAndProb, countIndex);
         List<PairWritable3> res = new ArrayList<PairWritable3>();
         SidePattern sourcePattern = SidePattern.getSourcePattern(source);
         if (!sourcePattern.isPhrase()
@@ -334,5 +343,37 @@ public class RuleFilter {
             numberTranslations++;
         }
         return res;
+    }
+    
+    public List<PairWritable3> filter(RuleWritable source,
+    		ArrayWritable listTargetAndProb) {
+    	if (!provenanceUnion) {
+    		return filter(source, listTargetAndProb, 2);
+    	}
+    	List<PairWritable3> res = filter(source, listTargetAndProb, 2);
+    	Set<RuleWritable> ruleSet = new HashSet<>();
+    	for (PairWritable3 mainRuleAndFeatures: res) {
+    		ruleSet.add(mainRuleAndFeatures.first);
+    	}
+    	int nbFeatures = ((PairWritable3) listTargetAndProb.get()[0]).second.get().length;
+    	// nbFeatures should be 5 + number_of_provenances*3
+    	// this is because the main table has 5 features (s2t, t2s, count,
+    	// src unaligned, trg unaligned) and the provenance tables have
+    	// 3 features (s2t, t2s, count)
+    	if (nbFeatures % 3 != 2) {
+    		System.err.println("ERROR: wrong number of features in the HFile: " + nbFeatures);
+    		System.exit(1);
+    	}
+    	for (int i = 7; i < nbFeatures; i += 3) {
+    		List<PairWritable3> resProvenance = filter(source, listTargetAndProb, i);
+    		for (PairWritable3 ruleAndFeatures: resProvenance) {
+    			if (!ruleSet.contains(ruleAndFeatures.first)) {
+    				res.add(ruleAndFeatures);
+    				ruleSet.add(ruleAndFeatures.first);
+    			}
+    			// TODO else add a check that the features are the same
+    		}
+    	}
+    	return res;
     }
 }
