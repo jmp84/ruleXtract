@@ -123,10 +123,8 @@ public class HFileCreatorMergeProvenance extends Configured {
         return res;
     }
 
-    private static void
-            mergeHFiles(List<String> inputHFiles, String outputHFile)
-                    throws IOException {
-        Configuration conf = new Configuration();
+    private static void mergeHFiles(List<String> inputHFiles,
+            String outputHFile, Configuration conf) throws IOException {
         FileSystem fs = FileSystem.get(conf);
         Path path = new Path(outputHFile);
         if (fs.exists(path)) {
@@ -147,16 +145,14 @@ public class HFileCreatorMergeProvenance extends Configured {
         // initialized toBeProcessed with the first element of each HFile
         for (int i = 0; i < scanners.size(); i++) {
             HFileScanner scanner = scanners.get(i);
-            if (scanner.next()) {
-                ByteBuffer key = scanner.getKey();
-                ArrayWritable value = bytes2ArrayWritable(scanner.getValue());
-                toBeProcessed.add(new Pair<ByteBuffer, ArrayWritable>(key,
-                        value));
-            }
-            else {
-                System.err.println("ERROR: empty HFile: " + inputHFiles.get(i));
-                System.exit(1);
-            }
+            // go to the beginning of the file
+            scanner.seekTo();
+            // we assume here that the hfile is not empty
+            // TODO find a way to check that
+            ByteBuffer key = scanner.getKey();
+            ArrayWritable value = bytes2ArrayWritable(scanner.getValue());
+            toBeProcessed.add(new Pair<ByteBuffer, ArrayWritable>(key,
+                    value));
         }
         boolean allHFilesEmpty = false;
         boolean isnonext;
@@ -225,8 +221,9 @@ public class HFileCreatorMergeProvenance extends Configured {
 
     /**
      * @param args
+     * @throws IOException
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         if (args.length != 1) {
             System.out
                     .println("Usage: HFileCreatorMergeProvenance <config file>");
@@ -245,6 +242,17 @@ public class HFileCreatorMergeProvenance extends Configured {
         for (String prop: p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
-
+        String inputHFiles = p.getProperty("input_hfiles");
+        if (inputHFiles == null) {
+            System.err.println("ERROR: missing property input_hfiles");
+            System.exit(1);
+        }
+        List<String> inputHFilesList = Arrays.asList(inputHFiles.split(","));
+        String outputHFile = p.getProperty("output_hfile");
+        if (outputHFile == null) {
+            System.err.println("ERROR: missing property output_hfile");
+            System.exit(1);
+        }
+        mergeHFiles(inputHFilesList, outputHFile, conf);
     }
 }
