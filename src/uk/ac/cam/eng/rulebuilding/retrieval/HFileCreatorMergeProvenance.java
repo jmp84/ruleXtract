@@ -73,13 +73,36 @@ public class HFileCreatorMergeProvenance extends Configured {
 
     private static ArrayWritable mergeFeatures(ArrayWritable features1,
             ArrayWritable features2) {
-        Writable[] featuresArray1 = features1.get();
-        Writable[] featuresArray2 = features2.get();
-        List<Writable> featuresList1 = Arrays.asList(featuresArray1);
-        List<Writable> featuresList2 = Arrays.asList(featuresArray2);
-        featuresList1.addAll(featuresList2);
+        if (features2 == null) {
+            DoubleWritable[] resArray =
+                    new DoubleWritable[features1.get().length + 3];
+            resArray[resArray.length - 1] = new DoubleWritable(0);
+            resArray[resArray.length - 2] = new DoubleWritable(0);
+            resArray[resArray.length - 3] = new DoubleWritable(0);
+            ArrayWritable res = new ArrayWritable(DoubleWritable.class);
+            res.set(resArray);
+            return res;
+        }
+        if (features1 == null) {
+            DoubleWritable[] resArray =
+                    new DoubleWritable[features1.get().length + 3];
+            resArray[resArray.length - 1] = new DoubleWritable(0);
+            resArray[resArray.length - 2] = new DoubleWritable(0);
+            resArray[resArray.length - 3] = new DoubleWritable(0);
+            ArrayWritable res = new ArrayWritable(DoubleWritable.class);
+            res.set(resArray);
+            return res;        	
+        }
         DoubleWritable[] resArray =
-                featuresList1.toArray(new DoubleWritable[]{});
+                new DoubleWritable[features1.get().length
+                        + features2.get().length];
+        for (int i = 0; i < features1.get().length; i++) {
+            resArray[i] = (DoubleWritable) features1.get()[i];
+        }
+        for (int i = 0; i < features2.get().length; i++) {
+            resArray[i + features1.get().length] =
+                    (DoubleWritable) features2.get()[i];
+        }
         ArrayWritable res = new ArrayWritable(DoubleWritable.class);
         res.set(resArray);
         return res;
@@ -88,35 +111,35 @@ public class HFileCreatorMergeProvenance extends Configured {
     private static ArrayWritable merge(ArrayWritable targetsAndFeatures,
             ArrayWritable targetsAndFeatures2) {
         ArrayWritable res = new ArrayWritable(PairWritable3.class);
-        PairWritable3[] targetsAndFeaturesArray =
-                (PairWritable3[]) targetsAndFeatures.get();
-        PairWritable3[] targetsAndFeatures2Array =
-                (PairWritable3[]) targetsAndFeatures2.get();
+        Writable[] targetsAndFeaturesArray = targetsAndFeatures.get();
+        Writable[] targetsAndFeatures2Array = targetsAndFeatures2.get();
         List<PairWritable3> resList = new ArrayList<>();
         int i = 0, j = 0;
         while (i < targetsAndFeaturesArray.length
                 && j < targetsAndFeatures2Array.length) {
-            RuleWritable target = targetsAndFeaturesArray[i].first;
-            RuleWritable target2 = targetsAndFeatures2Array[j].first;
+            RuleWritable target = ((PairWritable3) targetsAndFeaturesArray[i]).first;
+            RuleWritable target2 = ((PairWritable3) targetsAndFeatures2Array[j]).first;
             int cmp = target.compareYield(target2);
             ArrayWritable mergedFeatures = null;
             if (cmp == 0) {
                 mergedFeatures =
-                        mergeFeatures(targetsAndFeaturesArray[i].second,
-                                targetsAndFeaturesArray[j].second);
+		    mergeFeatures(((PairWritable3) targetsAndFeaturesArray[i]).second,
+				  ((PairWritable3) targetsAndFeaturesArray[j]).second);
                 i++;
                 j++;
             }
             else if (cmp < 0) {
                 mergedFeatures =
-                        mergeFeatures(targetsAndFeaturesArray[i].second, null);
+		    mergeFeatures(((PairWritable3) targetsAndFeaturesArray[i]).second, null);
                 i++;
             }
             else {
                 System.err.println(
-                        "ERROR: The main HFile has a missing target: "
+                        "WARNING: The main HFile has a missing target: "
                                 + target2);
-                System.exit(1);
+                mergedFeatures =
+            		    mergeFeatures(null, ((PairWritable3) targetsAndFeaturesArray[j]).second);
+                j++;
             }
             resList.add(new PairWritable3(target, mergedFeatures));
         }
