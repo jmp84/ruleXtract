@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -224,8 +226,7 @@ public class HFileCreatorMergeProvenance extends Configured {
             System.out.println("Error: " + outputHFile + " already exists");
             System.exit(1);
         }
-        // HFile.Writer writer = new HFile.Writer(fs, path);
-        HFile.Writer writer = new HFile.Writer(fs, path, 16 * 1024, "gz", null);
+        HFile.Writer writer = new HFile.Writer(fs, path);
         List<HFileScanner> scanners = new ArrayList<>();
         for (String inputHFile: inputHFiles) {
             HFile.Reader hfileReader =
@@ -248,46 +249,57 @@ public class HFileCreatorMergeProvenance extends Configured {
             toBeProcessed.add(new Pair<ByteBuffer, ArrayWritable>(key,
                     value));
         }
-        System.err.println(bytes2RuleWritable(toBeProcessed.get(0).getFirst()));
-        System.err.println(bytes2RuleWritable(toBeProcessed.get(1).getFirst()));
-        RuleWritable r1 = bytes2RuleWritable(toBeProcessed.get(0).getFirst());
-        RuleWritable r2 = bytes2RuleWritable(toBeProcessed.get(1).getFirst());
-        System.exit(1);
-        boolean allHFilesEmpty = false;
-        boolean isnonext;
+        RawComparator<byte[]> comparator = new ByteArrayComparator();
+        boolean finished = false;
         // determine if we should scan the next element. initialize to false.
         // the first element will never be true
         boolean[] nonext = new boolean[scanners.size()];
-        ByteBuffer previousMinSource = null;
-        ByteBuffer minSource = null;
-        RawComparator<byte[]> comparator = new ByteArrayComparator();
-        while (!allHFilesEmpty) {
-            previousMinSource = minSource;
+        boolean[] endOfFile = new boolean[scanners.size()];
+        ByteBuffer previousSource = null;
+        while (!finished) {
             // process toBeProcessed first
             // find the minimum element
-            int minIndex = 0;
-            Pair<ByteBuffer, ArrayWritable> minElement =
-                    toBeProcessed.get(0);
-            minSource = minElement.getFirst();
-            for (int i = 1; i < toBeProcessed.size(); i++) {
-                // int cmp =
-                // minSource.compareTo(toBeProcessed.get(i).getFirst());
-                int cmp =
-                        comparator.compare(minSource.array(), toBeProcessed
-                                .get(i).getFirst().array());
-                if (cmp > 0) {
-                    minSource = toBeProcessed.get(i).getFirst();
-                    minIndex = i;
+        	ByteBuffer minSource = null;
+            for (int i = 0; i < toBeProcessed.size(); i++) {
+            	if (minSource == null && !endOfFile[i]) {
+            		minSource = toBeProcessed.get(i).getFirst();
+            		continue;
+            	}
+            	if (endOfFile[i]) {
+            		continue;
+            	}
+            	int cmp =
+            			minSource.compareTo(toBeProcessed.get(i).getFirst());
+            	if (cmp > 0) {
+            		minSource = toBeProcessed.get(i).getFirst();
+            	}
+                else if (cmp == 0) {
+                	// this is because the raw comparator gives different
+                	// results than the ByteBuffer compareTo method
+                	// if we don't do that this can cause an error when
+                	// writing the HFile, the HFile complains that we don't
+                	// write keys in lexicographic order
+                	int cmp2 =
+                			comparator.compare(minSource.array(), toBeProcessed
+                					.get(i).getFirst().array());
+                	if (cmp2 > 0) {
+                		minSource = toBeProcessed.get(i).getFirst();
+                	}
                 }
             }
             List<PairWritable3> mergedList = new ArrayList<PairWritable3>();
+            // set of sources that are equal according to ByteBuffer.compareTo
+            // used for appending to the output HFile
+            Set<byte[]> minSources = new TreeSet<>(comparator);
+            minSources.add(minSource.array());
             for (int i = 0; i < toBeProcessed.size(); i++) {
-                // int cmp =
-                // minSource.compareTo(toBeProcessed.get(i).getFirst());
-                int cmp =
-                        comparator.compare(minSource.array(), toBeProcessed
-                                .get(i).getFirst().array());
+            	if (endOfFile[i]) {
+            		continue;
+            	}
+            	int cmp =
+            			minSource.compareTo(toBeProcessed.get(i).getFirst());
                 if (cmp == 0) {
+                	minSources.add(toBeProcessed.get(i).getFirst().array());
                     nonext[i] = false;
                     mergedList =
                             merge(mergedList, toBeProcessed.get(i).getSecond(),
@@ -310,32 +322,22 @@ public class HFileCreatorMergeProvenance extends Configured {
             ArrayWritable merged = new ArrayWritable(PairWritable3.class);
             merged.set(mergedArray);
             byte[] valueBytes = object2ByteArray(merged);
-            try {
-                writer.append(minSource.array(), valueBytes);
+            for (byte[] minSourceByteArray: minSources) {
+            	try {
+            		writer.append(minSourceByteArray, valueBytes);
+            		break;
+            	}
+            	catch (IOException e) {
+            	}
             }
-            catch (IOException e) {
-                e.printStackTrace();
-                System.err.println("current source: "
-                        + bytes2RuleWritable(minSource));
-                System.err.println("previous source: "
-                        + bytes2RuleWritable(previousMinSource));
-                System.err.println(minSource.compareTo(previousMinSource));
-                // RawComparator<byte[]> comparator = new ByteArrayComparator();
-                System.err.println(comparator.compare(minSource.array(),
-                        previousMinSource.array()));
-                System.exit(1);
-            }
-            allHFilesEmpty = true;
-            // checks whether at least one element in nonext is true, meaning
-            // we need at least one more processing
-            isnonext = false;
+            finished = true;
             // refill toBeProcessed as needed
             for (int i = 0; i < scanners.size(); i++) {
                 HFileScanner scanner = scanners.get(i);
                 // get the next element
                 if (!nonext[i]) {
-                    if (scanner.next()) {
-                        allHFilesEmpty = false;
+                    if (!endOfFile[i] && scanner.next()) {
+                        finished = false;
                         ByteBuffer key = scanner.getKey();
                         ArrayWritable value =
                                 bytes2ArrayWritable(scanner.getValue());
@@ -343,20 +345,17 @@ public class HFileCreatorMergeProvenance extends Configured {
                                 .set(i, new Pair<ByteBuffer, ArrayWritable>(
                                         key, value));
                     }
+                    else {
+                    	endOfFile[i] = true;
+                    }
                 }
                 else {
                     // at least one element remains to be processed
-                    isnonext = true;
+                    finished = false;
                 }
             }
-            // should never happen: all scanners have reached the end and there
-            // are still elements to be processed
-            if (allHFilesEmpty && isnonext) {
-                System.err.println("ERROR: all scanners are at the end and " +
-                        "there are still items to be processed");
-                System.exit(1);
-            }
         }
+        writer.close();
     }
 
     /**
