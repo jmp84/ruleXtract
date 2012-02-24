@@ -42,7 +42,6 @@ public class ExtractorJob extends Configured implements Tool {
         for (String prop: p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
-        conf.set("mapreduce.tasktracker.map.tasks.maximum", "6");
         Job job = Job.getInstance(new Cluster(conf), conf);
         job.setJarByClass(ExtractorJob.class);
         job.setJobName("Rule Extraction");

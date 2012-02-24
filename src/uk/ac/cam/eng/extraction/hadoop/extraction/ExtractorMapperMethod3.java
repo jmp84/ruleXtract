@@ -55,8 +55,8 @@ public class ExtractorMapperMethod3 extends
         String sentenceAlign = ((Text) value.get()[0]).toString();
         String wordAlign = ((Text) value.get()[1]).toString();
         // Preprocess the lines
-        SentencePair sp = new SentencePair(sentenceAlign, false);
         boolean side1source = conf.getBoolean("side1source", false);
+        SentencePair sp = new SentencePair(sentenceAlign, side1source);
         Alignment a = new Alignment(wordAlign, sp, side1source);
         RuleExtractor re = new RuleExtractor(conf);
         boolean source2target = conf.getBoolean("source2target", true);

@@ -79,102 +79,102 @@ public class HFileCreatorMergeProvenance2 extends Configured {
         return (index == 0) ? 0 : 5 + 3 * (index - 1);
     }
 
-//    private static List<PairWritable3> merge(
-//            List<Pair<ArrayWritable, Integer>> toMerge, int featureLength) {
-//        List<PairWritable3> res = new ArrayList<>();
-//        List<PairWritable3> toBeProcessed = new ArrayList<>();
-//        // initialized toBeProcessed with the first element of each HFile
-//        for (Pair<ArrayWritable, Integer> targetsAndFeatures: toMerge) {
-//            toBeProcessed.add((PairWritable3) targetsAndFeatures.getFirst()
-//                    .get()[0]);
-//        }
-//        boolean finished = false;
-//        boolean[] nonext = new boolean[toMerge.size()];
-//        boolean[] endOfFile = new boolean[toMerge.size()];
-//        int[] targetIndices = new int[toMerge.size()];
-//        while (!finished) {
-//            // process toBeProcessed first
-//            // find the minimum element
-//            RuleWritable minTarget = null;
-//            for (int i = 0; i < toBeProcessed.size(); i++) {
-//                if (minTarget == null && !endOfFile[i]) {
-//                    minTarget = toBeProcessed.get(i).first;
-//                    continue;
-//                }
-//                if (endOfFile[i]) {
-//                    continue;
-//                }
-//                int cmp = minTarget.compareYield(toBeProcessed.get(i).first);
-//                if (cmp > 0) {
-//                    minTarget = toBeProcessed.get(i).first;
-//                }
-//            }
-//            List<DoubleWritable> mergedFeaturesList = new ArrayList<>();
-//            for (int i = 0; i < toBeProcessed.size(); i++) {
-//                int currentFeatureSize = mergedFeaturesList.size();
-//                if (endOfFile[i]) {
-//                    continue;
-//                }
-//                int cmp = minTarget.compareYield(toBeProcessed.get(i).first);
-//                if (cmp == 0) {
-//                    nonext[i] = false;
-//                    for (int j = currentFeatureSize; j < getOffset(toMerge.get(
-//                            i).getSecond()); j++) {
-//                        mergedFeaturesList.add(new DoubleWritable(0));
-//                    }
-//                    for (int j = 0; j < toBeProcessed.get(i).second.get().length; j++) {
-//                        mergedFeaturesList
-//                                .add((DoubleWritable) toBeProcessed.get(i).second
-//                                        .get()[j]);
-//                    }
-//                    currentFeatureSize = mergedFeaturesList.size();
-//                    for (int j = currentFeatureSize; j < getLength(toMerge.get(
-//                            i).getSecond()); j++) {
-//                        mergedFeaturesList.add(new DoubleWritable(0));
-//                    }
-//                }
-//                else if (cmp < 0) {
-//                    nonext[i] = true;
-//                }
-//                else {
-//                    System.err.println("ERROR: " + minTarget
-//                            + " is supposed to be smaller than "
-//                            + toBeProcessed.get(i).first);
-//                    System.exit(1);
-//                }
-//            }
-//            for (int j = mergedFeaturesList.size(); j < featureLength; j++) {
-//                mergedFeaturesList.add(new DoubleWritable(0));
-//            }
-//            DoubleWritable[] mergedFeaturesArray =
-//                    mergedFeaturesList.toArray(new DoubleWritable[]{});
-//            ArrayWritable mergedFeatures =
-//                    new ArrayWritable(DoubleWritable.class);
-//            mergedFeatures.set(mergedFeaturesArray);
-//            res.add(new PairWritable3(minTarget, mergedFeatures));
-//            finished = true;
-//            // refill toBeProcessed as needed
-//            for (int i = 0; i < toMerge.size(); i++) {
-//                if (!nonext[i]) {
-//                    if (!endOfFile[i]
-//                            && ++targetIndices[i] < toMerge.get(i).getFirst()
-//                                    .get().length) {
-//                        finished = false;
-//                        toBeProcessed.set(i, (PairWritable3) toMerge.get(i)
-//                                .getFirst().get()[targetIndices[i]]);
-//                    }
-//                    else {
-//                        endOfFile[i] = true;
-//                    }
-//                }
-//                else {
-//                    // at least one element remains to be processed
-//                    finished = false;
-//                }
-//            }
-//        }
-//        return res;
-//    }
+    // private static List<PairWritable3> merge(
+    // List<Pair<ArrayWritable, Integer>> toMerge, int featureLength) {
+    // List<PairWritable3> res = new ArrayList<>();
+    // List<PairWritable3> toBeProcessed = new ArrayList<>();
+    // // initialized toBeProcessed with the first element of each HFile
+    // for (Pair<ArrayWritable, Integer> targetsAndFeatures: toMerge) {
+    // toBeProcessed.add((PairWritable3) targetsAndFeatures.getFirst()
+    // .get()[0]);
+    // }
+    // boolean finished = false;
+    // boolean[] nonext = new boolean[toMerge.size()];
+    // boolean[] endOfFile = new boolean[toMerge.size()];
+    // int[] targetIndices = new int[toMerge.size()];
+    // while (!finished) {
+    // // process toBeProcessed first
+    // // find the minimum element
+    // RuleWritable minTarget = null;
+    // for (int i = 0; i < toBeProcessed.size(); i++) {
+    // if (minTarget == null && !endOfFile[i]) {
+    // minTarget = toBeProcessed.get(i).first;
+    // continue;
+    // }
+    // if (endOfFile[i]) {
+    // continue;
+    // }
+    // int cmp = minTarget.compareYield(toBeProcessed.get(i).first);
+    // if (cmp > 0) {
+    // minTarget = toBeProcessed.get(i).first;
+    // }
+    // }
+    // List<DoubleWritable> mergedFeaturesList = new ArrayList<>();
+    // for (int i = 0; i < toBeProcessed.size(); i++) {
+    // int currentFeatureSize = mergedFeaturesList.size();
+    // if (endOfFile[i]) {
+    // continue;
+    // }
+    // int cmp = minTarget.compareYield(toBeProcessed.get(i).first);
+    // if (cmp == 0) {
+    // nonext[i] = false;
+    // for (int j = currentFeatureSize; j < getOffset(toMerge.get(
+    // i).getSecond()); j++) {
+    // mergedFeaturesList.add(new DoubleWritable(0));
+    // }
+    // for (int j = 0; j < toBeProcessed.get(i).second.get().length; j++) {
+    // mergedFeaturesList
+    // .add((DoubleWritable) toBeProcessed.get(i).second
+    // .get()[j]);
+    // }
+    // currentFeatureSize = mergedFeaturesList.size();
+    // for (int j = currentFeatureSize; j < getLength(toMerge.get(
+    // i).getSecond()); j++) {
+    // mergedFeaturesList.add(new DoubleWritable(0));
+    // }
+    // }
+    // else if (cmp < 0) {
+    // nonext[i] = true;
+    // }
+    // else {
+    // System.err.println("ERROR: " + minTarget
+    // + " is supposed to be smaller than "
+    // + toBeProcessed.get(i).first);
+    // System.exit(1);
+    // }
+    // }
+    // for (int j = mergedFeaturesList.size(); j < featureLength; j++) {
+    // mergedFeaturesList.add(new DoubleWritable(0));
+    // }
+    // DoubleWritable[] mergedFeaturesArray =
+    // mergedFeaturesList.toArray(new DoubleWritable[]{});
+    // ArrayWritable mergedFeatures =
+    // new ArrayWritable(DoubleWritable.class);
+    // mergedFeatures.set(mergedFeaturesArray);
+    // res.add(new PairWritable3(minTarget, mergedFeatures));
+    // finished = true;
+    // // refill toBeProcessed as needed
+    // for (int i = 0; i < toMerge.size(); i++) {
+    // if (!nonext[i]) {
+    // if (!endOfFile[i]
+    // && ++targetIndices[i] < toMerge.get(i).getFirst()
+    // .get().length) {
+    // finished = false;
+    // toBeProcessed.set(i, (PairWritable3) toMerge.get(i)
+    // .getFirst().get()[targetIndices[i]]);
+    // }
+    // else {
+    // endOfFile[i] = true;
+    // }
+    // }
+    // else {
+    // // at least one element remains to be processed
+    // finished = false;
+    // }
+    // }
+    // }
+    // return res;
+    // }
 
     private static List<Pair<RuleWritable, List<Double>>> merge(
             List<Pair<ArrayWritable, Integer>> toMerge, int featureLength) {
@@ -243,7 +243,8 @@ public class HFileCreatorMergeProvenance2 extends Configured {
             for (int j = mergedFeaturesList.size(); j < featureLength; j++) {
                 mergedFeaturesList.add(0.0);
             }
-            res.add(new Pair<RuleWritable, List<Double>>(minTarget, mergedFeaturesList));
+            res.add(new Pair<RuleWritable, List<Double>>(minTarget,
+                    mergedFeaturesList));
             finished = true;
             // refill toBeProcessed as needed
             for (int i = 0; i < toMerge.size(); i++) {
@@ -267,7 +268,7 @@ public class HFileCreatorMergeProvenance2 extends Configured {
         }
         return res;
     }
-    
+
     private static void mergeHFiles(List<String> inputHFiles,
             String outputHFile, Configuration conf) throws IOException {
         FileSystem fs = FileSystem.get(conf);
@@ -276,7 +277,8 @@ public class HFileCreatorMergeProvenance2 extends Configured {
             System.out.println("Error: " + outputHFile + " already exists");
             System.exit(1);
         }
-        HFile.Writer writer = new HFile.Writer(fs, path);
+        // HFile.Writer writer = new HFile.Writer(fs, path);
+        HFile.Writer writer = new HFile.Writer(fs, path, 64 * 1024, "gz", null);
         List<HFileScanner> scanners = new ArrayList<>();
         for (String inputHFile: inputHFiles) {
             HFile.Reader hfileReader =
@@ -352,19 +354,24 @@ public class HFileCreatorMergeProvenance2 extends Configured {
             }
             int length = 5 + (toBeProcessed.size() - 1) * 3;
             // List<PairWritable3> mergedList = merge(toMerge, length);
-            List<Pair<RuleWritable, List<Double>>> mergedList = merge(toMerge, length);
-            //PairWritable3[] mergedArray =
-            //        mergedList.toArray(new PairWritable3[]{});
+            List<Pair<RuleWritable, List<Double>>> mergedList =
+                    merge(toMerge, length);
+            // PairWritable3[] mergedArray =
+            // mergedList.toArray(new PairWritable3[]{});
             PairWritable3[] mergedArray = new PairWritable3[mergedList.size()];
             for (int i = 0; i < mergedArray.length; i++) {
-            	RuleWritable target = mergedList.get(i).getFirst();
-            	DoubleWritable[] featuresArray = new DoubleWritable[mergedList.get(i).getSecond().size()];
-            	for (int j = 0; j < featuresArray.length; j++) {
-            		featuresArray[j] = new DoubleWritable(mergedList.get(i).getSecond().get(j));
-            	}
-            	ArrayWritable features = new ArrayWritable(DoubleWritable.class);
-            	features.set(featuresArray);
-            	mergedArray[i] = new PairWritable3(target, features);
+                RuleWritable target = mergedList.get(i).getFirst();
+                DoubleWritable[] featuresArray =
+                        new DoubleWritable[mergedList.get(i).getSecond().size()];
+                for (int j = 0; j < featuresArray.length; j++) {
+                    featuresArray[j] =
+                            new DoubleWritable(mergedList.get(i).getSecond()
+                                    .get(j));
+                }
+                ArrayWritable features =
+                        new ArrayWritable(DoubleWritable.class);
+                features.set(featuresArray);
+                mergedArray[i] = new PairWritable3(target, features);
             }
             ArrayWritable merged = new ArrayWritable(PairWritable3.class);
             merged.set(mergedArray);
