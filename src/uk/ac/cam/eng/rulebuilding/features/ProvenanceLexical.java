@@ -33,6 +33,8 @@ public class ProvenanceLexical implements Feature {
                     "and target-to-source lexical models: ");
             System.exit(1);
         }
+        source2targetModels = new ArrayList<>();
+        target2sourceModels = new ArrayList<>();
         for (int i = 0; i < source2targetModelFiles.length; i++) {
             source2targetModels.add(new Source2TargetLexicalProbability(
                     source2targetModelFiles[i], rules));

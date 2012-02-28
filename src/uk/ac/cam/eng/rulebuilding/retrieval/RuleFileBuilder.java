@@ -366,6 +366,20 @@ public class RuleFileBuilder extends Configured implements Tool {
         if (provenancesString != null) {
             provenances = provenancesString.split(",");
         }
+        String source2targetLexicalModelsString =
+                p.getProperty("s2t_lexical_models");
+        String target2sourceLexicalModelsString =
+                p.getProperty("t2s_lexical_models");
+        String[] source2targetLexicalModels = null;
+        String[] target2sourceLexicalModels = null;
+        if (source2targetLexicalModelsString != null) {
+            source2targetLexicalModels =
+                    source2targetLexicalModelsString.split(",");
+        }
+        if (target2sourceLexicalModelsString != null) {
+            target2sourceLexicalModels =
+                    target2sourceLexicalModelsString.split(",");
+        }
         String selectedFeaturesString = p.getProperty("features");
         if (selectedFeaturesString == null) {
             System.err.println("Missing property 'features' in the config");
@@ -375,7 +389,8 @@ public class RuleFileBuilder extends Configured implements Tool {
         FeatureCreator featureCreator =
                 new FeatureCreator(source2TargetLexicalModel,
                         target2SourceLexicalModel, rulePatternAndFeaturesFile,
-                        rules, selectedFeatures, provenances);
+                        rules, selectedFeatures, provenances,
+                        source2targetLexicalModels, target2sourceLexicalModels);
         List<PairWritable3> rulesWithFeatures =
                 featureCreator.createFeatures(rules);
         String asciiConstraints = p.getProperty("ascii_constraints");

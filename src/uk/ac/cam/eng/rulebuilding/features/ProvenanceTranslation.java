@@ -17,6 +17,10 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
  */
 public class ProvenanceTranslation implements Feature {
 
+    // TODO add this to the config
+    private final static double defaultS2t = -4.7;
+    private final static double defaultT2s = -7;
+
     private String[] provenances;
 
     public ProvenanceTranslation(String[] provenances) {
@@ -37,10 +41,13 @@ public class ProvenanceTranslation implements Feature {
             // unaligned, trg unaligned
             // 3*i because the HFile contains source-to-target, target-to-source
             // and counts for each provenance
-            res.add(Math.log(((DoubleWritable) mapReduceFeatures.get()[5 + 3 * i])
-                    .get()));
-            res.add(Math.log(((DoubleWritable) mapReduceFeatures.get()[5 + 3 * i + 1])
-                    .get()));
+            double s2t =
+                    ((DoubleWritable) mapReduceFeatures.get()[5 + 3 * i]).get();
+            double t2s =
+                    ((DoubleWritable) mapReduceFeatures.get()[5 + 3 * i + 1])
+                            .get();
+            res.add(s2t == 0 ? defaultS2t : Math.log(s2t));
+            res.add(t2s == 0 ? defaultT2s : Math.log(t2s));
         }
         return res;
     }
@@ -59,6 +66,7 @@ public class ProvenanceTranslation implements Feature {
             // 5 because the first mapreduce features are s2t, t2s, count, src
             // unaligned, trg unaligned
             res.add((double) 0);
+            res.add((double) 0);
         }
         return res;
     }
@@ -75,6 +83,7 @@ public class ProvenanceTranslation implements Feature {
             // 5 because the first mapreduce features are s2t, t2s, count, src
             // unaligned, trg unaligned
             res.add((double) 0);
+            res.add((double) 0);
         }
         return res;
     }
@@ -85,6 +94,6 @@ public class ProvenanceTranslation implements Feature {
      */
     @Override
     public int getNumberOfFeatures() {
-        return provenances.length;
+        return 2 * provenances.length;
     }
 }

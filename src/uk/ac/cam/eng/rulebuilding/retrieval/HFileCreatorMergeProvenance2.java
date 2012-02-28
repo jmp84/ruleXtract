@@ -277,7 +277,8 @@ public class HFileCreatorMergeProvenance2 extends Configured {
             System.out.println("Error: " + outputHFile + " already exists");
             System.exit(1);
         }
-        // HFile.Writer writer = new HFile.Writer(fs, path);
+        // HFile.Writer writer = new HFile.Writer(fs, path, 20000000, "gz",
+        // null);
         HFile.Writer writer = new HFile.Writer(fs, path, 64 * 1024, "gz", null);
         List<HFileScanner> scanners = new ArrayList<>();
         for (String inputHFile: inputHFiles) {
@@ -376,9 +377,12 @@ public class HFileCreatorMergeProvenance2 extends Configured {
             ArrayWritable merged = new ArrayWritable(PairWritable3.class);
             merged.set(mergedArray);
             byte[] valueBytes = object2ByteArray(merged);
+            // writer.append(minSource.array(), minSource.arrayOffset(),
+            // minSource.array().length - minSource.arrayOffset(),
+            // valueBytes, 0,
+            // valueBytes.length);
             writer.append(minSource.array(), minSource.arrayOffset(),
-                    minSource.array().length - minSource.arrayOffset(),
-                    valueBytes, 0,
+                    minSource.limit(), valueBytes, 0,
                     valueBytes.length);
             finished = true;
             // refill toBeProcessed as needed

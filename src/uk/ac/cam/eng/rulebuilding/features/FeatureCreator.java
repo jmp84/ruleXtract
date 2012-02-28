@@ -33,7 +33,8 @@ public class FeatureCreator {
             String target2sourceLexicalModel,
             String rulePatternAndFeaturesFile,
             List<PairWritable3> rules, String[] selectedFeatures,
-            String[] provenances)
+            String[] provenances, String[] source2targetLexicalModels,
+            String[] target2sourceLexicalModels)
             throws FileNotFoundException, IOException {
         features = new HashMap<String, Feature>();
         features.put("source2target_probability",
@@ -67,8 +68,11 @@ public class FeatureCreator {
         if (provenances != null) {
             features.put("provenance_translation", new ProvenanceTranslation(
                     provenances));
-            features.put("provenance_lexical", new ProvenanceLexical(
-                    provenances));
+            if (source2targetLexicalModels != null
+                    && target2sourceLexicalModels != null)
+                features.put("provenance_lexical", new ProvenanceLexical(
+                        source2targetLexicalModels, target2sourceLexicalModels,
+                        rules));
         }
         this.selectedFeatures = selectedFeatures;
     }
