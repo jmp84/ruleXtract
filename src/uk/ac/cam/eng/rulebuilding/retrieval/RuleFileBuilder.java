@@ -133,6 +133,27 @@ public class RuleFileBuilder extends Configured implements Tool {
         }
         return res;
     }
+    
+    public List<PairWritable3> getRules(Rule sourceRule, String hfile) throws IOException {
+    	List<PairWritable3> res = new ArrayList<>();
+        Configuration conf = new Configuration();
+        FileSystem fs = FileSystem.get(conf);
+        HFile.Reader hfileReader = new HFile.Reader(fs, new Path(hfile),
+                null, false);
+        hfileReader.loadFileInfo();
+        HFileScanner hfileScanner = hfileReader.getScanner();
+        int counter = 0;
+        RuleWritable ruleWritable = RuleWritable.makeSourceMarginal(sourceRule, true);
+        byte[] ruleBytes = object2ByteArray(ruleWritable);
+        int found = hfileScanner.seekTo(ruleBytes);
+        if (found == 0) { // found the source rule
+        	List<PairWritable3> filteredRules = ruleFilter.filter(
+        			ruleWritable,
+        			convertValueBytes(hfileScanner.getValue()));
+        	res.addAll(filteredRules);
+        }
+        return res;
+    }
 
     private Set<Rule> getAsciiConstraints(String filename) throws IOException {
         Set<Rule> res = new HashSet<Rule>();
@@ -302,7 +323,7 @@ public class RuleFileBuilder extends Configured implements Tool {
                 new ArrayWritable(DoubleWritable.class)));
         return res;
     }
-
+    
     /**
      * @param args
      * @throws IOException
