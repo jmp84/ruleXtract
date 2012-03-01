@@ -73,8 +73,9 @@ public class RuleBuildingJob extends Configured implements Tool {
     public static void main(String[] args) throws Exception {
         if (args.length != 1) {
             System.err.println("Usage args: configFile");
+            System.exit(1);
         }
-        int res = ToolRunner.run(new ExtractorJob(), args);
+        int res = ToolRunner.run(new RuleBuildingJob(), args);
         System.exit(res);
     }
 }
