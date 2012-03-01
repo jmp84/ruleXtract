@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DoubleWritable;
 
@@ -29,12 +30,14 @@ public class FeatureCreator {
     // list of selected features in order
     private String[] selectedFeatures;
 
-    public FeatureCreator(String source2targetLexicalModel,
-            String target2sourceLexicalModel,
-            String rulePatternAndFeaturesFile,
-            List<PairWritable3> rules, String[] selectedFeatures,
-            String[] provenances, String[] source2targetLexicalModels,
-            String[] target2sourceLexicalModels)
+    // public FeatureCreator(String source2targetLexicalModel,
+    // String target2sourceLexicalModel,
+    // String rulePatternAndFeaturesFile,
+    // List<PairWritable3> rules, String[] selectedFeatures,
+    // String[] provenances, String[] source2targetLexicalModels,
+    // String[] target2sourceLexicalModels)
+    // throws FileNotFoundException, IOException {
+    public FeatureCreator(Configuration conf, List<PairWritable3> rules)
             throws FileNotFoundException, IOException {
         features = new HashMap<String, Feature>();
         features.put("source2target_probability",
@@ -49,12 +52,28 @@ public class FeatureCreator {
         features.put("rule_count_1", new RuleCount1());
         features.put("rule_count_2", new RuleCount2());
         features.put("rule_count_greater_than_2", new RuleCountGreaterThan2());
+        String source2targetLexicalModel =
+                conf.get("source2target_lexical_model");
+        if (source2targetLexicalModel == null) {
+            System.err.println("Missing property " +
+                    "'source2target_lexical_model' in the config");
+            System.exit(1);
+        }
         features.put("source2target_lexical_probability",
                 new Source2TargetLexicalProbability(source2targetLexicalModel,
                         rules));
+        String target2sourceLexicalModel =
+                conf.get("target2source_lexical_model");
+        if (target2sourceLexicalModel == null) {
+            System.err.println("Missing property " +
+                    "'target2source_lexical_model' in the config");
+            System.exit(1);
+        }
         features.put("target2source_lexical_probability",
                 new Target2SourceLexicalProbability(target2sourceLexicalModel,
                         rules));
+        String rulePatternAndFeaturesFile =
+                conf.get("rulepattern_and_features");
         if (rulePatternAndFeaturesFile != null) {
             features.put("source2target_pattern_probability",
                     new Source2TargetPatternProbability(
@@ -65,6 +84,25 @@ public class FeatureCreator {
         }
         features.put("unaligned_source_words", new UnalignedSourceWords());
         features.put("unaligned_target_words", new UnalignedTargetWords());
+        String provenancesString = conf.get("provenances");
+        String[] provenances = null;
+        if (provenancesString != null) {
+            provenances = provenancesString.split(",");
+        }
+        String source2targetLexicalModelsString =
+                conf.get("s2t_lexical_models");
+        String target2sourceLexicalModelsString =
+                conf.get("t2s_lexical_models");
+        String[] source2targetLexicalModels = null;
+        String[] target2sourceLexicalModels = null;
+        if (source2targetLexicalModelsString != null) {
+            source2targetLexicalModels =
+                    source2targetLexicalModelsString.split(",");
+        }
+        if (target2sourceLexicalModelsString != null) {
+            target2sourceLexicalModels =
+                    target2sourceLexicalModelsString.split(",");
+        }
         if (provenances != null) {
             features.put("provenance_translation", new ProvenanceTranslation(
                     provenances));

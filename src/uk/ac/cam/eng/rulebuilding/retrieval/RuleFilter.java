@@ -65,10 +65,6 @@ public class RuleFilter {
     // TODO put the default in the code
     private double minSource2TargetPhrase;
     private double minTarget2SourcePhrase;
-    private int maxSourcePhrase;
-    private int maxTerminalLength;
-    private int maxNonterminalLength;
-    private int maxSourceElements;
     private double minSource2TargetRule;
     private double minTarget2SourceRule;
     // allowed patterns
@@ -106,10 +102,7 @@ public class RuleFilter {
                     System.exit(1);
                 }
                 String[] featureValue = parts[0].split("=", 2);
-                if (featureValue[0].equals("max_source_phrase")) {
-                    maxSourcePhrase = Integer.parseInt(featureValue[1]);
-                }
-                else if (featureValue[0].equals("min_source2target_phrase")) {
+                if (featureValue[0].equals("min_source2target_phrase")) {
                     minSource2TargetPhrase = Double
                             .parseDouble(featureValue[1]);
                 }
@@ -117,19 +110,10 @@ public class RuleFilter {
                     minTarget2SourcePhrase = Double
                             .parseDouble(featureValue[1]);
                 }
-                else if (featureValue[0].equals("max_terminal_length")) {
-                    maxTerminalLength = Integer.parseInt(featureValue[1]);
-                }
-                else if (featureValue[0].equals("max_nonterminal_length")) {
-                    maxNonterminalLength = Integer.parseInt(featureValue[1]);
-                }
-                else if (featureValue[0].equals("max_source_elements")) {
-                    maxSourceElements = Integer.parseInt(featureValue[1]);
-                }
                 else if (featureValue[0].equals("min_source2target_rule")) {
                     minSource2TargetRule = Double.parseDouble(featureValue[1]);
                 }
-                else if (featureValue[0].equals("min_target2source_phrase")) {
+                else if (featureValue[0].equals("min_target2source_rule")) {
                     minTarget2SourceRule = Double.parseDouble(featureValue[1]);
                 }
                 else if (featureValue[0].equals("allowed_source_pattern")) {
@@ -165,13 +149,14 @@ public class RuleFilter {
                     keepTiedRules = Boolean.parseBoolean(featureValue[1]);
                 }
                 else if (featureValue[0].equals("provenance_union")) {
-                	provenanceUnion = Boolean.parseBoolean(featureValue[1]);
+                    provenanceUnion = Boolean.parseBoolean(featureValue[1]);
                 }
             }
         }
     }
 
-    private ArrayWritable sortByCount(ArrayWritable listTargetAndProb, int countIndex) {
+    private ArrayWritable sortByCount(ArrayWritable listTargetAndProb,
+            int countIndex) {
         Map<RuleWritable, Double> targetsAndCounts = new HashMap<>();
         Map<RuleWritable, Integer> indices = new HashMap<>();
         for (int i = 0; i < listTargetAndProb.get().length; i++) {
@@ -194,7 +179,8 @@ public class RuleFilter {
 
     public List<PairWritable3> filter(RuleWritable source,
             ArrayWritable listTargetAndProb, int countIndex) {
-        ArrayWritable listTargetAndProbSorted = sortByCount(listTargetAndProb, countIndex);
+        ArrayWritable listTargetAndProbSorted =
+                sortByCount(listTargetAndProb, countIndex);
         List<PairWritable3> res = new ArrayList<PairWritable3>();
         SidePattern sourcePattern = SidePattern.getSourcePattern(source);
         if (!sourcePattern.isPhrase()
@@ -233,28 +219,30 @@ public class RuleFilter {
             RulePattern rulePattern = RulePattern.getPattern(source,
                     targetAndProb.first);
             if (sourcePattern.hasMoreThan1NT()) {
-            	if (rulePattern.isSwappingNT()) {
-            		if (numberOfOccurrences == previousNumberOfOccurrences2NTinvert) {
-            			twoNTinvertTie = true;
-            		}
-            		else {
-            			twoNTinvertTie = false;
-            		}
-            		previousNumberOfOccurrences2NTinvert = numberOfOccurrences;
-            	}
-            	else {
-            		if (numberOfOccurrences == previousNumberOfOccurrences2NTmonotone) {
-            			twoNTmonotoneTie = true;
-            		}
-            		else {
-            			twoNTmonotoneTie = false;
-            		}
-            		previousNumberOfOccurrences2NTmonotone = numberOfOccurrences;
-            	}
+                if (rulePattern.isSwappingNT()) {
+                    if (numberOfOccurrences == previousNumberOfOccurrences2NTinvert) {
+                        twoNTinvertTie = true;
+                    }
+                    else {
+                        twoNTinvertTie = false;
+                    }
+                    previousNumberOfOccurrences2NTinvert = numberOfOccurrences;
+                }
+                else {
+                    if (numberOfOccurrences == previousNumberOfOccurrences2NTmonotone) {
+                        twoNTmonotoneTie = true;
+                    }
+                    else {
+                        twoNTmonotoneTie = false;
+                    }
+                    previousNumberOfOccurrences2NTmonotone =
+                            numberOfOccurrences;
+                }
             }
             if (!sourcePattern.isPhrase()
                     && !allowedPatterns.contains(rulePattern)
-                    && (skipPatterns == null || !skipPatterns.contains(rulePattern))) {
+                    && (skipPatterns == null || !skipPatterns
+                            .contains(rulePattern))) {
                 continue;
             }
             if (sourcePattern.isPhrase()) {
@@ -291,8 +279,10 @@ public class RuleFilter {
                     if (sourcePatternConstraints.get(sourcePattern).get(
                             "ntrans") <= numberTranslationsMonotone
                             && sourcePatternConstraints.get(sourcePattern).get(
-                                    "ntrans") <= numberTranslationsInvert &&
-                            (!keepTiedRules || (keepTiedRules && !twoNTmonotoneTie && !twoNTinvertTie))) {
+                                    "ntrans") <= numberTranslationsInvert
+                            &&
+                            (!keepTiedRules || (keepTiedRules
+                                    && !twoNTmonotoneTie && !twoNTinvertTie))) {
                         break;
                     }
                 }
@@ -328,7 +318,8 @@ public class RuleFilter {
                     }
                 }
             }
-            else if (skipPatterns == null || !skipPatterns.contains(rulePattern)) {
+            else if (skipPatterns == null
+                    || !skipPatterns.contains(rulePattern)) {
                 res.add(new PairWritable3(new RuleWritable(source,
                         targetAndProb.first), targetAndProb.second));
             }
@@ -344,36 +335,39 @@ public class RuleFilter {
         }
         return res;
     }
-    
+
     public List<PairWritable3> filter(RuleWritable source,
-    		ArrayWritable listTargetAndProb) {
-    	if (!provenanceUnion) {
-    		return filter(source, listTargetAndProb, 2);
-    	}
-    	List<PairWritable3> res = filter(source, listTargetAndProb, 2);
-    	Set<RuleWritable> ruleSet = new HashSet<>();
-    	for (PairWritable3 mainRuleAndFeatures: res) {
-    		ruleSet.add(mainRuleAndFeatures.first);
-    	}
-    	int nbFeatures = ((PairWritable3) listTargetAndProb.get()[0]).second.get().length;
-    	// nbFeatures should be 5 + number_of_provenances*3
-    	// this is because the main table has 5 features (s2t, t2s, count,
-    	// src unaligned, trg unaligned) and the provenance tables have
-    	// 3 features (s2t, t2s, count)
-    	if (nbFeatures % 3 != 2) {
-    		System.err.println("ERROR: wrong number of features in the HFile: " + nbFeatures);
-    		System.exit(1);
-    	}
-    	for (int i = 7; i < nbFeatures; i += 3) {
-    		List<PairWritable3> resProvenance = filter(source, listTargetAndProb, i);
-    		for (PairWritable3 ruleAndFeatures: resProvenance) {
-    			if (!ruleSet.contains(ruleAndFeatures.first)) {
-    				res.add(ruleAndFeatures);
-    				ruleSet.add(ruleAndFeatures.first);
-    			}
-    			// TODO else add a check that the features are the same
-    		}
-    	}
-    	return res;
+            ArrayWritable listTargetAndProb) {
+        if (!provenanceUnion) {
+            return filter(source, listTargetAndProb, 2);
+        }
+        List<PairWritable3> res = filter(source, listTargetAndProb, 2);
+        Set<RuleWritable> ruleSet = new HashSet<>();
+        for (PairWritable3 mainRuleAndFeatures: res) {
+            ruleSet.add(mainRuleAndFeatures.first);
+        }
+        int nbFeatures =
+                ((PairWritable3) listTargetAndProb.get()[0]).second.get().length;
+        // nbFeatures should be 5 + number_of_provenances*3
+        // this is because the main table has 5 features (s2t, t2s, count,
+        // src unaligned, trg unaligned) and the provenance tables have
+        // 3 features (s2t, t2s, count)
+        if (nbFeatures % 3 != 2) {
+            System.err.println("ERROR: wrong number of features in the HFile: "
+                    + nbFeatures);
+            System.exit(1);
+        }
+        for (int i = 7; i < nbFeatures; i += 3) {
+            List<PairWritable3> resProvenance =
+                    filter(source, listTargetAndProb, i);
+            for (PairWritable3 ruleAndFeatures: resProvenance) {
+                if (!ruleSet.contains(ruleAndFeatures.first)) {
+                    res.add(ruleAndFeatures);
+                    ruleSet.add(ruleAndFeatures.first);
+                }
+                // TODO else add a check that the features are the same
+            }
+        }
+        return res;
     }
 }

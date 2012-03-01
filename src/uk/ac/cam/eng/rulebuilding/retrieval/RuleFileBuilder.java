@@ -8,7 +8,6 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -17,14 +16,12 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.hfile.HFile;
@@ -33,8 +30,6 @@ import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.util.Tool;
-import org.apache.hadoop.util.ToolRunner;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
@@ -46,28 +41,40 @@ import uk.ac.cam.eng.rulebuilding.features.FeatureCreator;
  *         set and other configurations, retrieves the relevant rules and
  *         returns a rule file ready to be used by the decoder
  */
-public class RuleFileBuilder extends Configured implements Tool {
+public class RuleFileBuilder {
 
     private RuleFilter ruleFilter;
     private PatternInstanceCreator2 patternInstanceCreator;
+    private String testFile;
+    private HFileScanner hfileScanner;
+    private FeatureCreator featureCreator;
+    private String asciiConstraints;
 
-    public RuleFileBuilder(String filterConfig) throws FileNotFoundException,
-            IOException {
-        ruleFilter = new RuleFilter();
-        ruleFilter.loadConfig(filterConfig);
-        Properties p = new Properties();
-        try {
-            p.load(new FileInputStream(filterConfig));
-        }
-        catch (IOException e) {
-            e.printStackTrace();
+    public RuleFileBuilder(Configuration conf) throws IOException {
+        testFile = conf.get("testfile");
+        if (testFile == null) {
+            System.err.println("Missing property 'testfile' in the config");
             System.exit(1);
         }
-        // Configuration conf = getConf();
-        Configuration conf = new Configuration();
-        for (String prop: p.stringPropertyNames()) {
-            conf.set(prop, p.getProperty(prop));
+        String hfile = conf.get("hfile");
+        if (hfile == null) {
+            System.err.println("Missing property 'hfile' in the config");
+            System.exit(1);
         }
+        FileSystem fs = FileSystem.get(conf);
+        HFile.Reader hfileReader = new HFile.Reader(fs, new Path(hfile),
+                null, false);
+        hfileReader.loadFileInfo();
+        hfileScanner = hfileReader.getScanner();
+        asciiConstraints = conf.get("ascii_constraints");
+        String filterConfig = conf.get("filter_config");
+        if (filterConfig == null) {
+            System.err.println(
+                    "Missing property 'filter_config' in the config");
+            System.exit(1);
+        }
+        ruleFilter = new RuleFilter();
+        ruleFilter.loadConfig(filterConfig);
         patternInstanceCreator = new PatternInstanceCreator2(conf);
     }
 
@@ -93,26 +100,17 @@ public class RuleFileBuilder extends Configured implements Tool {
         return value;
     }
 
-    Set<Rule> getSourceRuleInstances(String patternFile, String testFile)
-            throws FileNotFoundException, IOException {
-        List<SidePattern> sidePatterns = patternInstanceCreator
-                .createSourcePatterns(patternFile);
-        return patternInstanceCreator.createSourcePatternInstances(testFile,
-                sidePatterns);
+    Set<Rule> getSourceRuleInstances() throws FileNotFoundException,
+            IOException {
+        return patternInstanceCreator.createSourcePatternInstances(testFile);
     }
 
-    private List<PairWritable3> getRules(String patternFile,
-            String testFile, String hfile) throws IOException {
+    // not used anymore as mapreduce is used for retrieval, but this function
+    // can be used to get all the rules if we don't want to use mapreduce.
+    private List<PairWritable3> getRules() throws IOException {
         List<PairWritable3> res = new ArrayList<PairWritable3>();
-        Set<Rule> sourceRules = getSourceRuleInstances(patternFile, testFile);
+        Set<Rule> sourceRules = getSourceRuleInstances();
         System.err.println("source rule size: " + sourceRules.size());
-        // read the HFile and select the rules matching the source phrases
-        Configuration conf = new Configuration();
-        FileSystem fs = FileSystem.get(conf);
-        HFile.Reader hfileReader = new HFile.Reader(fs, new Path(hfile),
-                null, false);
-        hfileReader.loadFileInfo();
-        HFileScanner hfileScanner = hfileReader.getScanner();
         int counter = 0;
         for (Rule rule: sourceRules) {
             // don't include the unaligned word info which is not there anyway
@@ -133,31 +131,25 @@ public class RuleFileBuilder extends Configured implements Tool {
         }
         return res;
     }
-    
-    public List<PairWritable3> getRules(Rule sourceRule, String hfile) throws IOException {
-    	List<PairWritable3> res = new ArrayList<>();
-        Configuration conf = new Configuration();
-        FileSystem fs = FileSystem.get(conf);
-        HFile.Reader hfileReader = new HFile.Reader(fs, new Path(hfile),
-                null, false);
-        hfileReader.loadFileInfo();
-        HFileScanner hfileScanner = hfileReader.getScanner();
-        int counter = 0;
-        RuleWritable ruleWritable = RuleWritable.makeSourceMarginal(sourceRule, true);
-        byte[] ruleBytes = object2ByteArray(ruleWritable);
+
+    public List<PairWritable3> getRules(RuleWritable sourceRule)
+            throws IOException {
+        List<PairWritable3> res = new ArrayList<>();
+        byte[] ruleBytes = object2ByteArray(sourceRule);
         int found = hfileScanner.seekTo(ruleBytes);
         if (found == 0) { // found the source rule
-        	List<PairWritable3> filteredRules = ruleFilter.filter(
-        			ruleWritable,
-        			convertValueBytes(hfileScanner.getValue()));
-        	res.addAll(filteredRules);
+            List<PairWritable3> filteredRules = ruleFilter.filter(
+                    sourceRule,
+                    convertValueBytes(hfileScanner.getValue()));
+            res.addAll(filteredRules);
         }
         return res;
     }
 
-    private Set<Rule> getAsciiConstraints(String filename) throws IOException {
+    private Set<Rule> getAsciiConstraints() throws IOException {
         Set<Rule> res = new HashSet<Rule>();
-        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+        try (BufferedReader br =
+                new BufferedReader(new FileReader(asciiConstraints))) {
             String line;
             Pattern regex = Pattern.compile(".*: (.*) # (.*)");
             Matcher matcher;
@@ -168,12 +160,11 @@ public class RuleFileBuilder extends Configured implements Tool {
                     String[] targetString = matcher.group(2).split(" ");
                     if (sourceString.length != targetString.length) {
                         System.err.println("Malformed ascii constraint file: "
-                                + filename);
+                                + asciiConstraints);
                         System.exit(1);
                     }
                     List<Integer> source = new ArrayList<Integer>();
                     List<Integer> target = new ArrayList<Integer>();
-                    // for (String ss: sourceString) {
                     int i = 0;
                     while (i < sourceString.length) {
                         if (i % patternInstanceCreator.MAX_SOURCE_PHRASE == 0
@@ -192,7 +183,7 @@ public class RuleFileBuilder extends Configured implements Tool {
                 }
                 else {
                     System.err.println("Malformed ascii constraint file: "
-                            + filename);
+                            + asciiConstraints);
                     System.exit(1);
                 }
             }
@@ -200,11 +191,12 @@ public class RuleFileBuilder extends Configured implements Tool {
         return res;
     }
 
-    private Set<Integer> getAsciiVocab(String filename) throws IOException {
+    private Set<Integer> getAsciiVocab() throws IOException {
         // TODO simplify all template writing
         // TODO getAsciiVocab is redundant with getAsciiConstraints
         Set<Integer> res = new HashSet<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+        try (BufferedReader br =
+                new BufferedReader(new FileReader(asciiConstraints))) {
             String line;
             Pattern regex = Pattern.compile(".*: (.*) # (.*)");
             Matcher matcher;
@@ -212,7 +204,6 @@ public class RuleFileBuilder extends Configured implements Tool {
                 matcher = regex.matcher(line);
                 if (matcher.matches()) {
                     String[] sourceString = matcher.group(1).split(" ");
-                    List<Integer> source = new ArrayList<Integer>();
                     // only one word
                     if (sourceString.length == 1) {
                         res.add(Integer.parseInt(sourceString[0]));
@@ -220,7 +211,7 @@ public class RuleFileBuilder extends Configured implements Tool {
                 }
                 else {
                     System.err.println("Malformed ascii constraint file: "
-                            + filename);
+                            + asciiConstraints);
                     System.exit(1);
                 }
             }
@@ -228,7 +219,7 @@ public class RuleFileBuilder extends Configured implements Tool {
         return res;
     }
 
-    private Set<Integer> getTestVocab(String testFile)
+    private Set<Integer> getTestVocab()
             throws FileNotFoundException, IOException {
         Set<Integer> res = new HashSet<Integer>();
         try (BufferedReader br = new BufferedReader(new FileReader(testFile))) {
@@ -249,19 +240,12 @@ public class RuleFileBuilder extends Configured implements Tool {
      * @return
      * @throws IOException
      */
-    private List<PairWritable3> getAsciiOovDeletionRules(String testFile,
-            String hfile, String asciiConstraints) throws IOException {
-        Set<Rule> asciiRules = getAsciiConstraints(asciiConstraints);
-        Set<Integer> asciiVocab = getAsciiVocab(asciiConstraints);
+    private List<PairWritable3> getAsciiOovDeletionRules() throws IOException {
         List<PairWritable3> res = new ArrayList<PairWritable3>();
+        Set<Rule> asciiRules = getAsciiConstraints();
+        Set<Integer> asciiVocab = getAsciiVocab();
+        Set<Integer> testVocab = getTestVocab();
         // read the HFile and select the rules matching the source phrases
-        Configuration conf = new Configuration();
-        FileSystem fs = FileSystem.get(conf);
-        HFile.Reader hfileReader = new HFile.Reader(fs, new Path(hfile),
-                null, false);
-        hfileReader.loadFileInfo();
-        HFileScanner hfileScanner = hfileReader.getScanner();
-        Set<Integer> testVocab = getTestVocab(testFile);
         for (Rule asciiRule: asciiRules) {
             res.add(new PairWritable3(new RuleWritable(asciiRule),
                     new ArrayWritable(DoubleWritable.class)));
@@ -298,7 +282,7 @@ public class RuleFileBuilder extends Configured implements Tool {
         return res;
     }
 
-    List<PairWritable3> getGlueRules() {
+    public List<PairWritable3> getGlueRules() {
         List<PairWritable3> res = new ArrayList<PairWritable3>();
         List<Integer> sideGlueRule1 = new ArrayList<Integer>();
         sideGlueRule1.add(-4);
@@ -321,129 +305,52 @@ public class RuleFileBuilder extends Configured implements Tool {
         Rule endSentence = new Rule(-1, endSentenceSide, endSentenceSide);
         res.add(new PairWritable3(new RuleWritable(endSentence),
                 new ArrayWritable(DoubleWritable.class)));
+        // TODO add a missing glue here
         return res;
     }
-    
-    /**
-     * @param args
-     * @throws IOException
-     */
-    public int run(String[] args) throws IOException {
-        Properties p = new Properties();
-        try {
-            p.load(new FileInputStream(args[0]));
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-        String testFile = p.getProperty("testfile");
-        if (testFile == null) {
-            System.err.println("Missing property 'testfile' in the config");
-            System.exit(1);
-        }
-        Integer maxSourcePhrase = Integer.parseInt(p
-                .getProperty("max_source_phrase"));
-        if (maxSourcePhrase == null) {
-            System.err
-                    .println("Missing property 'max_source_phrase' in the config");
-        }
-        String patternFile = p.getProperty("patternfile");
-        if (patternFile == null) {
-            System.err.println("Missing property 'patternfile' in the config");
-            System.exit(1);
-        }
-        // read the HFile and select the rules matching the source phrases and
-        // write them to a file
-        String outRuleFile = p.getProperty("outrulefile");
-        if (outRuleFile == null) {
-            System.err.println("Missing property 'outrulefile' in the config");
-            System.exit(1);
-        }
-        String hfile = p.getProperty("hfile");
-        if (hfile == null) {
-            System.err.println("Missing property 'hfile' in the config");
-            System.exit(1);
-        }
-        List<PairWritable3> rules = getRules(patternFile, testFile, hfile);
-        String source2TargetLexicalModel =
-                p.getProperty("source2target_lexical_model");
-        if (source2TargetLexicalModel == null) {
-            System.err.println("Missing property " +
-                    "'source2target_lexical_model' in the config");
-            System.exit(1);
-        }
-        String target2SourceLexicalModel =
-                p.getProperty("target2source_lexical_model");
-        if (target2SourceLexicalModel == null) {
-            System.err.println("Missing property " +
-                    "'target2source_lexical_model' in the config");
-            System.exit(1);
-        }
-        String rulePatternAndFeaturesFile =
-                p.getProperty("rulepattern_and_features");
-        String provenancesString = p.getProperty("provenances");
-        String[] provenances = null;
-        if (provenancesString != null) {
-            provenances = provenancesString.split(",");
-        }
-        String source2targetLexicalModelsString =
-                p.getProperty("s2t_lexical_models");
-        String target2sourceLexicalModelsString =
-                p.getProperty("t2s_lexical_models");
-        String[] source2targetLexicalModels = null;
-        String[] target2sourceLexicalModels = null;
-        if (source2targetLexicalModelsString != null) {
-            source2targetLexicalModels =
-                    source2targetLexicalModelsString.split(",");
-        }
-        if (target2sourceLexicalModelsString != null) {
-            target2sourceLexicalModels =
-                    target2sourceLexicalModelsString.split(",");
-        }
-        String selectedFeaturesString = p.getProperty("features");
-        if (selectedFeaturesString == null) {
-            System.err.println("Missing property 'features' in the config");
-            System.exit(1);
-        }
-        String[] selectedFeatures = selectedFeaturesString.split(",");
-        FeatureCreator featureCreator =
-                new FeatureCreator(source2TargetLexicalModel,
-                        target2SourceLexicalModel, rulePatternAndFeaturesFile,
-                        rules, selectedFeatures, provenances,
-                        source2targetLexicalModels, target2sourceLexicalModels);
-        List<PairWritable3> rulesWithFeatures =
+
+    public List<PairWritable3> getRulesWithFeatures(
+            Configuration conf, List<PairWritable3> rules)
+            throws FileNotFoundException, IOException {
+        List<PairWritable3> res = new ArrayList<>();
+        // lazy initialization of featureCreator
+        // call here rather than in the constructor because takes time to load
+        // the lexical models
+        featureCreator = new FeatureCreator(conf, rules);
+        List<PairWritable3> regularRulesWithFeatures =
                 featureCreator.createFeatures(rules);
-        String asciiConstraints = p.getProperty("ascii_constraints");
-        if (asciiConstraints == null) {
-            System.err
-                    .println("Missing property 'ascii_constraints' in the config");
-            System.exit(1);
-        }
-        List<PairWritable3> asciiOovDeletionRules =
-                getAsciiOovDeletionRules(testFile, hfile, asciiConstraints);
+        List<PairWritable3> asciiOovDeletionRules = getAsciiOovDeletionRules();
         List<PairWritable3> asciiOovDeletionRulesWithFeatures =
-                featureCreator
-                        .createFeaturesAsciiOovDeletion(asciiOovDeletionRules);
+                featureCreator.createFeaturesAsciiOovDeletion(
+                        asciiOovDeletionRules);
         List<PairWritable3> glueRules = getGlueRules();
         List<PairWritable3> glueRulesWithFeatures =
                 featureCreator.createFeaturesGlueRules(glueRules);
+        // TODO should be called only once
+        Set<Rule> asciiRules = getAsciiConstraints();
+        for (PairWritable3 ruleWithFeatures: regularRulesWithFeatures) {
+            // check if rule is not an ascii rule
+            Rule checkNotAscii = new Rule(-1, ruleWithFeatures.first);
+            if (asciiRules.contains(checkNotAscii)) {
+                // this rule will be included as an ascii rule, don't
+                // include it here
+                System.err.println("Ascii rule has been extracted: "
+                        + checkNotAscii.toString());
+                continue;
+            }
+            res.add(ruleWithFeatures);
+        }
+        res.addAll(asciiOovDeletionRulesWithFeatures);
+        res.addAll(glueRulesWithFeatures);
+        return res;
+    }
+
+    public void writeSetSpecificRuleFile(List<PairWritable3> rulesWithFeatures,
+            String outRuleFile) throws FileNotFoundException, IOException {
         try (BufferedOutputStream bos =
                 new BufferedOutputStream(new GZIPOutputStream(
                         new FileOutputStream(outRuleFile)))) {
-            // TODO should be called only once
-            Set<Rule> asciiRules = getAsciiConstraints(asciiConstraints);
             for (PairWritable3 ruleWithFeatures: rulesWithFeatures) {
-                // bw.write((ruleWithFeatures.toString() + "\n").getBytes());
-                // check if rule is not an ascii rule
-                Rule checkNotAscii = new Rule(-1, ruleWithFeatures.first);
-                if (asciiRules.contains(checkNotAscii)) {
-                    // this rule will be included as an ascii rule, don't
-                    // include it here
-                    System.err.println("Ascii rule has been extracted: "
-                            + checkNotAscii.toString());
-                    continue;
-                }
                 bos.write(ruleWithFeatures.first.toString().getBytes());
                 Writable[] features = ruleWithFeatures.second.get();
                 for (Writable w: features) {
@@ -451,33 +358,6 @@ public class RuleFileBuilder extends Configured implements Tool {
                 }
                 bos.write("\n".getBytes());
             }
-            for (PairWritable3 asciiOovDeletionRuleWithFeatures: asciiOovDeletionRulesWithFeatures) {
-                bos.write(asciiOovDeletionRuleWithFeatures.first.toString()
-                        .getBytes());
-                Writable[] features =
-                        asciiOovDeletionRuleWithFeatures.second.get();
-                for (Writable w: features) {
-                    bos.write((" " + w.toString()).getBytes());
-                }
-                bos.write("\n".getBytes());
-            }
-            for (PairWritable3 glueRuleWithFeatures: glueRulesWithFeatures) {
-                bos.write(glueRuleWithFeatures.first.toString().getBytes());
-                Writable[] features = glueRuleWithFeatures.second.get();
-                for (Writable w: features) {
-                    bos.write((" " + w.toString()).getBytes());
-                }
-                bos.write("\n".getBytes());
-            }
         }
-        return 0;
-    }
-
-    public static void main(String[] args) throws Exception {
-        if (args.length != 1) {
-            System.err.println("Usage args: configFile");
-        }
-        int res = ToolRunner.run(new RuleFileBuilder(args[0]), args);
-        System.exit(res);
     }
 }

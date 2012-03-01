@@ -12,11 +12,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
@@ -40,19 +37,28 @@ public class PatternInstanceCreator2 {
     protected int MAX_NONTERMINAL_LENGTH = 10; // TODO revise this value, put in
 
     protected int HR_MAX_HEIGHT = 10;
-    
+
+    private String patternFile;
+
     public PatternInstanceCreator2(Configuration conf) {
         MAX_SOURCE_PHRASE = conf.getInt("max_source_phrase", 5);
         MAX_SOURCE_ELEMENTS = conf.getInt("max_source_elements", 5);
         MAX_TERMINAL_LENGTH = conf.getInt("max_terminal_length", 5);
         MAX_NONTERMINAL_LENGTH = conf.getInt("max_nonterminal_length", 10);
         HR_MAX_HEIGHT = conf.getInt("hr_max_height", 10);
+        patternFile = conf.get("patternfile");
+        if (patternFile == null) {
+            System.err.println(
+                    "Missing property 'patternfile' in the config");
+            System.exit(1);
+        }
     }
 
-    public List<SidePattern> createSourcePatterns(String patternFile)
+    protected List<SidePattern> createSourcePatterns()
             throws FileNotFoundException, IOException {
         List<SidePattern> res = new ArrayList<SidePattern>();
-        try (BufferedReader br = new BufferedReader(new FileReader(patternFile))) {
+        try (BufferedReader br =
+                new BufferedReader(new FileReader(patternFile))) {
             String line;
             String[] parts;
             while ((line = br.readLine()) != null) {
@@ -63,7 +69,7 @@ public class PatternInstanceCreator2 {
         return res;
     }
 
-    public Set<Rule> createSourcePatternInstances(String testFile,
+    protected Set<Rule> createSourcePatternInstances(String testFile,
             List<SidePattern> sidePatterns) throws NumberFormatException,
             IOException {
         Set<Rule> res = new HashSet<Rule>();
@@ -86,12 +92,19 @@ public class PatternInstanceCreator2 {
                         res.add(r);
                     }
                 }
-                Set<Rule> sourcePatternInstances = getPatternInstancesFromSourceSentence(
-                        sourceSentence, sidePatterns);
+                Set<Rule> sourcePatternInstances =
+                        getPatternInstancesFromSourceSentence(
+                                sourceSentence, sidePatterns);
                 res.addAll(sourcePatternInstances);
             }
         }
         return res;
+    }
+
+    public Set<Rule> createSourcePatternInstances(String testFile)
+            throws FileNotFoundException, IOException {
+        List<SidePattern> sidePatterns = createSourcePatterns();
+        return createSourcePatternInstances(testFile, sidePatterns);
     }
 
     protected Set<Rule> getPatternInstancesFromSourceSentence(
