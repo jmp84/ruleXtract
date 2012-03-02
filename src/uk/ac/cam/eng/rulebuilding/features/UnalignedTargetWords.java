@@ -26,7 +26,7 @@ public class UnalignedTargetWords implements Feature {
     @Override
     public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
         List<Double> res = new ArrayList<>();
-        res.add(Math.log(((DoubleWritable) mapReduceFeatures.get()[4]).get()));
+        res.add(((DoubleWritable) mapReduceFeatures.get()[4]).get());
         return res;
     }
 

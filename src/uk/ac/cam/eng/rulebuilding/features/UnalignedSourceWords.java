@@ -27,7 +27,7 @@ public class UnalignedSourceWords implements Feature {
     public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
         // TODO check length
         List<Double> res = new ArrayList<>();
-        res.add(Math.log(((DoubleWritable) mapReduceFeatures.get()[3]).get()));
+        res.add(((DoubleWritable) mapReduceFeatures.get()[3]).get());
         return res;
     }
 

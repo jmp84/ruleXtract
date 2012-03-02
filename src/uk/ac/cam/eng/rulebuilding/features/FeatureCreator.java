@@ -30,13 +30,6 @@ public class FeatureCreator {
     // list of selected features in order
     private String[] selectedFeatures;
 
-    // public FeatureCreator(String source2targetLexicalModel,
-    // String target2sourceLexicalModel,
-    // String rulePatternAndFeaturesFile,
-    // List<PairWritable3> rules, String[] selectedFeatures,
-    // String[] provenances, String[] source2targetLexicalModels,
-    // String[] target2sourceLexicalModels)
-    // throws FileNotFoundException, IOException {
     public FeatureCreator(Configuration conf, List<PairWritable3> rules)
             throws FileNotFoundException, IOException {
         features = new HashMap<String, Feature>();

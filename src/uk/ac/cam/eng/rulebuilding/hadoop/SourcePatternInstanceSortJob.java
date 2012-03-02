@@ -10,7 +10,6 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.Job;
@@ -21,14 +20,11 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3ArrayWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
- * 
- * @author juan MapReduce job to sort source pattern instances
- * according to HFile order
+ * @author juan MapReduce job to sort source pattern instances according to
+ *         HFile order
  */
 public class SourcePatternInstanceSortJob extends Configured implements Tool {
 

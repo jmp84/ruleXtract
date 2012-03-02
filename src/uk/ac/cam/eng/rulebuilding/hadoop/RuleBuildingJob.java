@@ -13,19 +13,17 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
-import uk.ac.cam.eng.extraction.hadoop.extraction.ExtractorJob;
 
 /**
  * TODO get the author right
@@ -64,6 +62,7 @@ public class RuleBuildingJob extends Configured implements Tool {
         job.setReducerClass(RuleBuildingReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
+        JobConf jc = new JobConf();
         FileInputFormat.setInputPaths(job, conf.get("inputPaths"));
         FileOutputFormat.setOutputPath(job, new Path(conf.get("outputPath")));
         FileOutputFormat.setCompressOutput(job, true);
