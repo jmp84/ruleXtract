@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.ArrayWritable;
@@ -31,7 +32,7 @@ public class FeatureCreator {
     private String[] selectedFeatures;
 
     public FeatureCreator(Configuration conf, List<PairWritable3> rules)
-            throws FileNotFoundException, IOException {
+            throws FileNotFoundException, IOException, InterruptedException, ExecutionException {
         features = new HashMap<String, Feature>();
         features.put("source2target_probability",
                 new Source2TargetProbability());

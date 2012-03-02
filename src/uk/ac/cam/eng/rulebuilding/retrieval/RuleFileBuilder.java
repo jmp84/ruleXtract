@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
@@ -311,7 +312,7 @@ public class RuleFileBuilder {
 
     public List<PairWritable3> getRulesWithFeatures(
             Configuration conf, List<PairWritable3> rules)
-            throws FileNotFoundException, IOException {
+            throws FileNotFoundException, IOException, InterruptedException, ExecutionException {
         List<PairWritable3> res = new ArrayList<>();
         // lazy initialization of featureCreator
         // call here rather than in the constructor because takes time to load

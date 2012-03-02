@@ -6,6 +6,7 @@ package uk.ac.cam.eng.rulebuilding.hadoop;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
@@ -46,8 +47,14 @@ public class RuleBuildingReducer extends Reducer<IntWritable, PairWritable3, Tex
 		for (PairWritable3 value: values) {
 			rules.add(value.copy()); // copy to avoid having the same thing
 		}
-		List<PairWritable3> rulesWithFeatures = ruleFileBuilder.getRulesWithFeatures(conf, rules);
-		String output = ruleFileBuilder.printSetSpecificRuleFile(rulesWithFeatures);
-        context.write(new Text(output), new Text());
+		List<PairWritable3> rulesWithFeatures;
+		try {
+			rulesWithFeatures = ruleFileBuilder.getRulesWithFeatures(conf, rules);
+			String output = ruleFileBuilder.printSetSpecificRuleFile(rulesWithFeatures);
+	        context.write(new Text(output), new Text());
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
 	}
 }
