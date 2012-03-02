@@ -38,7 +38,16 @@ public class PairWritable3 implements WritableComparable<PairWritable3> {
         this.first = first;
         this.second = second;
     }
-
+    
+    public PairWritable3 copy() {
+    	RuleWritable f =
+    			new RuleWritable(RuleWritable.makeSourceMarginal(first, true),
+    					RuleWritable.makeTargetMarginal(first, true));
+    	ArrayWritable s = new ArrayWritable(DoubleWritable.class);
+    	s.set(second.get());
+    	return new PairWritable3(f, s);
+    }
+    
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(first.toString());

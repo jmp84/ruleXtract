@@ -19,7 +19,7 @@ import uk.ac.cam.eng.rulebuilding.retrieval.RuleFileBuilder;
  * @author juan
  */
 public class RuleBuildingMapper extends
-        Mapper<IntWritable, RuleWritable, PairWritable3, IntWritable> {
+        Mapper<IntWritable, RuleWritable, IntWritable, PairWritable3> {
 
     private final static IntWritable one = new IntWritable(1);
     private RuleFileBuilder ruleFileBuilder;
@@ -33,9 +33,8 @@ public class RuleBuildingMapper extends
     @Override
     protected void setup(Context context) throws IOException,
             InterruptedException {
-        super.setup(context);
         Configuration conf = context.getConfiguration();
-        RuleFileBuilder ruleFileBuilder = new RuleFileBuilder(conf);
+        ruleFileBuilder = new RuleFileBuilder(conf);
     }
 
     /**                                                                                                                                                                                                    
@@ -46,7 +45,7 @@ public class RuleBuildingMapper extends
             throws java.io.IOException, InterruptedException {
         List<PairWritable3> rules = ruleFileBuilder.getRules(value);
         for (PairWritable3 rule: rules) {
-            context.write(rule, one);
+            context.write(one, rule);
         }
     }
 }

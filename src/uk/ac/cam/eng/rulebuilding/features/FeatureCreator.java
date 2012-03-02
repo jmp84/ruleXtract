@@ -112,7 +112,13 @@ public class FeatureCreator {
                         source2targetLexicalModels, target2sourceLexicalModels,
                         rules));
         }
-        this.selectedFeatures = selectedFeatures;
+        String selectedFeaturesString = conf.get("features");
+        if (selectedFeaturesString == null) {
+            System.err.println("Missing property " +
+                    "'features' in the config");
+            System.exit(1);
+        }
+        selectedFeatures = selectedFeaturesString.split(",");
     }
 
     private int getNumberOfFeatures() {

@@ -5,13 +5,12 @@
 package uk.ac.cam.eng.rulebuilding.hadoop;
 
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.util.Bytes.ByteArrayComparator;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.Job;
@@ -23,7 +22,8 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
-import uk.ac.cam.eng.extraction.hadoop.extraction.ExtractorJob;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3ArrayWritable;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
  * 
@@ -48,11 +48,15 @@ public class SourcePatternInstanceSortJob extends Configured implements Tool {
         Job job = Job.getInstance(new Cluster(conf), conf);
         job.setJarByClass(SourcePatternInstanceSortJob.class);
         job.setJobName("Source pattern instance sorting");
-        job.setMapperClass(IdentityMapper.class);
-        job.setReducerClass(IdentityReducer.class);
+        job.setMapOutputKeyClass(RuleWritable.class);
+        job.setMapOutputValueClass(IntWritable.class);
+        job.setOutputKeyClass(IntWritable.class);
+        job.setOutputValueClass(RuleWritable.class);
+        job.setMapperClass(SwitchKeyValueMapper.class);
+        job.setReducerClass(SwitchKeyValueReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
-        job.setSortComparatorClass(ByteArrayComparator.class);
+        job.setSortComparatorClass(Bytes.ByteArrayComparator.class);
         FileInputFormat.setInputPaths(job, conf.get("inputPaths"));
         FileOutputFormat.setOutputPath(job, new Path(conf.get("outputPath")));
         FileOutputFormat.setCompressOutput(job, true);
