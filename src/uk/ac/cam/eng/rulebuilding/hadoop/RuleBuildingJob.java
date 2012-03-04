@@ -12,14 +12,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -56,13 +54,13 @@ public class RuleBuildingJob extends Configured implements Tool {
         job.setJobName("Rule Retrieval");
         job.setMapOutputKeyClass(IntWritable.class);
         job.setMapOutputValueClass(PairWritable3.class);
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
+        job.setOutputKeyClass(IntWritable.class);
+        job.setOutputValueClass(PairWritable3.class);
         job.setMapperClass(RuleBuildingMapper.class);
-        job.setReducerClass(RuleBuildingReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
-        job.setOutputFormatClass(TextOutputFormat.class);
-        JobConf jc = new JobConf();
+        job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        // no reducer
+        job.setNumReduceTasks(0);
         FileInputFormat.setInputPaths(job, conf.get("inputPaths"));
         FileOutputFormat.setOutputPath(job, new Path(conf.get("outputPath")));
         FileOutputFormat.setCompressOutput(job, true);

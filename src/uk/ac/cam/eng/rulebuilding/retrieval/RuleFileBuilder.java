@@ -358,4 +358,20 @@ public class RuleFileBuilder {
         }
         return sb.toString();
     }
+    
+    public void writeSetSpecificRuleFile(List<PairWritable3> rulesWithFeatures,
+            String outRuleFile) throws FileNotFoundException, IOException {
+        try (BufferedOutputStream bos =
+                new BufferedOutputStream(new GZIPOutputStream(
+                        new FileOutputStream(outRuleFile)))) {
+            for (PairWritable3 ruleWithFeatures: rulesWithFeatures) {
+                bos.write(ruleWithFeatures.first.toString().getBytes());
+                Writable[] features = ruleWithFeatures.second.get();
+                for (Writable w: features) {
+                    bos.write((" " + w.toString()).getBytes());
+                }
+                bos.write("\n".getBytes());
+            }
+        }
+    }
 }
