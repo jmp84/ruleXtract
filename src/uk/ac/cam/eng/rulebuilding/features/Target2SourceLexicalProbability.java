@@ -102,19 +102,8 @@ public class Target2SourceLexicalProbability implements Feature {
         for (Integer targetWord: targetWords) {
             double sum = 0;
             for (Integer sourceWord: sourceWords) {
-                if (!model.containsKey(targetWord)) {
-                    System.err
-                            .println("Warning: model 1 missing target word: "
-                                    + targetWord);
-                }
-                else if (!model.get(targetWord).containsKey(sourceWord)) {
-                    System.err
-                            .println("Warning: model 1 missing source word: "
-                                    + sourceWord
-                                    + " for target word: "
-                                    + targetWord);
-                }
-                else {
+                if (model.containsKey(targetWord)
+                        && model.get(targetWord).containsKey(sourceWord)) {
                     sum += model.get(targetWord).get(sourceWord);
                 }
             }

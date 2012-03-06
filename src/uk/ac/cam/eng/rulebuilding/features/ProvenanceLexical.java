@@ -4,13 +4,11 @@
 
 package uk.ac.cam.eng.rulebuilding.features;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 
@@ -90,8 +88,7 @@ public class ProvenanceLexical implements Feature {
     // TODO (don't run this in the reducer)
     public ProvenanceLexical(String[] source2targetModelFiles,
             String[] target2sourceModelFiles, List<PairWritable3> rules)
-            throws FileNotFoundException, IOException, InterruptedException,
-            ExecutionException {
+            throws InterruptedException, ExecutionException {
         if (source2targetModelFiles.length != target2sourceModelFiles.length) {
             System.err.println("ERROR: different number of source-to-target " +
                     "and target-to-source lexical models: ");
@@ -100,7 +97,7 @@ public class ProvenanceLexical implements Feature {
         source2targetModels = new ArrayList<>();
         target2sourceModels = new ArrayList<>();
         // TODO remove hard code
-        Executor threadPool = Executors.newFixedThreadPool(22);
+        ExecutorService threadPool = Executors.newFixedThreadPool(22);
         List<FutureTask<Source2TargetLexicalProbability>> s2t =
                 new ArrayList<>();
         List<FutureTask<Target2SourceLexicalProbability>> t2s =
@@ -123,6 +120,7 @@ public class ProvenanceLexical implements Feature {
         for (FutureTask<Target2SourceLexicalProbability> t2sTask: t2s) {
             target2sourceModels.add(t2sTask.get());
         }
+        threadPool.shutdown();
     }
 
     /*
