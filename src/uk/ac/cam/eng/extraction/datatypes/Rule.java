@@ -646,6 +646,10 @@ public final class Rule { // final because immutable class
         return new Rule(src, trg);
     }
 
+    public int getLeftHandSide() {
+        return leftHandSide;
+    }
+
     public List<Integer> getSource() {
         return source;
     }
@@ -678,20 +682,20 @@ public final class Rule { // final because immutable class
     }
 
     /**
-	 * @return the numberUnalignedSourceWords
-	 */
-	public int getNumberUnalignedSourceWords() {
-		return numberUnalignedSourceWords;
-	}
+     * @return the numberUnalignedSourceWords
+     */
+    public int getNumberUnalignedSourceWords() {
+        return numberUnalignedSourceWords;
+    }
 
-	/**
-	 * @return the numberUnalignedTargetWords
-	 */
-	public int getNumberUnalignedTargetWords() {
-		return numberUnalignedTargetWords;
-	}
+    /**
+     * @return the numberUnalignedTargetWords
+     */
+    public int getNumberUnalignedTargetWords() {
+        return numberUnalignedTargetWords;
+    }
 
-	/*
+    /*
      * (non-Javadoc)
      * @see java.lang.Object#hashCode()
      */
