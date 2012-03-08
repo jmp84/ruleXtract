@@ -17,6 +17,9 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
  */
 public class Source2TargetProbability implements Feature {
 
+    // TODO add this to the config
+    private final static double defaultS2t = -4.7;
+
     /*
      * (non-Javadoc)
      * @see
@@ -27,7 +30,9 @@ public class Source2TargetProbability implements Feature {
     public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
         // TODO could use the log in the mapreduce job
         List<Double> res = new ArrayList<>();
-        res.add(Math.log(((DoubleWritable) mapReduceFeatures.get()[0]).get()));
+        double s2t =
+                ((DoubleWritable) mapReduceFeatures.get()[0]).get();
+        res.add(s2t == 0 ? defaultS2t : Math.log(s2t));
         return res;
     }
 
