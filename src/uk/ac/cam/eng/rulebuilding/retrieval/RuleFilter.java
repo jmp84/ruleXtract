@@ -204,11 +204,14 @@ public class RuleFilter {
                     (PairWritable3) listTargetAndProbSorted.get()[i];
             // TODO replace hardcoded feature indices
             double source2targetProbability =
-                    ((DoubleWritable) targetAndProb.second.get()[0]).get();
+                    ((DoubleWritable) targetAndProb.second.get()[countIndex - 2])
+                            .get();
             double target2sourceProbability =
-                    ((DoubleWritable) targetAndProb.second.get()[1]).get();
+                    ((DoubleWritable) targetAndProb.second.get()[countIndex - 1])
+                            .get();
             double numberOfOccurrences =
-                    ((DoubleWritable) targetAndProb.second.get()[2]).get();
+                    ((DoubleWritable) targetAndProb.second.get()[countIndex])
+                            .get();
             if (numberOfOccurrences == previousNumberOfOccurrences) {
                 tie = true;
             }
