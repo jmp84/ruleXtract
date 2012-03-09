@@ -37,6 +37,17 @@ public class PairWritable implements WritableComparable<PairWritable> {
         this.second = second;
     }
 
+    /**
+     * Same as constructor but doesn't create object. Used for mapreduce.
+     * 
+     * @param first
+     * @param second
+     */
+    public void set(RuleWritable first, IntWritable second) {
+        this.first = first;
+        this.second = second;
+    }
+
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(first.toString());

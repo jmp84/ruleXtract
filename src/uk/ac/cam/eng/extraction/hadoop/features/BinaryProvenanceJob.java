@@ -14,6 +14,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -21,13 +22,13 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
- * @author jmp84 MapReduce job to compute source-to-target probability
+ * @author jmp84 MapReduce job to compute binary provenance
  */
-public class Source2TargetProbabilityJob extends Configured implements Tool {
+public class BinaryProvenanceJob extends Configured implements Tool {
 
     public int run(String[] args) throws Exception {
         String configFile = args[0];
@@ -44,14 +45,15 @@ public class Source2TargetProbabilityJob extends Configured implements Tool {
             conf.set(prop, p.getProperty(prop));
         }
         Job job = Job.getInstance(new Cluster(conf), conf);
-        job.setJarByClass(Source2TargetProbabilityJob.class);
-        job.setJobName("s2tProbability");
+        job.setJarByClass(BinaryProvenanceJob.class);
+        job.setJobName("binaryProvenance");
         job.setMapOutputKeyClass(RuleWritable.class);
-        job.setMapOutputValueClass(PairWritable.class);
+        job.setMapOutputValueClass(RuleInfoWritable.class);
         job.setOutputKeyClass(RuleWritable.class);
         job.setOutputValueClass(MapWritable.class);
-        job.setMapperClass(Source2TargetProbabilityMapper.class);
-        job.setReducerClass(Source2TargetProbabilityReducer.class);
+        // identity mapper
+        job.setMapperClass(Mapper.class);
+        job.setReducerClass(BinaryProvenanceReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("inputPaths"));

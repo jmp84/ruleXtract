@@ -18,10 +18,9 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
- * @author jmp84 Reducer to compute source-to-target probability
+ * @author jmp84 Reducer to compute target-to-source probability
  */
-public class Source2TargetProbabilityReducer
-        extends
+public class Target2SourceProbabilityReducer extends
         Reducer<RuleWritable, PairWritable, RuleWritable, MapWritable> {
 
     /**
@@ -33,7 +32,7 @@ public class Source2TargetProbabilityReducer
      * Name of the feature class. This is hard coded and used to retrieve
      * featureStartIndex from a config.
      */
-    private static String featureName = "s2tProbability";
+    private static String featureName = "t2sProbability";
 
     // static writables to avoid memory consumption
     private static MapWritable features = new MapWritable();
@@ -62,21 +61,20 @@ public class Source2TargetProbabilityReducer
     protected void reduce(RuleWritable key, Iterable<PairWritable> values,
             Context context)
             throws IOException, InterruptedException {
-        Configuration conf = context.getConfiguration();
-        // first loop through the targets and gather counts
+        // first loop through the sources and gather counts
         double marginalCount = 0;
         // use HashMap because we don't need to have the rules sorted
         Map<RuleWritable, Integer> ruleCounts =
                 new HashMap<RuleWritable, Integer>();
-        for (PairWritable targetAndCount: values) {
-            marginalCount += targetAndCount.second.get();
-            RuleWritable rw = new RuleWritable(key, targetAndCount.first);
+        for (PairWritable sourceAndCount: values) {
+            marginalCount += sourceAndCount.second.get();
+            RuleWritable rw = new RuleWritable(sourceAndCount.first, key);
             if (!ruleCounts.containsKey(rw)) {
-                ruleCounts.put(rw, targetAndCount.second.get());
+                ruleCounts.put(rw, sourceAndCount.second.get());
             }
             else {
                 ruleCounts.put(rw,
-                        ruleCounts.get(rw) + targetAndCount.second.get());
+                        ruleCounts.get(rw) + sourceAndCount.second.get());
             }
         }
         // do a second pass for normalization

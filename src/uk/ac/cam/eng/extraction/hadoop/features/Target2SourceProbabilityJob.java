@@ -27,7 +27,7 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 /**
  * @author jmp84 MapReduce job to compute source-to-target probability
  */
-public class Source2TargetProbabilityJob extends Configured implements Tool {
+public class Target2SourceProbabilityJob extends Configured implements Tool {
 
     public int run(String[] args) throws Exception {
         String configFile = args[0];
@@ -44,14 +44,14 @@ public class Source2TargetProbabilityJob extends Configured implements Tool {
             conf.set(prop, p.getProperty(prop));
         }
         Job job = Job.getInstance(new Cluster(conf), conf);
-        job.setJarByClass(Source2TargetProbabilityJob.class);
-        job.setJobName("s2tProbability");
+        job.setJarByClass(Target2SourceProbabilityJob.class);
+        job.setJobName("t2sProbability");
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(PairWritable.class);
         job.setOutputKeyClass(RuleWritable.class);
         job.setOutputValueClass(MapWritable.class);
-        job.setMapperClass(Source2TargetProbabilityMapper.class);
-        job.setReducerClass(Source2TargetProbabilityReducer.class);
+        job.setMapperClass(Target2SourceProbabilityMapper.class);
+        job.setReducerClass(Target2SourceProbabilityReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("inputPaths"));
