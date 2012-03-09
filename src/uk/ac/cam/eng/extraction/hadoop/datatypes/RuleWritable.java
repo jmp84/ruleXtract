@@ -25,10 +25,6 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
     private Text source;
     private Text target;
 
-    // additional info for features
-    private DoubleWritable numberUnalignedSourceWords;
-    private DoubleWritable numberUnalignedTargetWords;
-
     public Text getLeftHandSide() {
         return leftHandSide;
     }
