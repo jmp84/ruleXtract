@@ -8,7 +8,6 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -18,6 +17,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 public class ExtractorJob extends Configured implements Tool {
@@ -39,15 +39,10 @@ public class ExtractorJob extends Configured implements Tool {
         Job job = Job.getInstance(new Cluster(conf), conf);
         job.setJarByClass(ExtractorJob.class);
         job.setJobName("Rule Extraction");
-        // needs to specify the map output key (respectively value) class
-        // because
-        // it is different than the final output key (respectively value) class
-        // may not be needed for key
-        // job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputKeyClass(RuleWritable.class);
-        job.setMapOutputValueClass(IntWritable.class);
+        job.setMapOutputValueClass(RuleInfoWritable.class);
         job.setOutputKeyClass(RuleWritable.class);
-        job.setOutputValueClass(IntWritable.class);
+        job.setOutputValueClass(RuleInfoWritable.class);
         job.setMapperClass(ExtractorMapper.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);

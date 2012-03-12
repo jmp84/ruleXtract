@@ -20,11 +20,11 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.TextArrayWritable;
 
 /**
- * @author jmp84 Mapper for rule extraction. Extracts the rules and writes
- *         the rule and additional info (unaligned words, etc.). We separate
- *         the rule from its additional info to be flexible and avoid equality
- *         problems whenever we add more info to the rule.
- *         The output will be the input to mapreduce features.
+ * @author jmp84 Mapper for rule extraction. Extracts the rules and writes the
+ *         rule and additional info (unaligned words, etc.). We separate the
+ *         rule from its additional info to be flexible and avoid equality
+ *         problems whenever we add more info to the rule. The output will be
+ *         the input to mapreduce features.
  */
 public class ExtractorMapper extends
         Mapper<IntWritable, TextArrayWritable, RuleWritable, RuleInfoWritable> {
@@ -46,6 +46,7 @@ public class ExtractorMapper extends
         Alignment a = new Alignment(wordAlign, sp, side1source);
         RuleExtractor re = new RuleExtractor(conf);
         for (Rule r: re.extract(a, sp)) {
+            // TODO replace with static objects ?
             RuleWritable rw = new RuleWritable(r);
             RuleInfoWritable riw = new RuleInfoWritable(r);
             context.write(rw, riw);

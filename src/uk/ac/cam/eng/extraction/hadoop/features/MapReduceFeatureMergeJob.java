@@ -15,7 +15,6 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -62,9 +61,8 @@ public class MapReduceFeatureMergeJob extends Configured implements Tool {
         job.setMapOutputValueClass(RuleInfoWritable.class);
         job.setOutputKeyClass(RuleWritable.class);
         job.setOutputValueClass(MapWritable.class);
-        // identity mapper
-        job.setMapperClass(Mapper.class);
-        job.setReducerClass(BinaryProvenanceReducer.class);
+        job.setMapperClass(MapReduceFeatureMergeMapper.class);
+        job.setReducerClass(MapReduceFeatureMergeReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("inputPaths"));

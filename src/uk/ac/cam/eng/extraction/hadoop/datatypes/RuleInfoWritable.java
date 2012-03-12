@@ -31,6 +31,8 @@ public class RuleInfoWritable implements Writable {
      */
     private MapWritable binaryProvenance;
 
+    public RuleInfoWritable() {}
+
     public RuleInfoWritable(Rule r) {
         numberUnalignedSourceWords =
                 new IntWritable(r.getNumberUnalignedSourceWords());

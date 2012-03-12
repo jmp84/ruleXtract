@@ -8,44 +8,23 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Writable;
-
-import uk.ac.cam.eng.util.Pair;
 
 /**
  * @author jmp84
  */
-public class GenericPairWritable extends Pair<Writable, Writable> implements
-        Writable {
-
-    Class<? extends Writable> clazz;
-
-    public GenericPairWritable(Class<? extends Writable> clazz)
-            throws InstantiationException, IllegalAccessException {
-        this.clazz = clazz;
-        first = clazz.newInstance();
-        second = clazz.newInstance();
-    }
-
-    public class IntPairWritable extends GenericPairWritable {
-
-        public IntPairWritable() throws InstantiationException,
-                IllegalAccessException {
-            super(IntWritable.class);
-        }
-    }
+public class GeneralPairWritable implements Writable {
 
     private Writable first;
     private Writable second;
 
-    public GenericPairWritable() {}
+    public GeneralPairWritable() {}
 
     /**
      * @param first
      * @param second
      */
-    public GenericPairWritable(T first, U second) {
+    public GeneralPairWritable(Writable first, Writable second) {
         this.first = first;
         this.second = second;
     }
@@ -53,7 +32,7 @@ public class GenericPairWritable extends Pair<Writable, Writable> implements
     /**
      * @return the first
      */
-    public T getFirst() {
+    public Writable getFirst() {
         return first;
     }
 
@@ -61,14 +40,14 @@ public class GenericPairWritable extends Pair<Writable, Writable> implements
      * @param first
      *            the first to set
      */
-    public void setFirst(T first) {
+    public void setFirst(Writable first) {
         this.first = first;
     }
 
     /**
      * @return the second
      */
-    public U getSecond() {
+    public Writable getSecond() {
         return second;
     }
 
@@ -76,7 +55,7 @@ public class GenericPairWritable extends Pair<Writable, Writable> implements
      * @param second
      *            the second to set
      */
-    public void setSecond(U second) {
+    public void setSecond(Writable second) {
         this.second = second;
     }
 
@@ -87,6 +66,7 @@ public class GenericPairWritable extends Pair<Writable, Writable> implements
     @Override
     public void write(DataOutput out) throws IOException {
         first.write(out);
+        second.write(out);
     }
 
     /*
