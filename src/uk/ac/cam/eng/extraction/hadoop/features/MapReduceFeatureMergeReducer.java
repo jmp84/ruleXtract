@@ -20,7 +20,7 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
  * @author jmp84 Reducer for the MapReduce feature merging job. Groups together
  *         the targets and merge the features.
  */
-public class MapReduceFeatureMergeReduce
+public class MapReduceFeatureMergeReducer
         extends
         Reducer<BytesWritable, GeneralPairWritable, BytesWritable, GeneralPairWritable> {
 

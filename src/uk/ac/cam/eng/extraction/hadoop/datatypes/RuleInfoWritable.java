@@ -31,7 +31,11 @@ public class RuleInfoWritable implements Writable {
      */
     private MapWritable binaryProvenance;
 
-    public RuleInfoWritable() {}
+    public RuleInfoWritable() {
+        numberUnalignedSourceWords = new IntWritable();
+        numberUnalignedTargetWords = new IntWritable();
+        binaryProvenance = new MapWritable();
+    }
 
     public RuleInfoWritable(Rule r) {
         numberUnalignedSourceWords =
@@ -47,6 +51,7 @@ public class RuleInfoWritable implements Writable {
 
     /*
      * (non-Javadoc)
+     * 
      * @see org.apache.hadoop.io.Writable#write(java.io.DataOutput)
      */
     @Override
@@ -58,6 +63,7 @@ public class RuleInfoWritable implements Writable {
 
     /*
      * (non-Javadoc)
+     * 
      * @see org.apache.hadoop.io.Writable#readFields(java.io.DataInput)
      */
     @Override
