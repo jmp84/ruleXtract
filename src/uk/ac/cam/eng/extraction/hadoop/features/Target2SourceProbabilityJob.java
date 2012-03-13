@@ -66,7 +66,7 @@ public class Target2SourceProbabilityJob extends Configured implements Tool {
             System.err.println("Usage args: configFile");
             System.exit(1);
         }
-        int res = ToolRunner.run(new Source2TargetProbabilityJob(), args);
+        int res = ToolRunner.run(new Target2SourceProbabilityJob(), args);
         System.exit(res);
     }
 }

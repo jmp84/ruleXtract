@@ -8,12 +8,13 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Reducer;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable2;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -22,11 +23,11 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
  */
 public class MapReduceFeatureMergeReducer
         extends
-        Reducer<BytesWritable, GeneralPairWritable, BytesWritable, GeneralPairWritable> {
+        Reducer<BytesWritable, GeneralPairWritable2, BytesWritable, ArrayWritable> {
 
     // static writables to avoid memory consumption
-    private static GeneralPairWritable targetAndFeatures =
-            new GeneralPairWritable();
+    private static ArrayWritable targetsAndFeaturesOutputValue =
+            new ArrayWritable(GeneralPairWritable2.class);
 
     /**
      * Adds key/value pairs from the second map to the first
@@ -63,13 +64,13 @@ public class MapReduceFeatureMergeReducer
      */
     @Override
     protected void reduce(BytesWritable key,
-            Iterable<GeneralPairWritable> values, Context context)
+            Iterable<GeneralPairWritable2> values, Context context)
             throws IOException, InterruptedException {
         // not necessary, but nicer to have the targets in sorted order
         Map<RuleWritable, MapWritable> targetsAndFeatures = new TreeMap<>();
         // first pass to put together the identical targets and merge their
         // features
-        for (GeneralPairWritable value: values) {
+        for (GeneralPairWritable2 value: values) {
             // create new object, otherwise gets overwritten
             RuleWritable target = new RuleWritable();
             target.setTarget(((RuleWritable) value.getFirst()).getTarget());
@@ -83,10 +84,16 @@ public class MapReduceFeatureMergeReducer
             }
         }
         // second pass to write to the output
+        Writable[] outputValueArray =
+                new GeneralPairWritable2[targetsAndFeatures.size()];
+        int i = 0;
         for (RuleWritable target: targetsAndFeatures.keySet()) {
-            targetAndFeatures.setFirst(target);
-            targetAndFeatures.setSecond(targetsAndFeatures.get(target));
-            context.write(key, targetAndFeatures);
+            outputValueArray[i] =
+                    new GeneralPairWritable2(target,
+                            targetsAndFeatures.get(target));
+            i++;
         }
+        targetsAndFeaturesOutputValue.set(outputValueArray);
+        context.write(key, targetsAndFeaturesOutputValue);
     }
 }

@@ -84,10 +84,17 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         }
     }
 
+    /**
+     * Builds a RuleWritable from a source and a target. Needs to do a deep copy
+     * for use in the source-to-target and target-to-source reducers
+     * 
+     * @param source
+     * @param target
+     */
     public RuleWritable(RuleWritable source, RuleWritable target) {
-        leftHandSide = source.leftHandSide;
-        this.source = source.source;
-        this.target = target.target;
+        leftHandSide = new Text(source.leftHandSide);
+        this.source = new Text(source.source);
+        this.target = new Text(target.target);
     }
 
     public static RuleWritable makeSourceMarginal(

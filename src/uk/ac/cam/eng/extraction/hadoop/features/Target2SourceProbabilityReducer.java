@@ -38,7 +38,6 @@ public class Target2SourceProbabilityReducer extends
     private static MapWritable features = new MapWritable();
     private static DoubleWritable probability = new DoubleWritable();
     private static IntWritable count = new IntWritable();
-    private static IntWritable featureIndex = new IntWritable();
 
     /*
      * (non-Javadoc)
@@ -82,9 +81,9 @@ public class Target2SourceProbabilityReducer extends
             features.clear();
             count.set(ruleCounts.get(rw));
             probability.set(count.get() / marginalCount);
-            featureIndex.set(featureStartIndex);
+            IntWritable featureIndex = new IntWritable(featureStartIndex);
             features.put(featureIndex, probability);
-            featureIndex.set(featureStartIndex + 1);
+            featureIndex = new IntWritable(featureStartIndex + 1);
             features.put(featureIndex, count);
             context.write(rw, features);
         }
