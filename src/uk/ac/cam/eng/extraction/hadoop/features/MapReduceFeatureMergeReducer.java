@@ -8,10 +8,12 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable2;
@@ -66,22 +68,21 @@ public class MapReduceFeatureMergeReducer
     protected void reduce(BytesWritable key,
             Iterable<GeneralPairWritable2> values, Context context)
             throws IOException, InterruptedException {
+        Configuration conf = context.getConfiguration();
         // not necessary, but nicer to have the targets in sorted order
         Map<RuleWritable, MapWritable> targetsAndFeatures = new TreeMap<>();
         // first pass to put together the identical targets and merge their
         // features
         for (GeneralPairWritable2 value: values) {
-            // create new object, otherwise gets overwritten
-            RuleWritable target = new RuleWritable();
-            target.setTarget(((RuleWritable) value.getFirst()).getTarget());
-            MapWritable features = (MapWritable) value.getSecond();
+            // clone object, otherwise gets overwritten
+            RuleWritable target = WritableUtils.clone(value.getFirst(), conf);
+            // clone object, otherwise gets overwritten
+            MapWritable features = WritableUtils.clone(value.getSecond(), conf);
             if (targetsAndFeatures.containsKey(target)) {
                 features =
                         mergeFeatures(features, targetsAndFeatures.get(target));
             }
-            else {
-                targetsAndFeatures.put(target, features);
-            }
+            targetsAndFeatures.put(target, features);
         }
         // second pass to write to the output
         Writable[] outputValueArray =

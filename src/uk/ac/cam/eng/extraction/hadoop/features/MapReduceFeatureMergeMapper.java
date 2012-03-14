@@ -17,7 +17,8 @@ import uk.ac.cam.eng.extraction.hadoop.util.Util;
 /**
  * @author jmp84
  */
-public class MapReduceFeatureMergeMapper extends
+public class MapReduceFeatureMergeMapper
+        extends
         Mapper<RuleWritable, MapWritable, BytesWritable, GeneralPairWritable2> {
 
     private static RuleWritable source = new RuleWritable();
@@ -36,7 +37,7 @@ public class MapReduceFeatureMergeMapper extends
             throws IOException, InterruptedException {
         source.setSource(key.getSource());
         target.setTarget(key.getTarget());
-        targetAndFeatures.setFirst(source);
+        targetAndFeatures.setFirst(target);
         targetAndFeatures.setSecond(value);
         byte[] sourceByteArray = Util.object2ByteArray(source);
         sourceBytesWritable.set(sourceByteArray, 0, sourceByteArray.length);

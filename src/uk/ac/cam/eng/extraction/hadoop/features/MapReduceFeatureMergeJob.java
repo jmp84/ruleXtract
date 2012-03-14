@@ -13,11 +13,11 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -44,9 +44,8 @@ public class MapReduceFeatureMergeJob extends Configured implements Tool {
         for (String prop: p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
-        Job job = Job.getInstance(new Cluster(conf), conf);
+        Job job = new Job(conf, "MapReduce Features Merge");
         job.setJarByClass(MapReduceFeatureMergeJob.class);
-        job.setJobName("mapReduceFeaturesMerge");
         job.setMapOutputKeyClass(BytesWritable.class);
         job.setMapOutputValueClass(GeneralPairWritable2.class);
         job.setOutputKeyClass(BytesWritable.class);

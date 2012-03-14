@@ -12,7 +12,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapWritable;
-import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
@@ -43,7 +42,7 @@ public class Source2TargetProbabilityJob extends Configured implements Tool {
         for (String prop: p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
-        Job job = Job.getInstance(new Cluster(conf), conf);
+        Job job = new Job(conf, "s2tProbability");
         job.setJarByClass(Source2TargetProbabilityJob.class);
         job.setJobName("s2tProbability");
         job.setMapOutputKeyClass(RuleWritable.class);

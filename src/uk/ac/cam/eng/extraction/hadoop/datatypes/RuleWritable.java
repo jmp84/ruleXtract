@@ -97,8 +97,7 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         this.target = new Text(target.target);
     }
 
-    public static RuleWritable makeSourceMarginal(
-            Rule r, boolean source2target) {
+    public static RuleWritable makeSourceMarginal(Rule r) {
         String[] parts = r.toString().split("\\s+");
         RuleWritable res = new RuleWritable();
         res.leftHandSide = new Text(parts[0]);
@@ -107,8 +106,7 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         return res;
     }
 
-    public static RuleWritable makeSourceMarginal(
-            RuleWritable r, boolean source2target) {
+    public static RuleWritable makeSourceMarginal(RuleWritable r) {
         RuleWritable res = new RuleWritable();
         res.leftHandSide = new Text(r.leftHandSide);
         res.source = new Text(r.source);
@@ -116,8 +114,7 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         return res;
     }
 
-    public static RuleWritable makeTargetMarginal(
-            Rule r, boolean source2target) {
+    public static RuleWritable makeTargetMarginal(Rule r) {
         String[] parts = r.toString().split("\\s+");
         RuleWritable res = new RuleWritable();
         res.leftHandSide = new Text(parts[0]);
@@ -126,8 +123,7 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         return res;
     }
 
-    public static RuleWritable makeTargetMarginal(
-            RuleWritable r, boolean source2target) {
+    public static RuleWritable makeTargetMarginal(RuleWritable r) {
         RuleWritable res = new RuleWritable();
         res.leftHandSide = new Text(r.leftHandSide);
         res.source = new Text();

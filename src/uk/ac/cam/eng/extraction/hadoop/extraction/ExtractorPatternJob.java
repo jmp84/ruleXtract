@@ -8,7 +8,6 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
@@ -17,7 +16,6 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.DoubleArrayWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritablePattern;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 
@@ -39,9 +37,8 @@ public class ExtractorPatternJob extends Configured implements Tool {
             conf.set(prop, p.getProperty(prop));
         }
         conf.set("mapreduce.tasktracker.map.tasks.maximum", "6");
-        Job job = Job.getInstance(new Cluster(conf), conf);
+        Job job = new Job(conf, "Rule Pattern Translation");
         job.setJarByClass(ExtractorPatternJob.class);
-        job.setJobName("Rule Pattern Translation");
         // needs to specify the map output key (respectively value) class
         // because
         // it is different than the final output key (respectively value) class

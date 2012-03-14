@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileScanner;
 import org.apache.hadoop.io.ArrayWritable;
@@ -69,9 +70,10 @@ public class HFile2Text2 {
         try (BufferedWriter bw =
                 new BufferedWriter(new FileWriter(fileOutput))) {
             HFile.Reader hfileReader =
-                    new HFile.Reader(fs, new Path(hfileInput), null, false);
+                    HFile.createReader(fs, new Path(hfileInput),
+                            new CacheConfig(conf));
             hfileReader.loadFileInfo();
-            HFileScanner scanner = hfileReader.getScanner();
+            HFileScanner scanner = hfileReader.getScanner(false, false, false);
             scanner.seekTo();
             do {
                 RuleWritable key = bytes2RuleWritable(scanner.getKey());
@@ -96,5 +98,4 @@ public class HFile2Text2 {
             while (scanner.next());
         }
     }
-
 }
