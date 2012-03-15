@@ -32,7 +32,8 @@ public class FeatureCreator {
     private String[] selectedFeatures;
 
     public FeatureCreator(Configuration conf, List<PairWritable3> rules)
-            throws FileNotFoundException, IOException, InterruptedException, ExecutionException {
+            throws FileNotFoundException, IOException, InterruptedException,
+            ExecutionException {
         features = new HashMap<String, Feature>();
         features.put("source2target_probability",
                 new Source2TargetProbability());
@@ -49,8 +50,8 @@ public class FeatureCreator {
         String source2targetLexicalModel =
                 conf.get("source2target_lexical_model");
         if (source2targetLexicalModel == null) {
-            System.err.println("Missing property " +
-                    "'source2target_lexical_model' in the config");
+            System.err.println("Missing property "
+                    + "'source2target_lexical_model' in the config");
             System.exit(1);
         }
         features.put("source2target_lexical_probability",
@@ -59,8 +60,8 @@ public class FeatureCreator {
         String target2sourceLexicalModel =
                 conf.get("target2source_lexical_model");
         if (target2sourceLexicalModel == null) {
-            System.err.println("Missing property " +
-                    "'target2source_lexical_model' in the config");
+            System.err.println("Missing property "
+                    + "'target2source_lexical_model' in the config");
             System.exit(1);
         }
         features.put("target2source_lexical_probability",
@@ -108,8 +109,8 @@ public class FeatureCreator {
         }
         String selectedFeaturesString = conf.get("features");
         if (selectedFeaturesString == null) {
-            System.err.println("Missing property " +
-                    "'features' in the config");
+            System.err
+                    .println("Missing property " + "'features' in the config");
             System.exit(1);
         }
         selectedFeatures = selectedFeaturesString.split(",");
@@ -117,14 +118,15 @@ public class FeatureCreator {
 
     private int getNumberOfFeatures() {
         int res = 0;
-        for (String selectedFeature: selectedFeatures) {
+        for (String selectedFeature : selectedFeatures) {
             res += features.get(selectedFeature).getNumberOfFeatures();
         }
         return res;
     }
 
     private List<Double> createFeatures(String featureName,
-            PairWritable3 ruleAndMapReduceFeatures) {
+            PairWritable3 ruleAndMapReduceFeatures)
+            throws InterruptedException, ExecutionException {
         return features.get(featureName).value(
                 new Rule(ruleAndMapReduceFeatures.first),
                 ruleAndMapReduceFeatures.second);
@@ -144,16 +146,17 @@ public class FeatureCreator {
     }
 
     private PairWritable3
-            createFeatures(PairWritable3 ruleAndMapReduceFeatures) {
+            createFeatures(PairWritable3 ruleAndMapReduceFeatures)
+                    throws InterruptedException, ExecutionException {
         PairWritable3 res = new PairWritable3();
         res.first = ruleAndMapReduceFeatures.first;
         DoubleWritable[] allFeatureValues =
                 new DoubleWritable[getNumberOfFeatures()];
         int i = 0;
-        for (String featureName: selectedFeatures) {
+        for (String featureName : selectedFeatures) {
             List<Double> featureValues =
                     createFeatures(featureName, ruleAndMapReduceFeatures);
-            for (Double featureValue: featureValues) {
+            for (Double featureValue : featureValues) {
                 allFeatureValues[i] = new DoubleWritable(featureValue);
                 i++;
             }
@@ -169,11 +172,11 @@ public class FeatureCreator {
         DoubleWritable[] allFeatureValues =
                 new DoubleWritable[getNumberOfFeatures()];
         int i = 0;
-        for (String featureName: selectedFeatures) {
+        for (String featureName : selectedFeatures) {
             List<Double> featureValues =
                     createFeatureAsciiOovDeletion(featureName,
                             asciiOovDeletionRule);
-            for (Double featureValue: featureValues) {
+            for (Double featureValue : featureValues) {
                 allFeatureValues[i] = new DoubleWritable(featureValue);
                 i++;
             }
@@ -188,10 +191,10 @@ public class FeatureCreator {
         DoubleWritable[] allFeatureValues =
                 new DoubleWritable[getNumberOfFeatures()];
         int i = 0;
-        for (String featureName: selectedFeatures) {
+        for (String featureName : selectedFeatures) {
             List<Double> featureValues =
                     createFeatureGlueRule(featureName, glueRule);
-            for (Double featureValue: featureValues) {
+            for (Double featureValue : featureValues) {
                 allFeatureValues[i] = new DoubleWritable(featureValue);
                 i++;
             }
@@ -201,9 +204,10 @@ public class FeatureCreator {
     }
 
     public List<PairWritable3> createFeatures(
-            List<PairWritable3> rulesAndMapReduceFeatures) {
+            List<PairWritable3> rulesAndMapReduceFeatures)
+            throws InterruptedException, ExecutionException {
         List<PairWritable3> res = new ArrayList<PairWritable3>();
-        for (PairWritable3 ruleAndMapReduceFeatures: rulesAndMapReduceFeatures) {
+        for (PairWritable3 ruleAndMapReduceFeatures : rulesAndMapReduceFeatures) {
             PairWritable3 ruleAndFeatures =
                     createFeatures(ruleAndMapReduceFeatures);
             res.add(ruleAndFeatures);
@@ -214,7 +218,7 @@ public class FeatureCreator {
     public List<PairWritable3> createFeaturesAsciiOovDeletion(
             List<PairWritable3> asciiOovDeletionRules) {
         List<PairWritable3> res = new ArrayList<PairWritable3>();
-        for (PairWritable3 asciiOovDeletionRule: asciiOovDeletionRules) {
+        for (PairWritable3 asciiOovDeletionRule : asciiOovDeletionRules) {
             PairWritable3 asciiOovDeletionRuleAndFeatures =
                     createFeaturesAsciiOovDeletion(asciiOovDeletionRule);
             res.add(asciiOovDeletionRuleAndFeatures);
@@ -225,7 +229,7 @@ public class FeatureCreator {
     public List<PairWritable3> createFeaturesGlueRules(
             List<PairWritable3> glueRules) {
         List<PairWritable3> res = new ArrayList<PairWritable3>();
-        for (PairWritable3 glueRule: glueRules) {
+        for (PairWritable3 glueRule : glueRules) {
             PairWritable3 glueRuleAndFeatures =
                     createFeaturesGlueRule(glueRule);
             res.add(glueRuleAndFeatures);
