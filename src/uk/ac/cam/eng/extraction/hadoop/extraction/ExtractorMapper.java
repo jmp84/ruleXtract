@@ -49,6 +49,8 @@ public class ExtractorMapper extends
             // TODO replace with static objects ?
             RuleWritable rw = new RuleWritable(r);
             RuleInfoWritable riw = new RuleInfoWritable(r);
+            // the key is the provenance id of the instance
+            riw.setBinaryProvenance(key);
             context.write(rw, riw);
         }
     }

@@ -27,9 +27,7 @@ public class ExtractorDataLoader {
     private static abstract class RecordReader {
 
         BufferedReader in;
-
         StringBuilder out = new StringBuilder();
-
         int sentence;
 
         void setFileName(String fileName) throws FileNotFoundException,
@@ -49,7 +47,6 @@ public class ExtractorDataLoader {
         String sentenceAlignmentFile = args[0];
         String wordAlignmentFile = args[1];
         String hdfsName = args[2];
-
         RecordReader sentenceReader = new RecordReader() {
 
             @Override
@@ -66,7 +63,6 @@ public class ExtractorDataLoader {
             }
         };
         sentenceReader.setFileName(sentenceAlignmentFile);
-
         RecordReader alignmentReader = new RecordReader() {
 
             String prevLine = null;
@@ -76,7 +72,6 @@ public class ExtractorDataLoader {
                 if (prevLine == null) {
                     prevLine = in.readLine();
                 }
-
                 if (!prevLine.startsWith("SENT: ")) {
                     throw new RuntimeException(
                             "Error in the word alignment file");
@@ -118,13 +113,15 @@ public class ExtractorDataLoader {
             array[1] = alignmentText;
             TextArrayWritable arrayWritable = new TextArrayWritable();
             IntWritable sentenceNumber = new IntWritable();
-
+            int sentenceNumberInt = 0;
             String sentence = sentenceReader.getNext();
             String alignment = alignmentReader.getNext();
             while (sentence != null || alignment != null) {
-                // System.out.println("Sentence #: " + alignmentReader.sentence
-                // + "\n " + sentence + alignment);
-                sentenceNumber.set(alignmentReader.sentence);
+                // we ignore the sentence number given by the input file
+                // because it is not reliable (data splitting)
+                // sentenceNumber.set(alignmentReader.sentence);
+                sentenceNumber.set(sentenceNumberInt);
+                sentenceNumberInt++;
                 sentenceText.set(sentence);
                 // handle empty alignment case
                 if (alignment == null) {
@@ -142,7 +139,5 @@ public class ExtractorDataLoader {
         finally {
             writer.close();
         }
-
     }
-
 }

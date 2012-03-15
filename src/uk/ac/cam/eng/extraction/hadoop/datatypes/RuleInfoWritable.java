@@ -10,6 +10,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
@@ -45,13 +46,24 @@ public class RuleInfoWritable implements Writable {
         binaryProvenance = new MapWritable();
     }
 
+    public void setBinaryProvenance(IntWritable provenanceId) {
+        binaryProvenance.put(provenanceId, NullWritable.get());
+    }
+
     public MapWritable getBinaryProvenance() {
         return binaryProvenance;
     }
 
+    public int getNumberUnalignedSourceWords() {
+        return numberUnalignedSourceWords.get();
+    }
+
+    public int getNumberUnalignedTargetWords() {
+        return numberUnalignedTargetWords.get();
+    }
+
     /*
      * (non-Javadoc)
-     * 
      * @see org.apache.hadoop.io.Writable#write(java.io.DataOutput)
      */
     @Override
@@ -63,7 +75,6 @@ public class RuleInfoWritable implements Writable {
 
     /*
      * (non-Javadoc)
-     * 
      * @see org.apache.hadoop.io.Writable#readFields(java.io.DataInput)
      */
     @Override

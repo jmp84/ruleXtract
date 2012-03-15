@@ -13,6 +13,7 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -20,13 +21,14 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
+import uk.ac.cam.eng.extraction.hadoop.extraction.UnalignedWordReducer;
 
 /**
- * @author jmp84 MapReduce job to compute source-to-target probability
+ * @author jmp84 MapReduce job to compute average source unaligned and
  */
-public class Source2TargetProbabilityJob extends Configured implements Tool {
+public class UnalignedWordJob extends Configured implements Tool {
 
     public int run(String[] args) throws Exception {
         String configFile = args[0];
@@ -42,14 +44,15 @@ public class Source2TargetProbabilityJob extends Configured implements Tool {
         for (String prop: p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
-        Job job = new Job(conf, "s2tProbability");
-        job.setJarByClass(Source2TargetProbabilityJob.class);
+        Job job = new Job(conf, "unalignedWords");
+        job.setJarByClass(UnalignedWordJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
-        job.setMapOutputValueClass(PairWritable.class);
+        job.setMapOutputValueClass(RuleInfoWritable.class);
         job.setOutputKeyClass(RuleWritable.class);
         job.setOutputValueClass(MapWritable.class);
-        job.setMapperClass(Source2TargetProbabilityMapper.class);
-        job.setReducerClass(Source2TargetProbabilityReducer.class);
+        // identity Mapper
+        job.setMapperClass(Mapper.class);
+        job.setReducerClass(UnalignedWordReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("inputPaths"));
@@ -64,7 +67,7 @@ public class Source2TargetProbabilityJob extends Configured implements Tool {
             System.err.println("Usage args: configFile");
             System.exit(1);
         }
-        int res = ToolRunner.run(new Source2TargetProbabilityJob(), args);
+        int res = ToolRunner.run(new UnalignedWordJob(), args);
         System.exit(res);
     }
 }

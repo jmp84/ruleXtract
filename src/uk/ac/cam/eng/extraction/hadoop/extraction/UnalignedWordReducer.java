@@ -2,25 +2,25 @@
  * 
  */
 
-package uk.ac.cam.eng.extraction.hadoop.features;
+package uk.ac.cam.eng.extraction.hadoop.extraction;
 
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapWritable;
-import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
- * @author jmp84 Reducer to compute binary provenance feature. Simply merge the
- *         binary features into a map and taking the offset into account.
+ * @author jmp84 Reducer to compute the unaligned word feature. For a given key
+ *         (the rule), loops over all values (the metadata) and compute the
+ *         average number of unaligned source words and target words
  */
-public class BinaryProvenanceReducer extends
+public class UnalignedWordReducer extends
         Reducer<RuleWritable, RuleInfoWritable, RuleWritable, MapWritable> {
 
     /**
@@ -32,10 +32,15 @@ public class BinaryProvenanceReducer extends
      * Name of the feature class. This is hard coded and used to retrieve
      * featureStartIndex from a config.
      */
-    private static String featureName = "binaryProvenance";
+    private static String featureName = "unalignedWords";
 
     // static writables to avoid memory consumption
     private static MapWritable features = new MapWritable();
+    private static IntWritable featureIndex = new IntWritable();
+    private static DoubleWritable averageUnalignedSourceWords =
+            new DoubleWritable();
+    private static DoubleWritable averageUnalignedTargetWords =
+            new DoubleWritable();
 
     /*
      * (non-Javadoc)
@@ -58,16 +63,23 @@ public class BinaryProvenanceReducer extends
     @Override
     protected void reduce(RuleWritable key, Iterable<RuleInfoWritable> values,
             Context context) throws IOException, InterruptedException {
-        IntWritable featureIndex = new IntWritable(featureStartIndex);
+        int numberUnalignedSourceWords = 0, numberUnalignedTargetWords = 0;
+        int numberOccurrences = 0;
         for (RuleInfoWritable ruleInfoWritable: values) {
-            for (Writable provenance: ruleInfoWritable.getBinaryProvenance()
-                    .keySet()) {
-                featureIndex =
-                        new IntWritable(featureStartIndex
-                                + ((IntWritable) provenance).get());
-                features.put(featureIndex, NullWritable.get());
-            }
+            numberUnalignedSourceWords +=
+                    ruleInfoWritable.getNumberUnalignedSourceWords();
+            numberUnalignedTargetWords +=
+                    ruleInfoWritable.getNumberUnalignedTargetWords();
+            numberOccurrences++;
         }
+        averageUnalignedSourceWords.set((double) numberUnalignedSourceWords
+                / numberOccurrences);
+        averageUnalignedTargetWords.set((double) numberUnalignedTargetWords
+                / numberOccurrences);
+        IntWritable featureIndex = new IntWritable(featureStartIndex);
+        features.put(featureIndex, averageUnalignedSourceWords);
+        featureIndex = new IntWritable(featureStartIndex + 1);
+        features.put(featureIndex, averageUnalignedTargetWords);
         context.write(key, features);
     }
 }
