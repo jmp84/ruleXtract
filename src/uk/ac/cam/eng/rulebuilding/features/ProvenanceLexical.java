@@ -214,6 +214,7 @@ public class ProvenanceLexical implements Feature {
         for (FutureTask<List<Double>> t2sTask : t2s) {
             res.addAll(t2sTask.get());
         }
+        threadPool.shutdown();
         return res;
     }
 
