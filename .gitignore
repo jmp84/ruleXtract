@@ -5,3 +5,4 @@ AwsCredentials.properties
 .settings/
 *.crc
 /.classpath
+input
