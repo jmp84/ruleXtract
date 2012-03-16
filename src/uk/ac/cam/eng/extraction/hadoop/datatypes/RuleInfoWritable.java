@@ -7,7 +7,6 @@ package uk.ac.cam.eng.extraction.hadoop.datatypes;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Map;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapWritable;
@@ -57,7 +56,7 @@ public class RuleInfoWritable implements Writable {
                 NullWritable.get());
     }
 
-    public Map<Writable, Writable> getBinaryProvenance() {
+    public MapWritable getBinaryProvenance() {
         return binaryProvenance;
     }
 
