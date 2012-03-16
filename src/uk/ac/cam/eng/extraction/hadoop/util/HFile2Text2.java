@@ -15,6 +15,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileScanner;
+import org.apache.hadoop.io.AbstractMapWritable;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.MapWritable;
@@ -86,10 +87,15 @@ public class HFile2Text2 {
                             + ((GeneralPairWritable2) value.get()[i])
                                     .getFirst()
                                     .getTarget());
-                    MapWritable features =
+                    AbstractMapWritable features =
                             ((GeneralPairWritable2) value.get()[i]).getSecond();
-                    for (Writable featureIndex: features.keySet()) {
-                        bw.write(" " + features.get(featureIndex) + "@"
+                    // TODO why is features MapWritable when we dump out
+                    // a SortedMapWritable ????
+                    for (Writable featureIndex: ((MapWritable) features)
+                            .keySet()) {
+                        bw.write(" "
+                                + ((MapWritable) features)
+                                        .get(featureIndex) + "@"
                                 + featureIndex);
                     }
                     bw.write("\n");

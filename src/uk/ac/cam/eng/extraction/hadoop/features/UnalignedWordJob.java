@@ -23,7 +23,6 @@ import org.apache.hadoop.util.ToolRunner;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
-import uk.ac.cam.eng.extraction.hadoop.extraction.UnalignedWordReducer;
 
 /**
  * @author jmp84 MapReduce job to compute average source unaligned and

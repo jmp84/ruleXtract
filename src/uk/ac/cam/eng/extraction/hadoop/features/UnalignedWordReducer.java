@@ -2,7 +2,7 @@
  * 
  */
 
-package uk.ac.cam.eng.extraction.hadoop.extraction;
+package uk.ac.cam.eng.extraction.hadoop.features;
 
 import java.io.IOException;
 
@@ -20,7 +20,8 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
  *         (the rule), loops over all values (the metadata) and compute the
  *         average number of unaligned source words and target words
  */
-public class UnalignedWordReducer extends
+public class UnalignedWordReducer
+        extends
         Reducer<RuleWritable, RuleInfoWritable, RuleWritable, MapWritable> {
 
     /**
@@ -36,7 +37,6 @@ public class UnalignedWordReducer extends
 
     // static writables to avoid memory consumption
     private static MapWritable features = new MapWritable();
-    private static IntWritable featureIndex = new IntWritable();
     private static DoubleWritable averageUnalignedSourceWords =
             new DoubleWritable();
     private static DoubleWritable averageUnalignedTargetWords =

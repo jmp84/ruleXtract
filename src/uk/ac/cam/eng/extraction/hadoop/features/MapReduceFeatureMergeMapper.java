@@ -33,7 +33,8 @@ public class MapReduceFeatureMergeMapper
      * java.lang.Object, org.apache.hadoop.mapreduce.Mapper.Context)
      */
     @Override
-    protected void map(RuleWritable key, MapWritable value, Context context)
+    protected void map(RuleWritable key, MapWritable value,
+            Context context)
             throws IOException, InterruptedException {
         source.setSource(key.getSource());
         target.setTarget(key.getTarget());

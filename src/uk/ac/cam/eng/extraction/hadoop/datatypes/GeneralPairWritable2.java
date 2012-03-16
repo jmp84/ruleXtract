@@ -8,7 +8,9 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
+import org.apache.hadoop.io.AbstractMapWritable;
 import org.apache.hadoop.io.MapWritable;
+import org.apache.hadoop.io.SortedMapWritable;
 import org.apache.hadoop.io.Writable;
 
 /**
@@ -17,7 +19,10 @@ import org.apache.hadoop.io.Writable;
 public class GeneralPairWritable2 implements Writable {
 
     private RuleWritable first;
-    private MapWritable second;
+    // we need an abstract class here because the mapreduce feature merge
+    // mapper, second is a MapWritable whereas in the reduce it is a
+    // SortedMapWritable
+    private AbstractMapWritable second;
 
     public GeneralPairWritable2() {
         first = new RuleWritable();
@@ -25,10 +30,14 @@ public class GeneralPairWritable2 implements Writable {
     }
 
     /**
+     * This constructor takes a sorted map because it is used in the MapReduce
+     * feature reducer to build the output value
+     * 
      * @param first
      * @param second
      */
-    public GeneralPairWritable2(RuleWritable first, MapWritable second) {
+    public GeneralPairWritable2(
+            RuleWritable first, SortedMapWritable second) {
         this.first = first;
         this.second = second;
     }
@@ -51,7 +60,7 @@ public class GeneralPairWritable2 implements Writable {
     /**
      * @return the second
      */
-    public MapWritable getSecond() {
+    public AbstractMapWritable getSecond() {
         return second;
     }
 
@@ -59,7 +68,7 @@ public class GeneralPairWritable2 implements Writable {
      * @param second
      *            the second to set
      */
-    public void setSecond(MapWritable second) {
+    public void setSecond(AbstractMapWritable second) {
         this.second = second;
     }
 

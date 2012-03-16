@@ -80,7 +80,6 @@ public class Source2TargetProbabilityReducer
         }
         // do a second pass for normalization
         for (RuleWritable rw: ruleCounts.keySet()) {
-            features.clear();
             count.set(ruleCounts.get(rw));
             probability.set(count.get() / marginalCount);
             IntWritable featureIndex = new IntWritable(featureStartIndex);

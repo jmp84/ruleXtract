@@ -7,6 +7,7 @@ package uk.ac.cam.eng.extraction.hadoop.datatypes;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapWritable;
@@ -28,13 +29,18 @@ public class RuleInfoWritable implements Writable {
     private IntWritable numberUnalignedTargetWords;
     /**
      * Records the different provenances the rule was extracted from. The
-     * MapWritable emulates a Set by having values being NullWritable
+     * MapWritable emulates a Set by having values being NullWritable. We do not
+     * use AbstractMapWritable to avoid casts and we do not use Map<Writable,
+     * Writable> because it doesn't have the readFields and writeFields methods.
+     * it is important to use a MapWritable as opposed to a SortedMapWritable
+     * for speed
      */
     private MapWritable binaryProvenance;
 
     public RuleInfoWritable() {
         numberUnalignedSourceWords = new IntWritable();
         numberUnalignedTargetWords = new IntWritable();
+
         binaryProvenance = new MapWritable();
     }
 
@@ -47,10 +53,11 @@ public class RuleInfoWritable implements Writable {
     }
 
     public void setBinaryProvenance(IntWritable provenanceId) {
-        binaryProvenance.put(provenanceId, NullWritable.get());
+        binaryProvenance.put(provenanceId,
+                NullWritable.get());
     }
 
-    public MapWritable getBinaryProvenance() {
+    public Map<Writable, Writable> getBinaryProvenance() {
         return binaryProvenance;
     }
 

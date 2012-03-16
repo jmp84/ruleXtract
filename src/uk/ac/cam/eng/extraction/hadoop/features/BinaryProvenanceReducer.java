@@ -19,7 +19,8 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
  * @author jmp84 Reducer to compute binary provenance feature. Simply merge the
  *         binary features into a map and taking the offset into account.
  */
-public class BinaryProvenanceReducer extends
+public class BinaryProvenanceReducer
+        extends
         Reducer<RuleWritable, RuleInfoWritable, RuleWritable, MapWritable> {
 
     /**
@@ -39,7 +40,6 @@ public class BinaryProvenanceReducer extends
 
     /*
      * (non-Javadoc)
-     * 
      * @see
      * org.apache.hadoop.mapreduce.Reducer#setup(org.apache.hadoop.mapreduce
      * .Reducer.Context)
@@ -53,15 +53,18 @@ public class BinaryProvenanceReducer extends
 
     /*
      * (non-Javadoc)
-     * 
      * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
      * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
      */
     @Override
     protected void reduce(RuleWritable key, Iterable<RuleInfoWritable> values,
             Context context) throws IOException, InterruptedException {
-        for (RuleInfoWritable ruleInfoWritable : values) {
-            for (Writable provenance : ruleInfoWritable.getBinaryProvenance()
+        // need to clear, otherwise the provenances cumulate
+        // not needed for other features where the same indices are reused
+        // and the values are overwritten
+        features.clear();
+        for (RuleInfoWritable ruleInfoWritable: values) {
+            for (Writable provenance: ruleInfoWritable.getBinaryProvenance()
                     .keySet()) {
                 IntWritable featureIndex =
                         new IntWritable(featureStartIndex
