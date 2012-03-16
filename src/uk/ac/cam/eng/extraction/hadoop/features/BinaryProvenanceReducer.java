@@ -9,7 +9,6 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Reducer;
 
@@ -36,9 +35,11 @@ public class BinaryProvenanceReducer extends
 
     // static writables to avoid memory consumption
     private static MapWritable features = new MapWritable();
+    private static IntWritable one = new IntWritable(1);
 
     /*
      * (non-Javadoc)
+     * 
      * @see
      * org.apache.hadoop.mapreduce.Reducer#setup(org.apache.hadoop.mapreduce
      * .Reducer.Context)
@@ -52,20 +53,20 @@ public class BinaryProvenanceReducer extends
 
     /*
      * (non-Javadoc)
+     * 
      * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
      * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
      */
     @Override
     protected void reduce(RuleWritable key, Iterable<RuleInfoWritable> values,
             Context context) throws IOException, InterruptedException {
-        IntWritable featureIndex = new IntWritable(featureStartIndex);
-        for (RuleInfoWritable ruleInfoWritable: values) {
-            for (Writable provenance: ruleInfoWritable.getBinaryProvenance()
+        for (RuleInfoWritable ruleInfoWritable : values) {
+            for (Writable provenance : ruleInfoWritable.getBinaryProvenance()
                     .keySet()) {
-                featureIndex =
+                IntWritable featureIndex =
                         new IntWritable(featureStartIndex
                                 + ((IntWritable) provenance).get());
-                features.put(featureIndex, NullWritable.get());
+                features.put(featureIndex, one);
             }
         }
         context.write(key, features);

@@ -40,17 +40,18 @@ public class MapReduceFeatureMergeReducer
      *            The second map of features to merge
      * @return features1 after adding key/value pairs from features2
      */
+    // TODO make this a void function ?
     private static MapWritable mergeFeatures(MapWritable features1,
             MapWritable features2) {
-        for (Writable key2: features2.keySet()) {
+        for (Writable key2 : features2.keySet()) {
             if (features1.containsKey(key2)) {
-                System.err.println(
-                        "WARNING: feature already present " + key2.toString());
+                System.err.println("WARNING: feature already present "
+                        + key2.toString());
                 if (!features1.get(key2).equals(features2.get(key2))) {
-                    System.err.println("ERROR: feature already present with " +
-                            "a different value: index " + key2.toString() +
-                            " value1: " + features1.get(key2).toString() +
-                            " value2: " + features2.get(key2).toString());
+                    System.err.println("ERROR: feature already present with "
+                            + "a different value: index " + key2.toString()
+                            + " value1: " + features1.get(key2).toString()
+                            + " value2: " + features2.get(key2).toString());
                     System.exit(1);
                 }
             }
@@ -61,6 +62,7 @@ public class MapReduceFeatureMergeReducer
 
     /*
      * (non-Javadoc)
+     * 
      * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
      * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
      */
@@ -73,7 +75,7 @@ public class MapReduceFeatureMergeReducer
         Map<RuleWritable, MapWritable> targetsAndFeatures = new TreeMap<>();
         // first pass to put together the identical targets and merge their
         // features
-        for (GeneralPairWritable2 value: values) {
+        for (GeneralPairWritable2 value : values) {
             // clone object, otherwise gets overwritten
             RuleWritable target = WritableUtils.clone(value.getFirst(), conf);
             // clone object, otherwise gets overwritten
@@ -88,7 +90,7 @@ public class MapReduceFeatureMergeReducer
         Writable[] outputValueArray =
                 new GeneralPairWritable2[targetsAndFeatures.size()];
         int i = 0;
-        for (RuleWritable target: targetsAndFeatures.keySet()) {
+        for (RuleWritable target : targetsAndFeatures.keySet()) {
             outputValueArray[i] =
                     new GeneralPairWritable2(target,
                             targetsAndFeatures.get(target));

@@ -34,13 +34,12 @@ public class BinaryProvenanceJob extends Configured implements Tool {
         Properties p = new Properties();
         try {
             p.load(new FileInputStream(configFile));
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
         Configuration conf = getConf();
-        for (String prop: p.stringPropertyNames()) {
+        for (String prop : p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
         Job job = new Job(conf, "binaryProvenance");
@@ -67,7 +66,7 @@ public class BinaryProvenanceJob extends Configured implements Tool {
             System.err.println("Usage args: configFile");
             System.exit(1);
         }
-        int res = ToolRunner.run(new Source2TargetProbabilityJob(), args);
+        int res = ToolRunner.run(new BinaryProvenanceJob(), args);
         System.exit(res);
     }
 }
