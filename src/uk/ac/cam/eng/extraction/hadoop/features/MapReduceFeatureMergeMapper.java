@@ -17,8 +17,7 @@ import uk.ac.cam.eng.extraction.hadoop.util.Util;
 /**
  * @author jmp84
  */
-public class MapReduceFeatureMergeMapper
-        extends
+public class MapReduceFeatureMergeMapper extends
         Mapper<RuleWritable, MapWritable, BytesWritable, GeneralPairWritable2> {
 
     private static RuleWritable source = new RuleWritable();
@@ -29,12 +28,12 @@ public class MapReduceFeatureMergeMapper
 
     /*
      * (non-Javadoc)
+     * 
      * @see org.apache.hadoop.mapreduce.Mapper#map(java.lang.Object,
      * java.lang.Object, org.apache.hadoop.mapreduce.Mapper.Context)
      */
     @Override
-    protected void map(RuleWritable key, MapWritable value,
-            Context context)
+    protected void map(RuleWritable key, MapWritable value, Context context)
             throws IOException, InterruptedException {
         source.setSource(key.getSource());
         target.setTarget(key.getTarget());

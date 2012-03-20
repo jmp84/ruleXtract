@@ -11,8 +11,7 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.mapreduce.Cluster;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
@@ -32,6 +31,7 @@ public class RuleBuildingJob extends Configured implements Tool {
 
     /*
      * (non-Javadoc)
+     * 
      * @see org.apache.hadoop.util.Tool#run(java.lang.String[])
      */
     @Override
@@ -40,22 +40,20 @@ public class RuleBuildingJob extends Configured implements Tool {
         Properties p = new Properties();
         try {
             p.load(new FileInputStream(configFile));
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
         Configuration conf = getConf();
-        for (String prop: p.stringPropertyNames()) {
+        for (String prop : p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
-        Job job = Job.getInstance(new Cluster(conf), conf);
+        Job job = new Job(conf, "Rule Retrieval");
         job.setJarByClass(RuleBuildingJob.class);
-        job.setJobName("Rule Retrieval");
-        job.setMapOutputKeyClass(IntWritable.class);
-        job.setMapOutputValueClass(PairWritable3.class);
-        job.setOutputKeyClass(IntWritable.class);
-        job.setOutputValueClass(PairWritable3.class);
+        job.setMapOutputKeyClass(PairWritable3.class);
+        job.setMapOutputValueClass(NullWritable.class);
+        job.setOutputKeyClass(PairWritable3.class);
+        job.setOutputValueClass(NullWritable.class);
         job.setMapperClass(RuleBuildingMapper.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);

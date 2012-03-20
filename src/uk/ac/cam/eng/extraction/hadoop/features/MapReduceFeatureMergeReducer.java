@@ -20,6 +20,7 @@ import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable2;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -32,7 +33,7 @@ public class MapReduceFeatureMergeReducer
 
     // static writables to avoid memory consumption
     private static ArrayWritable targetsAndFeaturesOutputValue =
-            new ArrayWritable(GeneralPairWritable2.class);
+            new ArrayWritable(GeneralPairWritable3.class);
 
     /**
      * Adds key/value pairs from the second map to the first. The first map is
@@ -46,23 +47,20 @@ public class MapReduceFeatureMergeReducer
      *            The second map of features to merge
      * @return features1 after adding key/value pairs from features2
      */
-    private static void mergeFeatures(
-            SortedMapWritable features1, MapWritable features2) {
-        for (Writable key2: features2.keySet()) {
+    private static void mergeFeatures(SortedMapWritable features1,
+            MapWritable features2) {
+        for (Writable key2 : features2.keySet()) {
             if (features1.containsKey(key2)) {
                 System.err.println("WARNING: feature already present "
                         + key2.toString());
                 if (!features1.get(key2).equals(features2.get(key2))) {
                     System.err.println("ERROR: feature already present with "
                             + "a different value: index " + key2.toString()
-                            + " value1: "
-                            + features1.get(key2).toString()
-                            + " value2: "
-                            + features2.get(key2).toString());
+                            + " value1: " + features1.get(key2).toString()
+                            + " value2: " + features2.get(key2).toString());
                     System.exit(1);
                 }
-            }
-            else {
+            } else {
                 features1.put((WritableComparable) key2, features2.get(key2));
             }
         }
@@ -70,7 +68,7 @@ public class MapReduceFeatureMergeReducer
 
     private static SortedMapWritable sort(MapWritable map) {
         SortedMapWritable res = new SortedMapWritable();
-        for (Writable key: map.keySet()) {
+        for (Writable key : map.keySet()) {
             // warning due to IntWritable not implementing WritableComparable<>
             // but implementing WritableComparable
             res.put((WritableComparable) key, map.get(key));
@@ -80,6 +78,7 @@ public class MapReduceFeatureMergeReducer
 
     /*
      * (non-Javadoc)
+     * 
      * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
      * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
      */
@@ -93,7 +92,7 @@ public class MapReduceFeatureMergeReducer
                 new TreeMap<>();
         // first pass to put together the identical targets and merge their
         // features
-        for (GeneralPairWritable2 value: values) {
+        for (GeneralPairWritable2 value : values) {
             // clone object, otherwise gets overwritten
             RuleWritable target = WritableUtils.clone(value.getFirst(), conf);
             // clone object, otherwise gets overwritten
@@ -103,21 +102,19 @@ public class MapReduceFeatureMergeReducer
                 // TODO check that this function modifies targetsAndFeatures
                 mergeFeatures(targetsAndFeatures.get(target),
                         (MapWritable) features);
-            }
-            else {
+            } else {
                 // sort
                 SortedMapWritable featuresSorted = sort((MapWritable) features);
                 targetsAndFeatures.put(target, featuresSorted);
             }
-            // targetsAndFeatures.put(target, featuresSorted);
         }
         // second pass to write to the output
         Writable[] outputValueArray =
-                new GeneralPairWritable2[targetsAndFeatures.size()];
+                new GeneralPairWritable3[targetsAndFeatures.size()];
         int i = 0;
-        for (RuleWritable target: targetsAndFeatures.keySet()) {
+        for (RuleWritable target : targetsAndFeatures.keySet()) {
             outputValueArray[i] =
-                    new GeneralPairWritable2(target,
+                    new GeneralPairWritable3(target,
                             targetsAndFeatures.get(target));
             i++;
         }

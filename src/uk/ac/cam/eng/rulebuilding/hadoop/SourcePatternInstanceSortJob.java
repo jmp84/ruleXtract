@@ -10,9 +10,10 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.mapreduce.Cluster;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -30,6 +31,7 @@ public class SourcePatternInstanceSortJob extends Configured implements Tool {
 
     /*
      * (non-Javadoc)
+     * 
      * @see org.apache.hadoop.util.Tool#run(java.lang.String[])
      */
     @Override
@@ -38,20 +40,23 @@ public class SourcePatternInstanceSortJob extends Configured implements Tool {
         Properties p = new Properties();
         p.load(new FileInputStream(configFile));
         Configuration conf = getConf();
-        for (String prop: p.stringPropertyNames()) {
+        for (String prop : p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
-        Job job = Job.getInstance(new Cluster(conf), conf);
+        Job job = new Job(conf, "Source pattern instance sorting");
         job.setJarByClass(SourcePatternInstanceSortJob.class);
-        job.setJobName("Source pattern instance sorting");
         job.setMapOutputKeyClass(RuleWritable.class);
-        job.setMapOutputValueClass(IntWritable.class);
-        job.setOutputKeyClass(IntWritable.class);
-        job.setOutputValueClass(RuleWritable.class);
-        job.setMapperClass(SwitchKeyValueMapper.class);
-        job.setReducerClass(SwitchKeyValueReducer.class);
+        job.setMapOutputValueClass(NullWritable.class);
+        job.setOutputKeyClass(RuleWritable.class);
+        job.setOutputValueClass(NullWritable.class);
+        // identity mapper
+        job.setMapperClass(Mapper.class);
+        // identity reducer
+        job.setReducerClass(Reducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        // sort sources in the same order as the keys of the HFile where we will
+        // do a lookup.
         job.setSortComparatorClass(Bytes.ByteArrayComparator.class);
         FileInputFormat.setInputPaths(job, conf.get("inputPaths"));
         FileOutputFormat.setOutputPath(job, new Path(conf.get("outputPath")));
