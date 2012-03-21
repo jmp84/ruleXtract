@@ -65,8 +65,6 @@ public class RuleFileBuilder {
             System.exit(1);
         }
         FileSystem fs = FileSystem.get(conf);
-        // HFile.Reader hfileReader = new HFile.Reader(fs, new Path(hfile),
-        // null, false);
         HFile.Reader hfileReader =
                 HFile.createReader(fs, new Path(hfile), new CacheConfig(conf));
         hfileReader.loadFileInfo();
@@ -100,7 +98,8 @@ public class RuleFileBuilder {
         ArrayWritable value = new ArrayWritable(GeneralPairWritable3.class);
         try {
             value.readFields(in);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             // Byte buffer is memory backed so no exception is possible. Just in
             // case chain it to a runtime exception
             throw new RuntimeException(e);
@@ -115,16 +114,13 @@ public class RuleFileBuilder {
 
     public List<GeneralPairWritable3> getRules(RuleWritable sourceRule)
             throws IOException {
-        List<GeneralPairWritable3> res = new ArrayList<>();
         byte[] ruleBytes = object2ByteArray(sourceRule);
         int found = hfileScanner.seekTo(ruleBytes);
         if (found == 0) { // found the source rule
-            List<GeneralPairWritable3> filteredRules =
-                    ruleFilter.filter(sourceRule,
-                            convertValueBytes(hfileScanner.getValue()));
-            res.addAll(filteredRules);
+            return ruleFilter.filter(
+                    sourceRule, convertValueBytes(hfileScanner.getValue()));
         }
-        return res;
+        return new ArrayList<GeneralPairWritable3>();
     }
 
     private Set<Rule> getAsciiConstraints() throws IOException {
@@ -161,7 +157,8 @@ public class RuleFileBuilder {
                     }
                     Rule rule = new Rule(-1, source, target);
                     res.add(rule);
-                } else {
+                }
+                else {
                     System.err.println("Malformed ascii constraint file: "
                             + asciiConstraints);
                     System.exit(1);
@@ -188,7 +185,8 @@ public class RuleFileBuilder {
                     if (sourceString.length == 1) {
                         res.add(Integer.parseInt(sourceString[0]));
                     }
-                } else {
+                }
+                else {
                     System.err.println("Malformed ascii constraint file: "
                             + asciiConstraints);
                     System.exit(1);
@@ -205,7 +203,7 @@ public class RuleFileBuilder {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split("\\s+");
-                for (String part : parts) {
+                for (String part: parts) {
                     res.add(Integer.parseInt(part));
                 }
             }
@@ -225,11 +223,11 @@ public class RuleFileBuilder {
         Set<Integer> asciiVocab = getAsciiVocab();
         Set<Integer> testVocab = getTestVocab();
         // read the HFile and select the rules matching the source phrases
-        for (Rule asciiRule : asciiRules) {
+        for (Rule asciiRule: asciiRules) {
             res.add(new PairWritable3(new RuleWritable(asciiRule),
                     new ArrayWritable(DoubleWritable.class)));
         }
-        for (Integer testWord : testVocab) {
+        for (Integer testWord: testVocab) {
             if (asciiVocab.contains(testWord)) {
                 continue;
             }
@@ -245,7 +243,8 @@ public class RuleFileBuilder {
                 Rule oovRule = new Rule(-1, source, new ArrayList<Integer>());
                 res.add(new PairWritable3(new RuleWritable(oovRule),
                         new ArrayWritable(DoubleWritable.class)));
-            } else { // found it: add deletion rule
+            }
+            else { // found it: add deletion rule
                 List<Integer> deletion = new ArrayList<Integer>();
                 // deletion is represented by a zero
                 deletion.add(0);
@@ -286,15 +285,15 @@ public class RuleFileBuilder {
         return res;
     }
 
-    public List<PairWritable3> getRulesWithFeatures(Configuration conf,
-            List<PairWritable3> rules) throws FileNotFoundException,
+    public List<GeneralPairWritable3> getRulesWithFeatures(Configuration conf,
+            List<GeneralPairWritable3> rules) throws FileNotFoundException,
             IOException, InterruptedException, ExecutionException {
         List<PairWritable3> res = new ArrayList<>();
         // lazy initialization of featureCreator
         // call here rather than in the constructor because takes time to load
         // the lexical models
         featureCreator = new FeatureCreator(conf, rules);
-        List<PairWritable3> regularRulesWithFeatures =
+        List<GeneralPairWritable3> regularRulesWithFeatures =
                 featureCreator.createFeatures(rules);
         List<PairWritable3> asciiOovDeletionRules = getAsciiOovDeletionRules();
         List<PairWritable3> asciiOovDeletionRulesWithFeatures =
@@ -305,7 +304,7 @@ public class RuleFileBuilder {
                 featureCreator.createFeaturesGlueRules(glueRules);
         // TODO should be called only once
         Set<Rule> asciiRules = getAsciiConstraints();
-        for (PairWritable3 ruleWithFeatures : regularRulesWithFeatures) {
+        for (PairWritable3 ruleWithFeatures: regularRulesWithFeatures) {
             // check if rule is not an ascii rule
             Rule checkNotAscii = new Rule(-1, ruleWithFeatures.first);
             if (asciiRules.contains(checkNotAscii)) {
@@ -325,10 +324,10 @@ public class RuleFileBuilder {
     public String
             printSetSpecificRuleFile(List<PairWritable3> rulesWithFeatures) {
         StringBuilder sb = new StringBuilder();
-        for (PairWritable3 ruleWithFeatures : rulesWithFeatures) {
+        for (PairWritable3 ruleWithFeatures: rulesWithFeatures) {
             sb.append(ruleWithFeatures.first);
             Writable[] features = ruleWithFeatures.second.get();
-            for (Writable w : features) {
+            for (Writable w: features) {
                 sb.append(" " + w.toString());
             }
             sb.append("\n");
@@ -341,10 +340,10 @@ public class RuleFileBuilder {
         try (BufferedOutputStream bos =
                 new BufferedOutputStream(new GZIPOutputStream(
                         new FileOutputStream(outRuleFile)))) {
-            for (PairWritable3 ruleWithFeatures : rulesWithFeatures) {
+            for (PairWritable3 ruleWithFeatures: rulesWithFeatures) {
                 bos.write(ruleWithFeatures.first.toString().getBytes());
                 Writable[] features = ruleWithFeatures.second.get();
-                for (Writable w : features) {
+                for (Writable w: features) {
                     bos.write((" " + w.toString()).getBytes());
                 }
                 bos.write("\n".getBytes());

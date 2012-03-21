@@ -20,7 +20,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable3;
 
 /**
  * TODO get the author right
@@ -31,7 +31,6 @@ public class RuleBuildingJob extends Configured implements Tool {
 
     /*
      * (non-Javadoc)
-     * 
      * @see org.apache.hadoop.util.Tool#run(java.lang.String[])
      */
     @Override
@@ -40,19 +39,20 @@ public class RuleBuildingJob extends Configured implements Tool {
         Properties p = new Properties();
         try {
             p.load(new FileInputStream(configFile));
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
         Configuration conf = getConf();
-        for (String prop : p.stringPropertyNames()) {
+        for (String prop: p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
         Job job = new Job(conf, "Rule Retrieval");
         job.setJarByClass(RuleBuildingJob.class);
-        job.setMapOutputKeyClass(PairWritable3.class);
+        job.setMapOutputKeyClass(GeneralPairWritable3.class);
         job.setMapOutputValueClass(NullWritable.class);
-        job.setOutputKeyClass(PairWritable3.class);
+        job.setOutputKeyClass(GeneralPairWritable3.class);
         job.setOutputValueClass(NullWritable.class);
         job.setMapperClass(RuleBuildingMapper.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);

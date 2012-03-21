@@ -18,8 +18,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableUtils;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable3;
 import uk.ac.cam.eng.rulebuilding.retrieval.RuleFileBuilder;
 
 /**
@@ -48,20 +49,21 @@ public class RuleBuildingFeatures {
         FileSystem fs = FileSystem.get(conf);
         Path inputPathPattern = new Path(conf.get("outputPath") + "/part*");
         FileStatus[] inputs = fs.globStatus(inputPathPattern);
-        List<PairWritable3> rules = new ArrayList<>();
+        List<GeneralPairWritable3> rules = new ArrayList<>();
         for (FileStatus input: inputs) {
             Path path = input.getPath();
             SequenceFile.Reader reader =
                     new SequenceFile.Reader(fs, path, conf);
             Writable key = new IntWritable();
-            Writable value = new PairWritable3();
+            Writable value = new GeneralPairWritable3();
             while (reader.next(key, value)) {
-                rules.add(((PairWritable3) value).copy());
+                rules.add((GeneralPairWritable3) WritableUtils.clone(value,
+                        conf));
             }
             reader.close();
         }
         RuleFileBuilder ruleFileBuilder = new RuleFileBuilder(conf);
-        List<PairWritable3> rulesWithFeatures =
+        List<GeneralPairWritable3> rulesWithFeatures =
                 ruleFileBuilder.getRulesWithFeatures(conf, rules);
         ruleFileBuilder.writeSetSpecificRuleFile(
                 rulesWithFeatures, conf.get("outputPathFeatures"));

@@ -4,6 +4,8 @@
 
 package uk.ac.cam.eng.rulebuilding.retrieval;
 
+// TODO remove hard coded indices
+
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -23,7 +25,6 @@ import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable3;
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -106,14 +107,18 @@ public class RuleFilter {
                 if (featureValue[0].equals("min_source2target_phrase")) {
                     minSource2TargetPhrase =
                             Double.parseDouble(featureValue[1]);
-                } else if (featureValue[0].equals("min_target2source_phrase")) {
+                }
+                else if (featureValue[0].equals("min_target2source_phrase")) {
                     minTarget2SourcePhrase =
                             Double.parseDouble(featureValue[1]);
-                } else if (featureValue[0].equals("min_source2target_rule")) {
+                }
+                else if (featureValue[0].equals("min_source2target_rule")) {
                     minSource2TargetRule = Double.parseDouble(featureValue[1]);
-                } else if (featureValue[0].equals("min_target2source_rule")) {
+                }
+                else if (featureValue[0].equals("min_target2source_rule")) {
                     minTarget2SourceRule = Double.parseDouble(featureValue[1]);
-                } else if (featureValue[0].equals("allowed_source_pattern")) {
+                }
+                else if (featureValue[0].equals("allowed_source_pattern")) {
                     if (sourcePatternConstraints == null) {
                         sourcePatternConstraints =
                                 new HashMap<SidePattern, Map<String, Double>>();
@@ -128,20 +133,24 @@ public class RuleFilter {
                     sourcePatternConstraints.put(
                             SidePattern.parsePattern(featureValue[1]),
                             constraints);
-                } else if (featureValue[0].equals("allowed_pattern")) {
+                }
+                else if (featureValue[0].equals("allowed_pattern")) {
                     if (allowedPatterns == null) {
                         allowedPatterns = new HashSet<RulePattern>();
                     }
                     allowedPatterns.add(RulePattern
                             .parsePattern(featureValue[1]));
-                } else if (featureValue[0].equals("skip_pattern")) {
+                }
+                else if (featureValue[0].equals("skip_pattern")) {
                     if (skipPatterns == null) {
                         skipPatterns = new HashSet<>();
                     }
                     skipPatterns.add(RulePattern.parsePattern(featureValue[1]));
-                } else if (featureValue[0].equals("keep_tied_rules")) {
+                }
+                else if (featureValue[0].equals("keep_tied_rules")) {
                     keepTiedRules = Boolean.parseBoolean(featureValue[1]);
-                } else if (featureValue[0].equals("provenance_union")) {
+                }
+                else if (featureValue[0].equals("provenance_union")) {
                     provenanceUnion = Boolean.parseBoolean(featureValue[1]);
                 }
             }
@@ -165,7 +174,7 @@ public class RuleFilter {
         GeneralPairWritable3[] valueRes =
                 new GeneralPairWritable3[sortedMap.size()];
         int i = 0;
-        for (RuleWritable rw : sortedMap.keySet()) {
+        for (RuleWritable rw: sortedMap.keySet()) {
             valueRes[i] =
                     (GeneralPairWritable3) listTargetAndProb.get()[indices
                             .get(rw)];
@@ -174,11 +183,11 @@ public class RuleFilter {
         return new ArrayWritable(GeneralPairWritable3.class, valueRes);
     }
 
-    public List<PairWritable3> filter(RuleWritable source,
+    public List<GeneralPairWritable3> filter(RuleWritable source,
             ArrayWritable listTargetAndProb, int countIndex) {
         ArrayWritable listTargetAndProbSorted =
                 sortByCount(listTargetAndProb, countIndex);
-        List<PairWritable3> res = new ArrayList<PairWritable3>();
+        List<GeneralPairWritable3> res = new ArrayList<GeneralPairWritable3>();
         SidePattern sourcePattern = SidePattern.getSourcePattern(source);
         if (!sourcePattern.isPhrase()
                 && !sourcePatternConstraints.containsKey(sourcePattern)) {
@@ -190,45 +199,49 @@ public class RuleFilter {
         // used in case of ties in number of occurrences
         // we separate ties for rules with two nonterminals that
         // are monotone or inverting
-        double previousNumberOfOccurrences = -1;
-        double previousNumberOfOccurrences2NTmonotone = -1;
-        double previousNumberOfOccurrences2NTinvert = -1;
+        int previousNumberOfOccurrences = -1;
+        int previousNumberOfOccurrences2NTmonotone = -1;
+        int previousNumberOfOccurrences2NTinvert = -1;
         boolean tie = false;
         boolean twoNTmonotoneTie = false;
         boolean twoNTinvertTie = false;
         for (int i = 0; i < listTargetAndProbSorted.get().length; i++) {
-            PairWritable3 targetAndProb =
-                    (PairWritable3) listTargetAndProbSorted.get()[i];
+            GeneralPairWritable3 targetAndProb =
+                    (GeneralPairWritable3) listTargetAndProbSorted.get()[i];
             // TODO replace hardcoded feature indices
             double source2targetProbability =
-                    ((DoubleWritable) targetAndProb.second.get()[countIndex - 2])
-                            .get();
+                    ((DoubleWritable) targetAndProb.getSecond().get(
+                            countIndex - 2)).get();
             double target2sourceProbability =
-                    ((DoubleWritable) targetAndProb.second.get()[countIndex - 1])
-                            .get();
-            double numberOfOccurrences =
-                    ((DoubleWritable) targetAndProb.second.get()[countIndex])
+                    ((DoubleWritable) targetAndProb.getSecond().get(
+                            countIndex - 1)).get();
+            int numberOfOccurrences =
+                    ((IntWritable) targetAndProb.getSecond().get(countIndex))
                             .get();
             if (numberOfOccurrences == previousNumberOfOccurrences) {
                 tie = true;
-            } else {
+            }
+            else {
                 tie = false;
             }
             previousNumberOfOccurrences = numberOfOccurrences;
             RulePattern rulePattern =
-                    RulePattern.getPattern(source, targetAndProb.first);
+                    RulePattern.getPattern(source, targetAndProb.getFirst());
             if (sourcePattern.hasMoreThan1NT()) {
                 if (rulePattern.isSwappingNT()) {
                     if (numberOfOccurrences == previousNumberOfOccurrences2NTinvert) {
                         twoNTinvertTie = true;
-                    } else {
+                    }
+                    else {
                         twoNTinvertTie = false;
                     }
                     previousNumberOfOccurrences2NTinvert = numberOfOccurrences;
-                } else {
+                }
+                else {
                     if (numberOfOccurrences == previousNumberOfOccurrences2NTmonotone) {
                         twoNTmonotoneTie = true;
-                    } else {
+                    }
+                    else {
                         twoNTmonotoneTie = false;
                     }
                     previousNumberOfOccurrences2NTmonotone =
@@ -250,7 +263,8 @@ public class RuleFilter {
                 if (target2sourceProbability <= minTarget2SourcePhrase) {
                     continue;
                 }
-            } else {
+            }
+            else {
                 // source-to-target threshold
                 if (source2targetProbability <= minSource2TargetRule) {
                     break;
@@ -279,7 +293,8 @@ public class RuleFilter {
                                     && !twoNTmonotoneTie && !twoNTinvertTie))) {
                         break;
                     }
-                } else if (sourcePatternConstraints.get(sourcePattern).get(
+                }
+                else if (sourcePatternConstraints.get(sourcePattern).get(
                         "ntrans") <= numberTranslations
                         && (!keepTiedRules || (keepTiedRules && !tie))) {
                     break;
@@ -288,35 +303,43 @@ public class RuleFilter {
             // don't need to add !allowedPatterns.contains(rulePattern) because
             // this is checked above
             if (sourcePattern.isPhrase()) {
-                res.add(new PairWritable3(new RuleWritable(source,
-                        targetAndProb.first), targetAndProb.second));
-            } else if (sourcePattern.hasMoreThan1NT()) {
+                res.add(new GeneralPairWritable3(new RuleWritable(source,
+                        targetAndProb.getFirst()), targetAndProb.getSecond()));
+            }
+            else if (sourcePattern.hasMoreThan1NT()) {
                 if (skipPatterns == null || !skipPatterns.contains(rulePattern)) {
                     if (rulePattern.isSwappingNT()) {
                         if (sourcePatternConstraints.get(sourcePattern).get(
                                 "ntrans") > numberTranslationsInvert
                                 || (keepTiedRules && twoNTinvertTie)) {
-                            res.add(new PairWritable3(new RuleWritable(source,
-                                    targetAndProb.first), targetAndProb.second));
+                            res.add(new GeneralPairWritable3(new RuleWritable(
+                                    source,
+                                    targetAndProb.getFirst()), targetAndProb
+                                    .getSecond()));
                         }
-                    } else {
+                    }
+                    else {
                         if (sourcePatternConstraints.get(sourcePattern).get(
                                 "ntrans") > numberTranslationsMonotone
                                 || (keepTiedRules && twoNTmonotoneTie)) {
-                            res.add(new PairWritable3(new RuleWritable(source,
-                                    targetAndProb.first), targetAndProb.second));
+                            res.add(new GeneralPairWritable3(new RuleWritable(
+                                    source,
+                                    targetAndProb.getFirst()), targetAndProb
+                                    .getSecond()));
                         }
                     }
                 }
-            } else if (skipPatterns == null
+            }
+            else if (skipPatterns == null
                     || !skipPatterns.contains(rulePattern)) {
-                res.add(new PairWritable3(new RuleWritable(source,
-                        targetAndProb.first), targetAndProb.second));
+                res.add(new GeneralPairWritable3(new RuleWritable(source,
+                        targetAndProb.getFirst()), targetAndProb.getSecond()));
             }
             if (sourcePattern.hasMoreThan1NT()) {
                 if (rulePattern.isSwappingNT()) {
                     numberTranslationsInvert++;
-                } else {
+                }
+                else {
                     numberTranslationsMonotone++;
                 }
             }
@@ -325,18 +348,19 @@ public class RuleFilter {
         return res;
     }
 
-    public List<PairWritable3> filter(RuleWritable source,
+    public List<GeneralPairWritable3> filter(RuleWritable source,
             ArrayWritable listTargetAndProb) {
         if (!provenanceUnion) {
             return filter(source, listTargetAndProb, 2);
         }
-        List<PairWritable3> res = filter(source, listTargetAndProb, 2);
+        List<GeneralPairWritable3> res = filter(source, listTargetAndProb, 2);
         Set<RuleWritable> ruleSet = new HashSet<>();
-        for (PairWritable3 mainRuleAndFeatures : res) {
-            ruleSet.add(mainRuleAndFeatures.first);
+        for (GeneralPairWritable3 mainRuleAndFeatures: res) {
+            ruleSet.add(mainRuleAndFeatures.getFirst());
         }
         int nbFeatures =
-                ((PairWritable3) listTargetAndProb.get()[0]).second.get().length;
+                ((GeneralPairWritable3) listTargetAndProb.get()[0]).getSecond()
+                        .size();
         // nbFeatures should be 5 + number_of_provenances*3
         // this is because the main table has 5 features (s2t, t2s, count,
         // src unaligned, trg unaligned) and the provenance tables have
@@ -347,12 +371,12 @@ public class RuleFilter {
             System.exit(1);
         }
         for (int i = 7; i < nbFeatures; i += 3) {
-            List<PairWritable3> resProvenance =
+            List<GeneralPairWritable3> resProvenance =
                     filter(source, listTargetAndProb, i);
-            for (PairWritable3 ruleAndFeatures : resProvenance) {
-                if (!ruleSet.contains(ruleAndFeatures.first)) {
+            for (GeneralPairWritable3 ruleAndFeatures: resProvenance) {
+                if (!ruleSet.contains(ruleAndFeatures.getFirst())) {
                     res.add(ruleAndFeatures);
-                    ruleSet.add(ruleAndFeatures.first);
+                    ruleSet.add(ruleAndFeatures.getFirst());
                 }
                 // TODO else add a check that the features are the same
             }

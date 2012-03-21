@@ -15,24 +15,30 @@ import java.util.concurrent.ExecutionException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.SortedMapWritable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
+import uk.ac.cam.eng.extraction.hadoop.features.Source2TargetLexicalProbability;
 
 /**
  * @author jmp84 This class creates a set of features given a list of rules
  */
 public class FeatureCreator {
 
-    // TODO may integrate this with Rory's rulefile feature that uses spring.
-
     // list of all features
     private Map<String, Feature> features;
     // list of selected features in order
     private String[] selectedFeatures;
+    // configuration (features, feature indices)
+    private Configuration conf;
 
-    public FeatureCreator(Configuration conf, List<PairWritable3> rules)
-            throws FileNotFoundException, IOException, InterruptedException, ExecutionException {
+    public FeatureCreator(Configuration conf, List<GeneralPairWritable3> rules)
+            throws FileNotFoundException, IOException, InterruptedException,
+            ExecutionException {
+        this.conf = conf;
         features = new HashMap<String, Feature>();
         features.put("source2target_probability",
                 new Source2TargetProbability());
@@ -41,7 +47,6 @@ public class FeatureCreator {
         features.put("word_insertion_penalty", new WordInsertionPenalty());
         features.put("rule_insertion_penalty", new RuleInsertionPenalty());
         features.put("glue_rule", new GlueRule());
-        features.put("reorder_scale", new ReorderScale());
         features.put("insert_scale", new InsertScale());
         features.put("rule_count_1", new RuleCount1());
         features.put("rule_count_2", new RuleCount2());
@@ -115,19 +120,11 @@ public class FeatureCreator {
         selectedFeatures = selectedFeaturesString.split(",");
     }
 
-    private int getNumberOfFeatures() {
-        int res = 0;
-        for (String selectedFeature: selectedFeatures) {
-            res += features.get(selectedFeature).getNumberOfFeatures();
-        }
-        return res;
-    }
-
-    private List<Double> createFeatures(String featureName,
-            PairWritable3 ruleAndMapReduceFeatures) {
+    private Map<Integer, Number> createFeatures(String featureName,
+            GeneralPairWritable3 ruleAndMapReduceFeatures) {
         return features.get(featureName).value(
-                new Rule(ruleAndMapReduceFeatures.first),
-                ruleAndMapReduceFeatures.second);
+                new Rule(ruleAndMapReduceFeatures.getFirst()),
+                ruleAndMapReduceFeatures.getSecond(), conf);
     }
 
     private List<Double> createFeatureAsciiOovDeletion(String featureName,
@@ -143,22 +140,35 @@ public class FeatureCreator {
                 glueRule.second);
     }
 
-    private PairWritable3
-            createFeatures(PairWritable3 ruleAndMapReduceFeatures) {
-        PairWritable3 res = new PairWritable3();
-        res.first = ruleAndMapReduceFeatures.first;
-        DoubleWritable[] allFeatureValues =
-                new DoubleWritable[getNumberOfFeatures()];
+    private GeneralPairWritable3
+            createFeatures(GeneralPairWritable3 ruleAndMapReduceFeatures) {
+        GeneralPairWritable3 res = new GeneralPairWritable3();
+        res.setFirst(ruleAndMapReduceFeatures.getFirst());
+        SortedMapWritable allFeatures = new SortedMapWritable();
         int i = 0;
         for (String featureName: selectedFeatures) {
-            List<Double> featureValues =
+            Map<Integer, Number> features =
                     createFeatures(featureName, ruleAndMapReduceFeatures);
-            for (Double featureValue: featureValues) {
-                allFeatureValues[i] = new DoubleWritable(featureValue);
-                i++;
+            for (Integer featureIndex: features.keySet()) {
+                IntWritable featureIndexWritable =
+                        new IntWritable(featureIndex);
+                if (allFeatures.containsKey(featureIndexWritable)) {
+                    System.err.println("ERROR: feature index already exists: "
+                            + featureIndex);
+                    System.exit(1);
+                }
+                Number feature = features.get(featureIndex);
+                if (feature.getClass() == Integer.class) {
+                    allFeatures.put(featureIndexWritable, new IntWritable(
+                            (Integer) feature));
+                }
+                else if (feature.getClass() == Double.class) {
+                    allFeatures.put(featureIndexWritable, new DoubleWritable(
+                            (Double) feature));
+                }
             }
         }
-        res.second = new ArrayWritable(DoubleWritable.class, allFeatureValues);
+        res.setSecond(allFeatures);
         return res;
     }
 
@@ -200,11 +210,11 @@ public class FeatureCreator {
         return res;
     }
 
-    public List<PairWritable3> createFeatures(
-            List<PairWritable3> rulesAndMapReduceFeatures) {
-        List<PairWritable3> res = new ArrayList<PairWritable3>();
-        for (PairWritable3 ruleAndMapReduceFeatures: rulesAndMapReduceFeatures) {
-            PairWritable3 ruleAndFeatures =
+    public List<GeneralPairWritable3> createFeatures(
+            List<GeneralPairWritable3> rulesAndMapReduceFeatures) {
+        List<GeneralPairWritable3> res = new ArrayList<GeneralPairWritable3>();
+        for (GeneralPairWritable3 ruleAndMapReduceFeatures: rulesAndMapReduceFeatures) {
+            GeneralPairWritable3 ruleAndFeatures =
                     createFeatures(ruleAndMapReduceFeatures);
             res.add(ruleAndFeatures);
         }

@@ -32,7 +32,7 @@ public class Target2SourceProbabilityReducer extends
      * Name of the feature class. This is hard coded and used to retrieve
      * featureStartIndex from a config.
      */
-    private static String featureName = "t2sProbability";
+    private static String featureName = "target2source_probability";
 
     // static writables to avoid memory consumption
     private static MapWritable features = new MapWritable();

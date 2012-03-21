@@ -4,10 +4,11 @@
 
 package uk.ac.cam.eng.rulebuilding.features;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.hadoop.io.ArrayWritable;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.SortedMapWritable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 
@@ -17,6 +18,8 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
  */
 public class WordInsertionPenalty implements Feature {
 
+    private final static String featureName = "word_insertion_penalty";
+
     /*
      * (non-Javadoc)
      * @see
@@ -24,9 +27,11 @@ public class WordInsertionPenalty implements Feature {
      * .Rule)
      */
     @Override
-    public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<Double>();
-        res.add((double) r.nbTargetWords());
+    public Map<Integer, Number> value(Rule r,
+            SortedMapWritable mapReduceFeatures, Configuration conf) {
+        Map<Integer, Number> res = new HashMap<>();
+        int featureIndex = conf.getInt(featureName, 0);
+        res.put(featureIndex, r.nbTargetWords());
         return res;
     }
 
@@ -37,10 +42,11 @@ public class WordInsertionPenalty implements Feature {
      * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public List<Double>
-            valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<Double>();
-        res.add((double) 0);
+    public Map<Integer, Number> valueAsciiOovDeletion(Rule r,
+            SortedMapWritable mapReduceFeatures, Configuration conf) {
+        Map<Integer, Number> res = new HashMap<>();
+        int featureIndex = conf.getInt(featureName, 0);
+        res.put(featureIndex, 0);
         return res;
     }
 
@@ -50,23 +56,17 @@ public class WordInsertionPenalty implements Feature {
      * extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public List<Double> valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<>();
+    public Map<Integer, Number> valueGlue(Rule r,
+            SortedMapWritable mapReduceFeatures, Configuration conf) {
+        Map<Integer, Number> res = new HashMap<>();
+        int featureIndex = conf.getInt(featureName, 0);
         if (r.isStartSentence() || r.isEndSentence()) {
-            res.add((double) 1);
+            res.put(featureIndex, 1);
         }
         else {
-            res.add((double) 0);
+            res.put(featureIndex, 0);
         }
         return res;
     }
 
-    /*
-     * (non-Javadoc)
-     * @see uk.ac.cam.eng.rulebuilding.features.Feature#getNumberOfFeatures()
-     */
-    @Override
-    public int getNumberOfFeatures() {
-        return 1;
-    }
 }

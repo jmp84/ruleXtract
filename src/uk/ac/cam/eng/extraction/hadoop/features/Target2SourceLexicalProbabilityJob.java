@@ -25,9 +25,10 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
- * @author jmp84 MapReduce job to compute binary provenance
+ * @author jmp84
  */
-public class BinaryProvenanceJob extends Configured implements Tool {
+public class Target2SourceLexicalProbabilityJob extends Configured implements
+        Tool {
 
     public int run(String[] args) throws Exception {
         String configFile = args[0];
@@ -43,15 +44,15 @@ public class BinaryProvenanceJob extends Configured implements Tool {
         for (String prop: p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
-        Job job = new Job(conf, "binaryProvenance");
-        job.setJarByClass(BinaryProvenanceJob.class);
+        Job job = new Job(conf, "target2source_lexical_probability");
+        job.setJarByClass(Target2SourceLexicalProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(RuleInfoWritable.class);
         job.setOutputKeyClass(RuleWritable.class);
         job.setOutputValueClass(MapWritable.class);
         // identity mapper
         job.setMapperClass(Mapper.class);
-        job.setReducerClass(BinaryProvenanceReducer.class);
+        job.setReducerClass(Target2SourceLexicalProbabilityReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("inputPaths"));
@@ -66,7 +67,8 @@ public class BinaryProvenanceJob extends Configured implements Tool {
             System.err.println("Usage args: configFile");
             System.exit(1);
         }
-        int res = ToolRunner.run(new BinaryProvenanceJob(), args);
+        int res =
+                ToolRunner.run(new Target2SourceLexicalProbabilityJob(), args);
         System.exit(res);
     }
 }

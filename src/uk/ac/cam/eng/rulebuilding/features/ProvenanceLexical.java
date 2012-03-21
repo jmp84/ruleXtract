@@ -16,6 +16,7 @@ import org.apache.hadoop.io.ArrayWritable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
+import uk.ac.cam.eng.extraction.hadoop.features.Source2TargetLexicalProbability;
 
 /**
  * @author jmp84

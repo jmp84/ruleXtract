@@ -2,14 +2,13 @@
  * 
  */
 
-package uk.ac.cam.eng.rulebuilding.features;
+package uk.ac.cam.eng.extraction.hadoop.features;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,29 +16,24 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.hadoop.io.ArrayWritable;
-
 import uk.ac.cam.eng.extraction.datatypes.Rule;
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
- * @author jmp84 Helper class to compute source-to-target and target-to-source
- *         lexical probabilities either with the main model or with provenance
- *         models
+ * @author jmp84
  */
-public class LexicalProbabilityComputer {
+public class Target2SourceLexicalProbability {
 
     private final double minSum = 4.24e-18; // exp(-40)
-    private final double logMinSum = -40;
 
     private Map<Integer, Map<Integer, Double>> model;
 
     private Set<Integer>
-            getVocabulary(List<PairWritable3> rules, boolean source) {
+            getVocabulary(List<RuleWritable> rules, boolean source) {
         Set<Integer> res = new HashSet<Integer>();
         res.add(0); // null word
-        for (PairWritable3 rule: rules) {
-            Rule r = new Rule(rule.first);
+        for (RuleWritable rule: rules) {
+            Rule r = new Rule(rule);
             List<Integer> words =
                     source ? r.getSourceWords() : r.getTargetWords();
             for (int word: words) {
@@ -49,8 +43,8 @@ public class LexicalProbabilityComputer {
         return res;
     }
 
-    public LexicalProbabilityComputer(String modelFile,
-            List<PairWritable3> rules) throws FileNotFoundException,
+    public Target2SourceLexicalProbability(String modelFile,
+            List<RuleWritable> rules) throws FileNotFoundException,
             IOException {
         Set<Integer> sourceVocabulary = getVocabulary(rules, true);
         Set<Integer> targetVocabulary = getVocabulary(rules, false);
@@ -66,47 +60,40 @@ public class LexicalProbabilityComputer {
                 }
                 count++;
                 String[] parts = line.split("\\s+");
-                int sourceWord = Integer.parseInt(parts[0]);
-                int targetWord = Integer.parseInt(parts[1]);
+                int sourceWord = Integer.parseInt(parts[1]);
+                int targetWord = Integer.parseInt(parts[0]);
                 double model1Probability = Double.parseDouble(parts[2]);
                 if (!sourceVocabulary.contains(sourceWord)
                         || !targetVocabulary.contains(targetWord)) {
                     continue;
                 }
                 Map<Integer, Double> value = null;
-                if (model.containsKey(sourceWord)) {
-                    value = model.get(sourceWord);
+                if (model.containsKey(targetWord)) {
+                    value = model.get(targetWord);
                 }
                 else {
                     value = new HashMap<Integer, Double>();
                 }
-                value.put(targetWord, model1Probability);
-                model.put(sourceWord, value);
+                value.put(sourceWord, model1Probability);
+                model.put(targetWord, value);
             }
         }
     }
 
-    public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<Double>();
+    public double value(RuleWritable ruleWritable) {
         double lexprob = 1;
-        List<Integer> sourceWords = r.getSourceWords();
-        List<Integer> targetWords = r.getTargetWords();
-        if (sourceWords.size() > 1) {
-            targetWords.add(0);
+        Rule rule = new Rule(ruleWritable);
+        List<Integer> sourceWords = rule.getSourceWords();
+        List<Integer> targetWords = rule.getTargetWords();
+        if (targetWords.size() > 1) {
+            sourceWords.add(0);
         }
-        for (Integer sourceWord: sourceWords) {
+        for (Integer targetWord: targetWords) {
             double sum = 0;
-            for (Integer targetWord: targetWords) {
-                if (!model.containsKey(sourceWord)) {
-                    System.err.println("Warning: model 1 missing source word: "
-                            + sourceWord);
-                }
-                else if (!model.get(sourceWord).containsKey(targetWord)) {
-                    System.err.println("Warning: model 1 missing target word: "
-                            + targetWord + " for source word: " + sourceWord);
-                }
-                else {
-                    sum += model.get(sourceWord).get(targetWord);
+            for (Integer sourceWord: sourceWords) {
+                if (model.containsKey(targetWord)
+                        && model.get(targetWord).containsKey(sourceWord)) {
+                    sum += model.get(targetWord).get(sourceWord);
                 }
             }
             if (sum > 0) {
@@ -116,9 +103,8 @@ public class LexicalProbabilityComputer {
                 lexprob *= minSum;
             }
         }
-        lexprob /= Math.pow(targetWords.size(), sourceWords.size());
+        lexprob /= Math.pow(sourceWords.size(), targetWords.size());
         // TODO could use the log in the computation
-        res.add(Math.log(lexprob));
-        return res;
+        return Math.log(lexprob);
     }
 }
