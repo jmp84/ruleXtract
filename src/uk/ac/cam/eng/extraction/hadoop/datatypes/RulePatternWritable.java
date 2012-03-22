@@ -38,4 +38,17 @@ public class RulePatternWritable extends RuleWritable {
         source.clear();
         return this;
     }
+
+    @Override
+    public boolean isPattern() {
+        return true;
+    }
+
+    public boolean isSourceEmpty() {
+        return source.toString().isEmpty();
+    }
+
+    public boolean isTargetEmpty() {
+        return target.toString().isEmpty();
+    }
 }

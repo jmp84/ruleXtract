@@ -34,13 +34,12 @@ public class Source2TargetPatternProbabilityJob extends Configured implements
         Properties p = new Properties();
         try {
             p.load(new FileInputStream(configFile));
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
         Configuration conf = getConf();
-        for (String prop: p.stringPropertyNames()) {
+        for (String prop : p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
         Job job = new Job(conf, "s2t_pattern_probability");
@@ -53,7 +52,7 @@ public class Source2TargetPatternProbabilityJob extends Configured implements
         job.setReducerClass(Source2TargetPatternProbabilityReducer.class);
         job.setPartitionerClass(SourcePatternPartitioner.class);
         job.setGroupingComparatorClass(SourcePatternGroupingComparator.class);
-        job.setSortComparatorClass(SourcePatternGroupingComparator.class);
+        job.setSortComparatorClass(SourcePatternSortComparator.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("inputPaths"));

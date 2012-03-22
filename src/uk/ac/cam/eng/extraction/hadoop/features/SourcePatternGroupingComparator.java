@@ -11,7 +11,8 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
- * @author jmp84
+ * @author jmp84 Grouping comparator used for the source-to-target pattern
+ *         translation feature. Rules are compared by their source pattern.
  */
 public class SourcePatternGroupingComparator extends WritableComparator {
 
@@ -21,6 +22,7 @@ public class SourcePatternGroupingComparator extends WritableComparator {
 
     /*
      * (non-Javadoc)
+     * 
      * @see
      * org.apache.hadoop.io.WritableComparator#compare(org.apache.hadoop.io.
      * WritableComparable, org.apache.hadoop.io.WritableComparable)
@@ -32,8 +34,7 @@ public class SourcePatternGroupingComparator extends WritableComparator {
             RulePatternWritable patternA =
                     new RulePatternWritable((RuleWritable) a);
             sourcePatternA = patternA.makeSourceMarginal();
-        }
-        else if (a.getClass() == RulePatternWritable.class) {
+        } else if (a.getClass() == RulePatternWritable.class) {
             sourcePatternA = (RulePatternWritable) a;
         }
         RulePatternWritable sourcePatternB = null;
@@ -41,8 +42,7 @@ public class SourcePatternGroupingComparator extends WritableComparator {
             RulePatternWritable patternB =
                     new RulePatternWritable((RuleWritable) b);
             sourcePatternB = patternB.makeSourceMarginal();
-        }
-        else if (b.getClass() == RulePatternWritable.class) {
+        } else if (b.getClass() == RulePatternWritable.class) {
             sourcePatternB = (RulePatternWritable) b;
         }
         return sourcePatternA.compareTo(sourcePatternB);

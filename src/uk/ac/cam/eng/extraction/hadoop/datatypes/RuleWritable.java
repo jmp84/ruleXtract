@@ -78,8 +78,7 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         source = new Text(parts[1]);
         if (parts.length == 3) {
             target = new Text(parts[2]);
-        }
-        else {
+        } else {
             target = new Text();
         }
     }
@@ -129,6 +128,10 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         res.source = new Text();
         res.target = new Text(r.target);
         return res;
+    }
+
+    public boolean isPattern() {
+        return false;
     }
 
     public String toString() {
@@ -182,6 +185,7 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
 
     /*
      * (non-Javadoc)
+     * 
      * @see org.apache.hadoop.io.Writable#readFields(java.io.DataInput)
      */
     @Override
@@ -193,6 +197,7 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
 
     /*
      * (non-Javadoc)
+     * 
      * @see org.apache.hadoop.io.Writable#write(java.io.DataOutput)
      */
     @Override
@@ -204,6 +209,7 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
 
     /*
      * (non-Javadoc)
+     * 
      * @see java.lang.Comparable#compareTo(java.lang.Object)
      */
     @Override
@@ -219,6 +225,7 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
 
     /*
      * (non-Javadoc)
+     * 
      * @see java.lang.Object#hashCode()
      */
     @Override
@@ -236,6 +243,7 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
 
     /*
      * (non-Javadoc)
+     * 
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
@@ -254,24 +262,21 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
             if (other.leftHandSide != null) {
                 return false;
             }
-        }
-        else if (!leftHandSide.equals(other.leftHandSide)) {
+        } else if (!leftHandSide.equals(other.leftHandSide)) {
             return false;
         }
         if (source == null) {
             if (other.source != null) {
                 return false;
             }
-        }
-        else if (!source.equals(other.source)) {
+        } else if (!source.equals(other.source)) {
             return false;
         }
         if (target == null) {
             if (other.target != null) {
                 return false;
             }
-        }
-        else if (!target.equals(other.target)) {
+        } else if (!target.equals(other.target)) {
             return false;
         }
         return true;
