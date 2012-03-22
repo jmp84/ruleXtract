@@ -20,9 +20,9 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
  */
 public class RuleWritable implements WritableComparable<RuleWritable> {
 
-    private Text leftHandSide;
-    private Text source;
-    private Text target;
+    protected Text leftHandSide;
+    protected Text source;
+    protected Text target;
 
     public Text getLeftHandSide() {
         return leftHandSide;

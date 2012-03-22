@@ -11,6 +11,7 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -20,7 +21,6 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -46,13 +46,14 @@ public class Source2TargetPatternProbabilityJob extends Configured implements
         Job job = new Job(conf, "s2t_pattern_probability");
         job.setJarByClass(Source2TargetPatternProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
-        job.setMapOutputValueClass(PairWritable.class);
+        job.setMapOutputValueClass(IntWritable.class);
         job.setOutputKeyClass(RuleWritable.class);
         job.setOutputValueClass(MapWritable.class);
-        // same mapper as for the source-to-target probability
-        job.setMapperClass(Source2TargetProbabilityMapper.class);
+        job.setMapperClass(Source2TargetPatternProbabilityMapper.class);
         job.setReducerClass(Source2TargetPatternProbabilityReducer.class);
-        job.setGroupingComparatorClass(cls);
+        job.setPartitionerClass(SourcePatternPartitioner.class);
+        job.setGroupingComparatorClass(SourcePatternGroupingComparator.class);
+        job.setSortComparatorClass(SourcePatternGroupingComparator.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("inputPaths"));
