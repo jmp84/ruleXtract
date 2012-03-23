@@ -30,37 +30,37 @@ import uk.ac.cam.eng.extraction.hadoop.extraction.HadoopJob;
 /**
  * @author jmp84 MapReduce job to compute source-to-target pattern probability
  */
-public class Source2TargetPatternProbabilityJob implements HadoopJob {
+public class Target2SourcePatternProbabilityJob implements HadoopJob {
 
     public Job getJob(Configuration conf) throws IOException {
-        Job job = new Job(conf, "source2target_pattern_probability");
-        job.setJarByClass(Source2TargetPatternProbabilityJob.class);
+        Job job = new Job(conf, "t2s_pattern_probability");
+        job.setJarByClass(Target2SourcePatternProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(IntWritable.class);
         job.setOutputKeyClass(RuleWritable.class);
         job.setOutputValueClass(MapWritable.class);
-        job.setMapperClass(Source2TargetPatternProbabilityMapper.class);
-        job.setReducerClass(Source2TargetPatternProbabilityReducer.class);
-        job.setPartitionerClass(SourcePatternPartitioner.class);
-        job.setGroupingComparatorClass(SourcePatternGroupingComparator.class);
-        job.setSortComparatorClass(SourcePatternSortComparator.class);
+        job.setMapperClass(Target2SourcePatternProbabilityMapper.class);
+        job.setReducerClass(Target2SourcePatternProbabilityReducer.class);
+        job.setPartitionerClass(TargetPatternPartitioner.class);
+        job.setGroupingComparatorClass(TargetPatternGroupingComparator.class);
+        job.setSortComparatorClass(TargetPatternSortComparator.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("rules"));
-        FileOutputFormat.setOutputPath(job, new Path(conf.get("s2t_pattern")));
+        FileOutputFormat.setOutputPath(job, new Path(conf.get("t2s_pattern")));
         FileOutputFormat.setCompressOutput(job, true);
         return job;
     }
 
     /**
-     * Mapper to compute the source-to-target pattern probability. Emits the
-     * rule with a count of one, the pattern with a count of one and the source
+     * Mapper to compute the target-to-source pattern probability. Emits the
+     * rule with a count of one, the pattern with a count of one and the target
      * pattern with a count of one. The partitioner, the sorting comparator and
      * the grouping comparator are modified to have all rules with the same
-     * source pattern processed by the same reducer with the source pattern
+     * target pattern processed by the same reducer with the target pattern
      * being the smallest element followed by pattern, followed by the rules.
      */
-    private static class Source2TargetPatternProbabilityMapper extends
+    private static class Target2SourcePatternProbabilityMapper extends
             Mapper<RuleWritable, RuleInfoWritable, RuleWritable, IntWritable> {
 
         private final static IntWritable one = new IntWritable(1);
@@ -77,15 +77,15 @@ public class Source2TargetPatternProbabilityJob implements HadoopJob {
             context.write(key, one);
             RulePatternWritable pattern = new RulePatternWritable(key);
             context.write(pattern, one);
-            RulePatternWritable sourcePattern = pattern.makeSourceMarginal();
-            context.write(sourcePattern, one);
+            RulePatternWritable targetPattern = pattern.makeTargetMarginal();
+            context.write(targetPattern, one);
         }
     }
 
     /**
      * @author jmp84
      */
-    private static class Source2TargetPatternProbabilityReducer extends
+    private static class Target2SourcePatternProbabilityReducer extends
             Reducer<RuleWritable, IntWritable, RuleWritable, MapWritable> {
 
         /**
@@ -97,15 +97,16 @@ public class Source2TargetPatternProbabilityJob implements HadoopJob {
          * Name of the feature class. This is hard coded and used to retrieve
          * featureStartIndex from a config. TODO make all final
          */
+        // TODO consistency with names
         private final static String featureName =
-                "source2target_pattern_probability";
+                "target2source_pattern_probability";
 
         // static writables to avoid memory consumption
         private static MapWritable features = new MapWritable();
         private static DoubleWritable probability = new DoubleWritable();
         private static IntWritable featureIndex = new IntWritable();
 
-        private int sourcePatternCount;
+        private int targetPatternCount;
         private int patternCount;
         private Map<RulePatternWritable, Integer> patternsCount =
                 new HashMap<>();
@@ -132,15 +133,12 @@ public class Source2TargetPatternProbabilityJob implements HadoopJob {
         protected void reduce(RuleWritable key, Iterable<IntWritable> values,
                 Context context) throws IOException, InterruptedException {
             if (key.isPattern() && ((RulePatternWritable) key).isTargetEmpty()) {
-                sourcePatternCount = 0;
+                targetPatternCount = 0;
                 for (IntWritable value: values) {
-                    sourcePatternCount += value.get();
+                    targetPatternCount += value.get();
                 }
             }
             else if (key.isPattern()) {
-                // patternsCount.put((RulePatternWritable)
-                // WritableUtils.clone(key,
-                // context.getConfiguration()), 0);
                 patternCount = 0;
                 for (IntWritable value: values) {
                     patternCount++;
@@ -152,7 +150,7 @@ public class Source2TargetPatternProbabilityJob implements HadoopJob {
             else {
                 RulePatternWritable pattern = new RulePatternWritable(key);
                 probability.set((double) patternsCount.get(pattern)
-                        / sourcePatternCount);
+                        / targetPatternCount);
                 features.put(featureIndex, features);
                 context.write(key, features);
             }
