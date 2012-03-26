@@ -7,14 +7,12 @@ package uk.ac.cam.eng.extraction.hadoop.features;
 import java.util.HashMap;
 import java.util.Map;
 
-import uk.ac.cam.eng.extraction.hadoop.extraction.HadoopJob;
-
 /**
  * @author jmp84
  */
 public class MapReduceFeatureCreator {
 
-    private static Map<String, HadoopJob> features = null;
+    private static Map<String, MapReduceFeature> features = null;
 
     private void initFeatures() {
         features = new HashMap<>();
@@ -30,12 +28,11 @@ public class MapReduceFeatureCreator {
                 new Source2TargetPatternProbabilityJob());
         features.put("source2target_pattern_probability",
                 new Source2TargetPatternProbabilityJob());
-        features.put("unaligned_word", new UnalignedWordJob());
-        features.put("binary_provenance",
-                new BinaryProvenanceJob());
+        features.put("unaligned_words", new UnalignedWordJob());
+        features.put("binary_provenance", new BinaryProvenanceJob());
     }
 
-    public HadoopJob getFeatureJob(String featureName) {
+    public MapReduceFeature getFeatureJob(String featureName) {
         if (features == null) {
             initFeatures();
         }

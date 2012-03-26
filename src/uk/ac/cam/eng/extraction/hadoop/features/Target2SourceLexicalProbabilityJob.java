@@ -24,16 +24,20 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
-import uk.ac.cam.eng.extraction.hadoop.extraction.HadoopJob;
 
 /**
  * @author jmp84
  */
-public class Target2SourceLexicalProbabilityJob implements HadoopJob {
+public class Target2SourceLexicalProbabilityJob implements MapReduceFeature {
+
+    private final static String name = "target2source_lexical_probability";
+
+    public int getNumberOfFeatures(Configuration conf) {
+        return 1;
+    }
 
     public Job getJob(Configuration conf) throws IOException {
-        String featureName = "target2source_lexical_probability";
-        Job job = new Job(conf, featureName);
+        Job job = new Job(conf, name);
         job.setJarByClass(Target2SourceLexicalProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(RuleInfoWritable.class);
@@ -45,8 +49,8 @@ public class Target2SourceLexicalProbabilityJob implements HadoopJob {
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("work_dir") + "/rules");
-        FileOutputFormat.setOutputPath(
-                job, new Path(conf.get("work_dir") + "/" + featureName));
+        FileOutputFormat.setOutputPath(job, new Path(conf.get("work_dir") + "/"
+                + name));
         FileOutputFormat.setCompressOutput(job, true);
         return job;
     }
@@ -63,14 +67,9 @@ public class Target2SourceLexicalProbabilityJob implements HadoopJob {
          */
         private static int featureStartIndex;
 
-        /**
-         * Name of the feature class. This is hard coded and used to retrieve
-         * featureStartIndex from a config.
-         */
-        private static String featureName = "target2source_lexical_probability";
-
         /*
          * (non-Javadoc)
+         * 
          * @see
          * org.apache.hadoop.mapreduce.Reducer#setup(org.apache.hadoop.mapreduce
          * .Reducer.Context)
@@ -78,24 +77,25 @@ public class Target2SourceLexicalProbabilityJob implements HadoopJob {
         @Override
         protected void setup(Context context) {
             Configuration conf = context.getConfiguration();
-            featureStartIndex = conf.getInt(featureName, 0);
+            featureStartIndex = conf.getInt(name, 0);
         }
 
         /*
          * (non-Javadoc)
+         * 
          * @see
          * org.apache.hadoop.mapreduce.Reducer#run(org.apache.hadoop.mapreduce
          * .Reducer .Context)
          */
         @Override
-        public void run(Context context)
-                throws IOException, InterruptedException {
+        public void run(Context context) throws IOException,
+                InterruptedException {
             setup(context);
             List<RuleWritable> reducerRules = new ArrayList<>();
             Configuration conf = context.getConfiguration();
             while (context.nextKey()) {
-                reducerRules.add(
-                        WritableUtils.clone(context.getCurrentKey(), conf));
+                reducerRules.add(WritableUtils.clone(context.getCurrentKey(),
+                        conf));
             }
             String modelFile = conf.get("target2source_lexical_model");
             Target2SourceLexicalProbability lexModel =
@@ -103,7 +103,7 @@ public class Target2SourceLexicalProbabilityJob implements HadoopJob {
             MapWritable features = new MapWritable();
             IntWritable featureIndex = new IntWritable(featureStartIndex);
             DoubleWritable featureValue = new DoubleWritable();
-            for (RuleWritable rule: reducerRules) {
+            for (RuleWritable rule : reducerRules) {
                 double lexProb = lexModel.value(rule);
                 featureValue.set(lexProb);
                 features.put(featureIndex, featureValue);

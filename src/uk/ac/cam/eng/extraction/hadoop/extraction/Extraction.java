@@ -24,6 +24,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable3;
+import uk.ac.cam.eng.extraction.hadoop.features.MapReduceFeature;
 import uk.ac.cam.eng.extraction.hadoop.features.MapReduceFeatureCreator;
 import uk.ac.cam.eng.extraction.hadoop.features.MapReduceFeatureMergeJob;
 import uk.ac.cam.eng.extraction.hadoop.util.ExtractorDataLoader;
@@ -42,7 +43,8 @@ public class Extraction extends Configured implements Tool {
      * SequenceFile output is sorted.
      */
     private void sequenceFile2HFile(Configuration conf) throws IOException {
-        String input = conf.get("mapreduce_features_merge");
+        // TODO see if we can avoid the part-r-00000
+        String input = conf.get("work_dir") + "/merge/part-r-00000";
         String output = conf.get("hfile");
         System.out.println("Reading " + input + " and writing hfile to "
                 + output);
@@ -73,13 +75,12 @@ public class Extraction extends Configured implements Tool {
         Properties p = new Properties();
         try {
             p.load(new FileInputStream(configFile));
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
         Configuration conf = getConf();
-        for (String prop: p.stringPropertyNames()) {
+        for (String prop : p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
         // working hdfs directory that will contain the rules and the mapreduce
@@ -96,12 +97,12 @@ public class Extraction extends Configured implements Tool {
         String hdfsName = workDir + "/training_data";
         if (wordAlignmentFile == null || sentenceAlignmentFile == null
                 || hdfsName == null) {
-            System.err.println("ERROR: missing property for creating input " +
-                    "training data (acn, snt or training_data)");
+            System.err.println("ERROR: missing property for creating input "
+                    + "training data (acn or snt)");
             System.exit(1);
         }
-        extractorDataLoader.acn2hadoop(
-                sentenceAlignmentFile, wordAlignmentFile, hdfsName);
+        extractorDataLoader.acn2hadoop(sentenceAlignmentFile,
+                wordAlignmentFile, hdfsName);
         // set up the extraction job
         JobControl jobControl = new JobControl("Extraction");
         HadoopJob extractorJob = new ExtractorJob();
@@ -119,9 +120,15 @@ public class Extraction extends Configured implements Tool {
         }
         String[] mapreduceFeaturesArray = mapreduceFeatures.split(",");
         MapReduceFeatureCreator featureCreator = new MapReduceFeatureCreator();
-        for (String mapreduceFeature: mapreduceFeaturesArray) {
-            HadoopJob featureJob =
+        // initial feature index is zero
+        int featureIndex = 0;
+        for (String mapreduceFeature : mapreduceFeaturesArray) {
+            MapReduceFeature featureJob =
                     featureCreator.getFeatureJob(mapreduceFeature);
+            conf.setInt(mapreduceFeature, featureIndex);
+            // the next feature index is the current plus the number of features
+            // of the current feature class.
+            featureIndex += featureJob.getNumberOfFeatures(conf);
             ControlledJob controlledFeatureJob =
                     new ControlledJob(featureJob.getJob(conf), extractionHold);
             jobControl.addJob(controlledFeatureJob);
@@ -133,7 +140,14 @@ public class Extraction extends Configured implements Tool {
                 new ControlledJob(mergeJob.getJob(conf), mapreduceFeaturesHold);
         jobControl.addJob(controlledMergeJob);
         // kick off jobs
-        jobControl.run();
+        Thread control = new Thread(jobControl);
+        control.start();
+        while (!jobControl.allFinished()) {
+            try {
+                Thread.sleep(5000);
+            } catch (Exception e) {
+            }
+        }
         sequenceFile2HFile(conf);
         // TODO what to return ?
         return jobControl.allFinished() ? 0 : -1;

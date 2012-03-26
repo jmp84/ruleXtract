@@ -24,16 +24,21 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
-import uk.ac.cam.eng.extraction.hadoop.extraction.HadoopJob;
 
 /**
  * @author jmp84 MapReduce job to compute source-to-target probability
  */
-public class Target2SourceProbabilityJob implements HadoopJob {
+public class Target2SourceProbabilityJob implements MapReduceFeature {
+
+    private final static String name = "target2source_probability";
+
+    public int getNumberOfFeatures(Configuration conf) {
+        // 2 features: probability and count
+        return 2;
+    }
 
     public Job getJob(Configuration conf) throws IOException {
-        String featureName = "target2source_probability";
-        Job job = new Job(conf, featureName);
+        Job job = new Job(conf, name);
         job.setJarByClass(Target2SourceProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(PairWritable.class);
@@ -44,8 +49,8 @@ public class Target2SourceProbabilityJob implements HadoopJob {
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("work_dir") + "/rules");
-        FileOutputFormat.setOutputPath(
-                job, new Path(conf.get("work_dir") + "/" + featureName));
+        FileOutputFormat.setOutputPath(job, new Path(conf.get("work_dir") + "/"
+                + name));
         FileOutputFormat.setCompressOutput(job, true);
         return job;
     }
@@ -65,13 +70,13 @@ public class Target2SourceProbabilityJob implements HadoopJob {
 
         /*
          * (non-Javadoc)
+         * 
          * @see org.apache.hadoop.mapreduce.Mapper#map(java.lang.Object,
          * java.lang.Object, org.apache.hadoop.mapreduce.Mapper.Context)
          */
         @Override
-        protected void
-                map(RuleWritable key, RuleInfoWritable value, Context context)
-                        throws IOException, InterruptedException {
+        protected void map(RuleWritable key, RuleInfoWritable value,
+                Context context) throws IOException, InterruptedException {
             sourceMarginal.setSource(key.getSource());
             targetMarginal.setTarget(key.getTarget());
             sourceAndCount.set(sourceMarginal, one);
@@ -90,11 +95,6 @@ public class Target2SourceProbabilityJob implements HadoopJob {
          * and set in the setup method.
          */
         private static int featureStartIndex;
-        /**
-         * Name of the feature class. This is hard coded and used to retrieve
-         * featureStartIndex from a config.
-         */
-        private static String featureName = "target2source_probability";
 
         // static writables to avoid memory consumption
         private static MapWritable features = new MapWritable();
@@ -103,6 +103,7 @@ public class Target2SourceProbabilityJob implements HadoopJob {
 
         /*
          * (non-Javadoc)
+         * 
          * @see
          * org.apache.hadoop.mapreduce.Reducer#setup(org.apache.hadoop.mapreduce
          * .Reducer.Context)
@@ -110,36 +111,35 @@ public class Target2SourceProbabilityJob implements HadoopJob {
         @Override
         protected void setup(Context context) {
             Configuration conf = context.getConfiguration();
-            featureStartIndex = conf.getInt(featureName, 0);
+            featureStartIndex = conf.getInt(name, 0);
         }
 
         /*
          * (non-Javadoc)
+         * 
          * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
          * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
          */
         @Override
         protected void reduce(RuleWritable key, Iterable<PairWritable> values,
-                Context context)
-                throws IOException, InterruptedException {
+                Context context) throws IOException, InterruptedException {
             // first loop through the sources and gather counts
             double marginalCount = 0;
             // use HashMap because we don't need to have the rules sorted
             Map<RuleWritable, Integer> ruleCounts =
                     new HashMap<RuleWritable, Integer>();
-            for (PairWritable sourceAndCount: values) {
+            for (PairWritable sourceAndCount : values) {
                 marginalCount += sourceAndCount.second.get();
                 RuleWritable rw = new RuleWritable(sourceAndCount.first, key);
                 if (!ruleCounts.containsKey(rw)) {
                     ruleCounts.put(rw, sourceAndCount.second.get());
-                }
-                else {
-                    ruleCounts.put(rw,
-                            ruleCounts.get(rw) + sourceAndCount.second.get());
+                } else {
+                    ruleCounts.put(rw, ruleCounts.get(rw)
+                            + sourceAndCount.second.get());
                 }
             }
             // do a second pass for normalization
-            for (RuleWritable rw: ruleCounts.keySet()) {
+            for (RuleWritable rw : ruleCounts.keySet()) {
                 count.set(ruleCounts.get(rw));
                 probability.set(count.get() / marginalCount);
                 IntWritable featureIndex = new IntWritable(featureStartIndex);

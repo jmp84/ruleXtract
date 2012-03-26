@@ -21,16 +21,20 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
-import uk.ac.cam.eng.extraction.hadoop.extraction.HadoopJob;
 
 /**
  * @author jmp84 MapReduce job to compute binary provenance
  */
-public class BinaryProvenanceJob implements HadoopJob {
+public class BinaryProvenanceJob implements MapReduceFeature {
+
+    private final static String name = "binary_provenance";
+
+    public int getNumberOfFeatures(Configuration conf) {
+        return conf.getInt(name, 0);
+    }
 
     public Job getJob(Configuration conf) throws IOException {
-        String featureName = "binary_provenance";
-        Job job = new Job(conf, featureName);
+        Job job = new Job(conf, name);
         job.setJarByClass(BinaryProvenanceJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(RuleInfoWritable.class);
@@ -42,8 +46,8 @@ public class BinaryProvenanceJob implements HadoopJob {
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("work_dir") + "/rules");
-        FileOutputFormat.setOutputPath(
-                job, new Path(conf.get("work_dir") + "/" + featureName));
+        FileOutputFormat.setOutputPath(job, new Path(conf.get("work_dir") + "/"
+                + name));
         FileOutputFormat.setCompressOutput(job, true);
         return job;
     }
@@ -52,8 +56,7 @@ public class BinaryProvenanceJob implements HadoopJob {
      * Reducer to compute binary provenance feature. Simply merge the binary
      * features into a map and taking the offset into account.
      */
-    private static class BinaryProvenanceReducer
-            extends
+    private static class BinaryProvenanceReducer extends
             Reducer<RuleWritable, RuleInfoWritable, RuleWritable, MapWritable> {
 
         /**
@@ -61,11 +64,6 @@ public class BinaryProvenanceJob implements HadoopJob {
          * and set in the setup method.
          */
         private static int featureStartIndex;
-        /**
-         * Name of the feature class. This is hard coded and used to retrieve
-         * featureStartIndex from a config.
-         */
-        private static String featureName = "binary_provenance";
 
         // static writables to avoid memory consumption
         private static MapWritable features = new MapWritable();
@@ -73,6 +71,7 @@ public class BinaryProvenanceJob implements HadoopJob {
 
         /*
          * (non-Javadoc)
+         * 
          * @see
          * org.apache.hadoop.mapreduce.Reducer#setup(org.apache.hadoop.mapreduce
          * .Reducer.Context)
@@ -81,26 +80,26 @@ public class BinaryProvenanceJob implements HadoopJob {
         protected void setup(Context context) {
             Configuration conf = context.getConfiguration();
             // TODO add a check here
-            featureStartIndex = conf.getInt(featureName, 0);
+            featureStartIndex = conf.getInt(name, 0);
         }
 
         /*
          * (non-Javadoc)
+         * 
          * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
          * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
          */
         @Override
         protected void reduce(RuleWritable key,
-                Iterable<RuleInfoWritable> values,
-                Context context) throws IOException, InterruptedException {
+                Iterable<RuleInfoWritable> values, Context context)
+                throws IOException, InterruptedException {
             // need to clear, otherwise the provenances cumulate
             // not needed for other features where the same indices are reused
             // and the values are overwritten
             features.clear();
-            for (RuleInfoWritable ruleInfoWritable: values) {
-                for (Writable provenance: ruleInfoWritable
-                        .getBinaryProvenance()
-                        .keySet()) {
+            for (RuleInfoWritable ruleInfoWritable : values) {
+                for (Writable provenance : ruleInfoWritable
+                        .getBinaryProvenance().keySet()) {
                     IntWritable featureIndex =
                             new IntWritable(featureStartIndex
                                     + ((IntWritable) provenance).get());

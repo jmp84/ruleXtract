@@ -40,7 +40,8 @@ import uk.ac.cam.eng.extraction.hadoop.util.Util;
 public class MapReduceFeatureMergeJob implements HadoopJob {
 
     public Job getJob(Configuration conf) throws IOException {
-        Job job = new Job(conf, "merge");
+        String name = "merge";
+        Job job = new Job(conf, name);
         job.setJarByClass(MapReduceFeatureMergeJob.class);
         job.setMapOutputKeyClass(BytesWritable.class);
         job.setMapOutputValueClass(GeneralPairWritable2.class);
@@ -52,12 +53,12 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         String mapreduceFeatures = conf.get("mapreduce_features");
         String[] mapreduceFeaturesArray = mapreduceFeatures.split(",");
-        for (String mapreduceFeature: mapreduceFeaturesArray) {
-            FileInputFormat.addInputPath(job,
-                    new Path(conf.get("work_dir") + "/" + mapreduceFeature));
+        for (String mapreduceFeature : mapreduceFeaturesArray) {
+            FileInputFormat.addInputPath(job, new Path(conf.get("work_dir")
+                    + "/" + mapreduceFeature));
         }
-        FileOutputFormat.setOutputPath(job,
-                new Path(conf.get("work_dir") + "/merge"));
+        FileOutputFormat.setOutputPath(job, new Path(conf.get("work_dir") + "/"
+                + name));
         FileOutputFormat.setCompressOutput(job, true);
         return job;
     }
@@ -77,6 +78,7 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
 
         /*
          * (non-Javadoc)
+         * 
          * @see org.apache.hadoop.mapreduce.Mapper#map(java.lang.Object,
          * java.lang.Object, org.apache.hadoop.mapreduce.Mapper.Context)
          */
@@ -120,7 +122,7 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
          */
         private static void mergeFeatures(SortedMapWritable features1,
                 MapWritable features2) {
-            for (Writable key2: features2.keySet()) {
+            for (Writable key2 : features2.keySet()) {
                 if (features1.containsKey(key2)) {
                     System.err.println("WARNING: feature already present "
                             + key2.toString());
@@ -128,15 +130,13 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
                         System.err
                                 .println("ERROR: feature already present with "
                                         + "a different value: index "
-                                        + key2.toString()
-                                        + " value1: "
+                                        + key2.toString() + " value1: "
                                         + features1.get(key2).toString()
                                         + " value2: "
                                         + features2.get(key2).toString());
                         System.exit(1);
                     }
-                }
-                else {
+                } else {
                     features1.put((WritableComparable) key2,
                             features2.get(key2));
                 }
@@ -145,7 +145,7 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
 
         private static SortedMapWritable sort(MapWritable map) {
             SortedMapWritable res = new SortedMapWritable();
-            for (Writable key: map.keySet()) {
+            for (Writable key : map.keySet()) {
                 // warning due to IntWritable not implementing
                 // WritableComparable<>
                 // but implementing WritableComparable
@@ -156,6 +156,7 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
 
         /*
          * (non-Javadoc)
+         * 
          * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
          * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
          */
@@ -169,7 +170,7 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
                     new TreeMap<>();
             // first pass to put together the identical targets and merge their
             // features
-            for (GeneralPairWritable2 value: values) {
+            for (GeneralPairWritable2 value : values) {
                 // clone object, otherwise gets overwritten
                 RuleWritable target =
                         WritableUtils.clone(value.getFirst(), conf);
@@ -180,8 +181,7 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
                     // TODO check that this function modifies targetsAndFeatures
                     mergeFeatures(targetsAndFeatures.get(target),
                             (MapWritable) features);
-                }
-                else {
+                } else {
                     // sort
                     SortedMapWritable featuresSorted =
                             sort((MapWritable) features);
@@ -192,7 +192,7 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
             Writable[] outputValueArray =
                     new GeneralPairWritable3[targetsAndFeatures.size()];
             int i = 0;
-            for (RuleWritable target: targetsAndFeatures.keySet()) {
+            for (RuleWritable target : targetsAndFeatures.keySet()) {
                 outputValueArray[i] =
                         new GeneralPairWritable3(target,
                                 targetsAndFeatures.get(target));

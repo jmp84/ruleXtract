@@ -21,16 +21,22 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
-import uk.ac.cam.eng.extraction.hadoop.extraction.HadoopJob;
 
 /**
  * @author jmp84 MapReduce job to compute average source unaligned and
  */
-public class UnalignedWordJob implements HadoopJob {
+public class UnalignedWordJob implements MapReduceFeature {
+
+    private final static String name = "unaligned_words";
+
+    public int getNumberOfFeatures(Configuration conf) {
+        // 2 features: average number of unaligned source words, average number
+        // of unaligned target words
+        return 2;
+    }
 
     public Job getJob(Configuration conf) throws IOException {
-        String featureName = "unaligned_words";
-        Job job = new Job(conf, featureName);
+        Job job = new Job(conf, name);
         job.setJarByClass(UnalignedWordJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(RuleInfoWritable.class);
@@ -42,8 +48,8 @@ public class UnalignedWordJob implements HadoopJob {
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("work_dir") + "/rules");
-        FileOutputFormat.setOutputPath(
-                job, new Path(conf.get("work_dir") + "/" + featureName));
+        FileOutputFormat.setOutputPath(job, new Path(conf.get("work_dir") + "/"
+                + name));
         FileOutputFormat.setCompressOutput(job, true);
         return job;
     }
@@ -53,8 +59,7 @@ public class UnalignedWordJob implements HadoopJob {
      * rule), loops over all values (the metadata) and compute the average
      * number of unaligned source words and target words
      */
-    private static class UnalignedWordReducer
-            extends
+    private static class UnalignedWordReducer extends
             Reducer<RuleWritable, RuleInfoWritable, RuleWritable, MapWritable> {
 
         /**
@@ -62,11 +67,6 @@ public class UnalignedWordJob implements HadoopJob {
          * and set in the setup method.
          */
         private static int featureStartIndex;
-        /**
-         * Name of the feature class. This is hard coded and used to retrieve
-         * featureStartIndex from a config.
-         */
-        private static String featureName = "unalignedWords";
 
         // static writables to avoid memory consumption
         private static MapWritable features = new MapWritable();
@@ -77,6 +77,7 @@ public class UnalignedWordJob implements HadoopJob {
 
         /*
          * (non-Javadoc)
+         * 
          * @see
          * org.apache.hadoop.mapreduce.Reducer#setup(org.apache.hadoop.mapreduce
          * .Reducer.Context)
@@ -85,21 +86,22 @@ public class UnalignedWordJob implements HadoopJob {
         protected void setup(Context context) {
             Configuration conf = context.getConfiguration();
             // TODO add a check here
-            featureStartIndex = conf.getInt(featureName, 0);
+            featureStartIndex = conf.getInt(name, 0);
         }
 
         /*
          * (non-Javadoc)
+         * 
          * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
          * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
          */
         @Override
         protected void reduce(RuleWritable key,
-                Iterable<RuleInfoWritable> values,
-                Context context) throws IOException, InterruptedException {
+                Iterable<RuleInfoWritable> values, Context context)
+                throws IOException, InterruptedException {
             int numberUnalignedSourceWords = 0, numberUnalignedTargetWords = 0;
             int numberOccurrences = 0;
-            for (RuleInfoWritable ruleInfoWritable: values) {
+            for (RuleInfoWritable ruleInfoWritable : values) {
                 numberUnalignedSourceWords +=
                         ruleInfoWritable.getNumberUnalignedSourceWords();
                 numberUnalignedTargetWords +=
