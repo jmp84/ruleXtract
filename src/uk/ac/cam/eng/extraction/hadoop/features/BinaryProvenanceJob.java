@@ -29,7 +29,8 @@ import uk.ac.cam.eng.extraction.hadoop.extraction.HadoopJob;
 public class BinaryProvenanceJob implements HadoopJob {
 
     public Job getJob(Configuration conf) throws IOException {
-        Job job = new Job(conf, "binary_provenance");
+        String featureName = "binary_provenance";
+        Job job = new Job(conf, featureName);
         job.setJarByClass(BinaryProvenanceJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(RuleInfoWritable.class);
@@ -40,8 +41,9 @@ public class BinaryProvenanceJob implements HadoopJob {
         job.setReducerClass(BinaryProvenanceReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
-        FileInputFormat.setInputPaths(job, conf.get("inputPaths"));
-        FileOutputFormat.setOutputPath(job, new Path(conf.get("outputPath")));
+        FileInputFormat.setInputPaths(job, conf.get("work_dir") + "/rules");
+        FileOutputFormat.setOutputPath(
+                job, new Path(conf.get("work_dir") + "/" + featureName));
         FileOutputFormat.setCompressOutput(job, true);
         return job;
     }

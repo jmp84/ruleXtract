@@ -33,7 +33,8 @@ import uk.ac.cam.eng.extraction.hadoop.extraction.HadoopJob;
 public class Target2SourcePatternProbabilityJob implements HadoopJob {
 
     public Job getJob(Configuration conf) throws IOException {
-        Job job = new Job(conf, "t2s_pattern_probability");
+        String featureName = "target2source_pattern_probability";
+        Job job = new Job(conf, featureName);
         job.setJarByClass(Target2SourcePatternProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(IntWritable.class);
@@ -46,8 +47,9 @@ public class Target2SourcePatternProbabilityJob implements HadoopJob {
         job.setSortComparatorClass(TargetPatternSortComparator.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
-        FileInputFormat.setInputPaths(job, conf.get("rules"));
-        FileOutputFormat.setOutputPath(job, new Path(conf.get("t2s_pattern")));
+        FileInputFormat.setInputPaths(job, conf.get("work_dir") + "/rules");
+        FileOutputFormat.setOutputPath(
+                job, new Path(conf.get("work_dir") + "/" + featureName));
         FileOutputFormat.setCompressOutput(job, true);
         return job;
     }

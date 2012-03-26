@@ -32,7 +32,8 @@ import uk.ac.cam.eng.extraction.hadoop.extraction.HadoopJob;
 public class Source2TargetLexicalProbabilityJob implements HadoopJob {
 
     public Job getJob(Configuration conf) throws IOException {
-        Job job = new Job(conf, "source2target_lexical_probability");
+        String featureName = "source2target_lexical_probability";
+        Job job = new Job(conf, featureName);
         job.setJarByClass(Source2TargetLexicalProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(RuleInfoWritable.class);
@@ -43,8 +44,9 @@ public class Source2TargetLexicalProbabilityJob implements HadoopJob {
         job.setReducerClass(Source2TargetLexicalProbabilityReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
-        FileInputFormat.setInputPaths(job, conf.get("rules"));
-        FileOutputFormat.setOutputPath(job, new Path(conf.get("s2t_lex")));
+        FileInputFormat.setInputPaths(job, conf.get("work_dir") + "/rules");
+        FileOutputFormat.setOutputPath(
+                job, new Path(conf.get("work_dir") + "/" + featureName));
         FileOutputFormat.setCompressOutput(job, true);
         return job;
     }

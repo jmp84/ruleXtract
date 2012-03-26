@@ -43,10 +43,8 @@ public class ExtractorDataLoader {
      * @param args
      * @throws IOException
      */
-    public static void main(String[] args) throws IOException {
-        String sentenceAlignmentFile = args[0];
-        String wordAlignmentFile = args[1];
-        String hdfsName = args[2];
+    public void acn2hadoop(String sentenceAlignmentFile,
+            String wordAlignmentFile, String hdfsName) throws IOException {
         RecordReader sentenceReader = new RecordReader() {
 
             @Override

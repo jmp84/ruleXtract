@@ -17,7 +17,7 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 public class ExtractorJob implements HadoopJob {
 
     public Job getJob(Configuration conf) throws IOException {
-        Job job = new Job(conf, "Rule extraction");
+        Job job = new Job(conf, "rules");
         job.setJarByClass(ExtractorJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(RuleInfoWritable.class);
@@ -28,8 +28,10 @@ public class ExtractorJob implements HadoopJob {
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         // no reducer
         job.setNumReduceTasks(0);
-        FileInputFormat.setInputPaths(job, conf.get("input"));
-        FileOutputFormat.setOutputPath(job, new Path(conf.get("rules")));
+        FileInputFormat.setInputPaths(
+                job, conf.get("work_dir") + "/training_data");
+        FileOutputFormat.setOutputPath(
+                job, new Path(conf.get("work_dir") + "/rules"));
         FileOutputFormat.setCompressOutput(job, true);
         return job;
     }

@@ -29,7 +29,8 @@ import uk.ac.cam.eng.extraction.hadoop.extraction.HadoopJob;
 public class UnalignedWordJob implements HadoopJob {
 
     public Job getJob(Configuration conf) throws IOException {
-        Job job = new Job(conf, "unaligned_words");
+        String featureName = "unaligned_words";
+        Job job = new Job(conf, featureName);
         job.setJarByClass(UnalignedWordJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(RuleInfoWritable.class);
@@ -40,8 +41,9 @@ public class UnalignedWordJob implements HadoopJob {
         job.setReducerClass(UnalignedWordReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
-        FileInputFormat.setInputPaths(job, conf.get("rules"));
-        FileOutputFormat.setOutputPath(job, new Path(conf.get("unaligned")));
+        FileInputFormat.setInputPaths(job, conf.get("work_dir") + "/rules");
+        FileOutputFormat.setOutputPath(
+                job, new Path(conf.get("work_dir") + "/" + featureName));
         FileOutputFormat.setCompressOutput(job, true);
         return job;
     }

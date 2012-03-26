@@ -40,7 +40,7 @@ import uk.ac.cam.eng.extraction.hadoop.util.Util;
 public class MapReduceFeatureMergeJob implements HadoopJob {
 
     public Job getJob(Configuration conf) throws IOException {
-        Job job = new Job(conf, "MapReduce Features Merge");
+        Job job = new Job(conf, "merge");
         job.setJarByClass(MapReduceFeatureMergeJob.class);
         job.setMapOutputKeyClass(BytesWritable.class);
         job.setMapOutputValueClass(GeneralPairWritable2.class);
@@ -50,10 +50,14 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
         job.setReducerClass(MapReduceFeatureMergeReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
-        // TODO loop over the features
-        FileInputFormat.setInputPaths(job, conf.get("inputPaths"));
+        String mapreduceFeatures = conf.get("mapreduce_features");
+        String[] mapreduceFeaturesArray = mapreduceFeatures.split(",");
+        for (String mapreduceFeature: mapreduceFeaturesArray) {
+            FileInputFormat.addInputPath(job,
+                    new Path(conf.get("work_dir") + "/" + mapreduceFeature));
+        }
         FileOutputFormat.setOutputPath(job,
-                new Path(conf.get("merged_mr_features")));
+                new Path(conf.get("work_dir") + "/merge"));
         FileOutputFormat.setCompressOutput(job, true);
         return job;
     }

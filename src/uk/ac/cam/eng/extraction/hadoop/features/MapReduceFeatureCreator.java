@@ -14,16 +14,14 @@ import uk.ac.cam.eng.extraction.hadoop.extraction.HadoopJob;
  */
 public class MapReduceFeatureCreator {
 
-    private Map<String, HadoopJob> features;
+    private static Map<String, HadoopJob> features = null;
 
-    public MapReduceFeatureCreator() {
+    private void initFeatures() {
         features = new HashMap<>();
         features.put("source2target_probability",
                 new Source2TargetProbabilityJob());
         features.put("target2source_probability",
                 new Target2SourceProbabilityJob());
-        features.put("binary_provenance",
-                new BinaryProvenanceJob());
         features.put("source2target_lexical_probability",
                 new Source2TargetLexicalProbabilityJob());
         features.put("target2source_lexical_probability",
@@ -33,5 +31,20 @@ public class MapReduceFeatureCreator {
         features.put("source2target_pattern_probability",
                 new Source2TargetPatternProbabilityJob());
         features.put("unaligned_word", new UnalignedWordJob());
+        features.put("binary_provenance",
+                new BinaryProvenanceJob());
+    }
+
+    public HadoopJob getFeatureJob(String featureName) {
+        if (features == null) {
+            initFeatures();
+        }
+        if (features.containsKey(featureName)) {
+            return features.get(featureName);
+        }
+        System.err.println("ERROR: unknown mapreduce feature: " + featureName);
+        System.exit(1);
+        // never reached
+        return null;
     }
 }
