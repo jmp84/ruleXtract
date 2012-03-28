@@ -7,7 +7,6 @@ package uk.ac.cam.eng.extraction.hadoop.features;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -17,44 +16,37 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 public class SourcePatternSortComparator extends WritableComparator {
 
     protected SourcePatternSortComparator() {
-        super(RuleWritable.class);
+        // create instances, otherwise null pointer exception
+        super(RuleWritable.class, true);
     }
 
     /*
      * (non-Javadoc)
-     * 
      * @see
      * org.apache.hadoop.io.WritableComparator#compare(org.apache.hadoop.io.
      * WritableComparable, org.apache.hadoop.io.WritableComparable)
      */
     @Override
     public int compare(WritableComparable a, WritableComparable b) {
-        if (a.getClass() == RulePatternWritable.class
-                && b.getClass() == RuleWritable.class) {
+        RuleWritable ra = (RuleWritable) a;
+        RuleWritable rb = (RuleWritable) b;
+        if (ra.isPattern() && !rb.isPattern()) {
             return -1;
         }
-        if (a.getClass() == RuleWritable.class
-                && b.getClass() == RulePatternWritable.class) {
+        if (!ra.isPattern() && rb.isPattern()) {
             return 1;
         }
-        if (a.getClass() == RulePatternWritable.class
-                && b.getClass() == RulePatternWritable.class) {
-            RulePatternWritable patternA = (RulePatternWritable) a;
-            RulePatternWritable patternB = (RulePatternWritable) b;
-            if (patternA.isSourceEmpty() && !patternB.isSourceEmpty()) {
+        if (ra.isPattern() && rb.isPattern()) {
+            if (ra.isTargetEmpty() && !rb.isTargetEmpty()) {
                 return -1;
             }
-            if (!patternA.isSourceEmpty() && patternB.isSourceEmpty()) {
+            if (!ra.isTargetEmpty() && ra.isTargetEmpty()) {
                 return 1;
             }
-            return patternA.compareTo(patternB);
+            return ra.compareTo(rb);
         }
-        RulePatternWritable patternA =
-                new RulePatternWritable((RuleWritable) a);
-        RulePatternWritable sourcePatternA = patternA.makeSourceMarginal();
-        RulePatternWritable patternB =
-                new RulePatternWritable((RuleWritable) b);
-        RulePatternWritable sourcePatternB = patternB.makeSourceMarginal();
+        RuleWritable sourcePatternA = ra.getSourcePattern();
+        RuleWritable sourcePatternB = rb.getSourcePattern();
         return sourcePatternA.compareTo(sourcePatternB);
     }
 }

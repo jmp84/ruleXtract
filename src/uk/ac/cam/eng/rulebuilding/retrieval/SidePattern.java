@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
-import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -122,14 +121,6 @@ public class SidePattern {
 
     public static SidePattern getTargetPattern(Rule rule) {
         return getPattern(rule.getTarget());
-    }
-
-    public static SidePattern getSourcePattern(RulePatternWritable rpw) {
-        return getPattern(rpw.getSource().toString());
-    }
-
-    public static SidePattern getTargetPattern(RulePatternWritable rpw) {
-        return getPattern(rpw.getTarget().toString());
     }
 
     public boolean isPhrase() {

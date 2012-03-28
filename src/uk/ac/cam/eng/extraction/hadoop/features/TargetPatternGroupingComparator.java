@@ -7,7 +7,6 @@ package uk.ac.cam.eng.extraction.hadoop.features;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -28,25 +27,8 @@ public class TargetPatternGroupingComparator extends WritableComparator {
      */
     @Override
     public int compare(WritableComparable a, WritableComparable b) {
-        RulePatternWritable targetPatternA = null;
-        if (a.getClass() == RuleWritable.class) {
-            RulePatternWritable patternA =
-                    new RulePatternWritable((RuleWritable) a);
-            targetPatternA = patternA.makeTargetMarginal();
-        }
-        else if (a.getClass() == RulePatternWritable.class) {
-            targetPatternA = (RulePatternWritable) a;
-        }
-        RulePatternWritable targetPatternB = null;
-        if (b.getClass() == RuleWritable.class) {
-            RulePatternWritable patternB =
-                    new RulePatternWritable((RuleWritable) b);
-            targetPatternB = patternB.makeTargetMarginal();
-        }
-        else if (b.getClass() == RulePatternWritable.class) {
-            // TODO b.makeTargetMarginal() ???
-            targetPatternB = (RulePatternWritable) b;
-        }
+        RuleWritable targetPatternA = ((RuleWritable) a).getTargetPattern();
+        RuleWritable targetPatternB = ((RuleWritable) b).getTargetPattern();
         return targetPatternA.compareTo(targetPatternB);
     }
 }

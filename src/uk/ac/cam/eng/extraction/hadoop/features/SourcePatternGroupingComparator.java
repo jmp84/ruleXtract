@@ -7,7 +7,6 @@ package uk.ac.cam.eng.extraction.hadoop.features;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -17,34 +16,20 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 public class SourcePatternGroupingComparator extends WritableComparator {
 
     protected SourcePatternGroupingComparator() {
-        super(RuleWritable.class);
+        // create instances, otherwise null pointer exception
+        super(RuleWritable.class, true);
     }
 
     /*
      * (non-Javadoc)
-     * 
      * @see
      * org.apache.hadoop.io.WritableComparator#compare(org.apache.hadoop.io.
      * WritableComparable, org.apache.hadoop.io.WritableComparable)
      */
     @Override
     public int compare(WritableComparable a, WritableComparable b) {
-        RulePatternWritable sourcePatternA = null;
-        if (a.getClass() == RuleWritable.class) {
-            RulePatternWritable patternA =
-                    new RulePatternWritable((RuleWritable) a);
-            sourcePatternA = patternA.makeSourceMarginal();
-        } else if (a.getClass() == RulePatternWritable.class) {
-            sourcePatternA = (RulePatternWritable) a;
-        }
-        RulePatternWritable sourcePatternB = null;
-        if (b.getClass() == RuleWritable.class) {
-            RulePatternWritable patternB =
-                    new RulePatternWritable((RuleWritable) b);
-            sourcePatternB = patternB.makeSourceMarginal();
-        } else if (b.getClass() == RulePatternWritable.class) {
-            sourcePatternB = (RulePatternWritable) b;
-        }
+        RuleWritable sourcePatternA = ((RuleWritable) a).getSourcePattern();
+        RuleWritable sourcePatternB = ((RuleWritable) b).getSourcePattern();
         return sourcePatternA.compareTo(sourcePatternB);
     }
 }

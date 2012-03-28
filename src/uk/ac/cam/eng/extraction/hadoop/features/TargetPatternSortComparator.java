@@ -7,7 +7,6 @@ package uk.ac.cam.eng.extraction.hadoop.features;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -28,32 +27,25 @@ public class TargetPatternSortComparator extends WritableComparator {
      */
     @Override
     public int compare(WritableComparable a, WritableComparable b) {
-        if (a.getClass() == RulePatternWritable.class
-                && b.getClass() == RuleWritable.class) {
+        RuleWritable ra = (RuleWritable) a;
+        RuleWritable rb = (RuleWritable) b;
+        if (ra.isPattern() && !rb.isPattern()) {
             return -1;
         }
-        if (a.getClass() == RuleWritable.class
-                && b.getClass() == RulePatternWritable.class) {
+        if (!ra.isPattern() && rb.isPattern()) {
             return 1;
         }
-        if (a.getClass() == RulePatternWritable.class
-                && b.getClass() == RulePatternWritable.class) {
-            RulePatternWritable patternA = (RulePatternWritable) a;
-            RulePatternWritable patternB = (RulePatternWritable) b;
-            if (patternA.isTargetEmpty() && !patternB.isTargetEmpty()) {
+        if (ra.isPattern() && rb.isPattern()) {
+            if (ra.isSourceEmpty() && !rb.isSourceEmpty()) {
                 return -1;
             }
-            if (!patternA.isTargetEmpty() && patternB.isTargetEmpty()) {
+            if (!ra.isSourceEmpty() && ra.isSourceEmpty()) {
                 return 1;
             }
-            return patternA.compareTo(patternB);
+            return ra.compareTo(rb);
         }
-        RulePatternWritable patternA =
-                new RulePatternWritable((RuleWritable) a);
-        RulePatternWritable targetPatternA = patternA.makeTargetMarginal();
-        RulePatternWritable patternB =
-                new RulePatternWritable((RuleWritable) b);
-        RulePatternWritable targetPatternB = patternB.makeTargetMarginal();
+        RuleWritable targetPatternA = ra.getTargetPattern();
+        RuleWritable targetPatternB = rb.getTargetPattern();
         return targetPatternA.compareTo(targetPatternB);
     }
 }

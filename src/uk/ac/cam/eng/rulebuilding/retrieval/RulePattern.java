@@ -5,7 +5,6 @@
 package uk.ac.cam.eng.rulebuilding.retrieval;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
-import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 // TODO be clear about one single format
@@ -44,11 +43,6 @@ public class RulePattern {
             RuleWritable target) {
         return new RulePattern(SidePattern.getSourcePattern(source),
                 SidePattern.getTargetPattern(target));
-    }
-
-    public static RulePattern getPattern(RulePatternWritable rpw) {
-        return new RulePattern(SidePattern.getSourcePattern(rpw),
-                SidePattern.getTargetPattern(rpw));
     }
 
     public static RulePattern getPattern(Rule rule) {

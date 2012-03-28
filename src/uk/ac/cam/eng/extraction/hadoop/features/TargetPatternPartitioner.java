@@ -6,7 +6,6 @@ package uk.ac.cam.eng.extraction.hadoop.features;
 
 import org.apache.hadoop.mapreduce.Partitioner;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -16,8 +15,7 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 public class TargetPatternPartitioner<V> extends Partitioner<RuleWritable, V> {
 
     public int getPartition(RuleWritable key, V value, int numReduceTasks) {
-        RulePatternWritable pattern = new RulePatternWritable(key);
-        RulePatternWritable targetPattern = pattern.makeTargetMarginal();
+        RuleWritable targetPattern = key.getTargetPattern();
         return (targetPattern.hashCode() & Integer.MAX_VALUE) % numReduceTasks;
     }
 }

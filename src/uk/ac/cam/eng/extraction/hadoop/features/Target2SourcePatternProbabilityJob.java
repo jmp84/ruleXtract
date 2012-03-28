@@ -23,7 +23,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
-import uk.ac.cam.eng.extraction.hadoop.datatypes.RulePatternWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
@@ -73,7 +72,6 @@ public class Target2SourcePatternProbabilityJob implements MapReduceFeature {
 
         /*
          * (non-Javadoc)
-         * 
          * @see org.apache.hadoop.mapreduce.Mapper#map(java.lang.Object,
          * java.lang.Object, org.apache.hadoop.mapreduce.Mapper.Context)
          */
@@ -81,9 +79,9 @@ public class Target2SourcePatternProbabilityJob implements MapReduceFeature {
         protected void map(RuleWritable key, RuleInfoWritable value,
                 Context context) throws IOException, InterruptedException {
             context.write(key, one);
-            RulePatternWritable pattern = new RulePatternWritable(key);
+            RuleWritable pattern = key.getPattern();
             context.write(pattern, one);
-            RulePatternWritable targetPattern = pattern.makeTargetMarginal();
+            RuleWritable targetPattern = key.getTargetPattern();
             context.write(targetPattern, one);
         }
     }
@@ -107,12 +105,10 @@ public class Target2SourcePatternProbabilityJob implements MapReduceFeature {
 
         private int targetPatternCount;
         private int patternCount;
-        private Map<RulePatternWritable, Integer> patternsCount =
-                new HashMap<>();
+        private Map<RuleWritable, Integer> patternsCount = new HashMap<>();
 
         /*
          * (non-Javadoc)
-         * 
          * @see
          * org.apache.hadoop.mapreduce.Reducer#setup(org.apache.hadoop.mapreduce
          * .Reducer.Context)
@@ -126,28 +122,29 @@ public class Target2SourcePatternProbabilityJob implements MapReduceFeature {
 
         /*
          * (non-Javadoc)
-         * 
          * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
          * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
          */
         @Override
         protected void reduce(RuleWritable key, Iterable<IntWritable> values,
                 Context context) throws IOException, InterruptedException {
-            if (key.isPattern() && ((RulePatternWritable) key).isTargetEmpty()) {
+            if (key.isPattern() && key.isTargetEmpty()) {
                 targetPatternCount = 0;
-                for (IntWritable value : values) {
+                for (IntWritable value: values) {
                     targetPatternCount += value.get();
                 }
-            } else if (key.isPattern()) {
+            }
+            else if (key.isPattern()) {
                 patternCount = 0;
-                for (IntWritable value : values) {
+                for (IntWritable value: values) {
                     patternCount++;
                 }
                 patternsCount.put(
-                        (RulePatternWritable) WritableUtils.clone(key,
-                                context.getConfiguration()), patternCount);
-            } else {
-                RulePatternWritable pattern = new RulePatternWritable(key);
+                        WritableUtils.clone(key, context.getConfiguration()),
+                        patternCount);
+            }
+            else {
+                RuleWritable pattern = key.getPattern();
                 probability.set((double) patternsCount.get(pattern)
                         / targetPatternCount);
                 features.put(featureIndex, features);

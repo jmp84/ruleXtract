@@ -12,6 +12,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
+import uk.ac.cam.eng.rulebuilding.retrieval.RulePattern;
 
 /**
  * @author jmp84 This class represents a writable rule, it's essentially the
@@ -78,7 +79,8 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         source = new Text(parts[1]);
         if (parts.length == 3) {
             target = new Text(parts[2]);
-        } else {
+        }
+        else {
             target = new Text();
         }
     }
@@ -130,8 +132,79 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         return res;
     }
 
+    /**
+     * Used for the pattern probability feature.
+     * 
+     * @return the pattern for this rule
+     */
+    public RuleWritable getPattern() {
+        // TODO i don't like it
+        // create new object to avoid problems (e.g. with the source pattern
+        // partitioner)
+        RuleWritable res = new RuleWritable();
+        if (isPattern()) {
+            res.leftHandSide = new Text();
+            res.source = new Text(this.source);
+            res.target = new Text(this.target);
+            return res;
+        }
+        Rule rule = new Rule(this);
+        RulePattern rulePattern = RulePattern.getPattern(rule);
+        String[] parts = rulePattern.toString().split("\\s+");
+        if (parts.length != 2) {
+            System.err.println("Rule pattern malformed: "
+                    + rulePattern.toString());
+            System.exit(1);
+        }
+        res.leftHandSide = new Text();
+        res.source = new Text(parts[0]);
+        res.target = new Text(parts[1]);
+        return res;
+    }
+
+    /**
+     * Used for the pattern probability feature.
+     * 
+     * @return the source pattern for this rule
+     */
+    public RuleWritable getSourcePattern() {
+        RuleWritable res = getPattern();
+        res.target.clear();
+        return res;
+    }
+
+    /**
+     * Used for the pattern probability feature.
+     * 
+     * @return the target pattern for this rule
+     */
+    public RuleWritable getTargetPattern() {
+        RuleWritable res = getPattern();
+        res.source.clear();
+        return res;
+    }
+
+    /**
+     * Used for the pattern probability feature.
+     * 
+     * @return true if this rule is actually a pattern
+     */
     public boolean isPattern() {
-        return false;
+        return leftHandSide.toString().isEmpty();
+    }
+
+    /**
+     * @return true if the target side is empty
+     */
+    public boolean isTargetEmpty() {
+        return target.toString().isEmpty();
+    }
+
+    /**
+     * @return true is the source side is empty
+     */
+    public boolean isSourceEmpty() {
+        return source.toString().isEmpty();
     }
 
     public String toString() {
@@ -178,14 +251,8 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         return "";
     }
 
-    // for the equals, compareTo, hashcode, readFields and write, methods,
-    // we don't use the numberUnalignedSourceWords and
-    // numberUnalignedTargetWords fields because in a hash map we group together
-    // rules that come from different alignments
-
     /*
      * (non-Javadoc)
-     * 
      * @see org.apache.hadoop.io.Writable#readFields(java.io.DataInput)
      */
     @Override
@@ -197,7 +264,6 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
 
     /*
      * (non-Javadoc)
-     * 
      * @see org.apache.hadoop.io.Writable#write(java.io.DataOutput)
      */
     @Override
@@ -209,7 +275,6 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
 
     /*
      * (non-Javadoc)
-     * 
      * @see java.lang.Comparable#compareTo(java.lang.Object)
      */
     @Override
@@ -225,7 +290,6 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
 
     /*
      * (non-Javadoc)
-     * 
      * @see java.lang.Object#hashCode()
      */
     @Override
@@ -243,7 +307,6 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
 
     /*
      * (non-Javadoc)
-     * 
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
@@ -262,21 +325,24 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
             if (other.leftHandSide != null) {
                 return false;
             }
-        } else if (!leftHandSide.equals(other.leftHandSide)) {
+        }
+        else if (!leftHandSide.equals(other.leftHandSide)) {
             return false;
         }
         if (source == null) {
             if (other.source != null) {
                 return false;
             }
-        } else if (!source.equals(other.source)) {
+        }
+        else if (!source.equals(other.source)) {
             return false;
         }
         if (target == null) {
             if (other.target != null) {
                 return false;
             }
-        } else if (!target.equals(other.target)) {
+        }
+        else if (!target.equals(other.target)) {
             return false;
         }
         return true;
