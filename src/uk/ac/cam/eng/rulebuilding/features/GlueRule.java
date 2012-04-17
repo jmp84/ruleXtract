@@ -74,4 +74,15 @@ public class GlueRule implements Feature {
         return res;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see
+     * uk.ac.cam.eng.rulebuilding.features.Feature#getNumberOfFeatures(org.apache
+     * .hadoop.conf.Configuration)
+     */
+    @Override
+    public int getNumberOfFeatures(Configuration conf) {
+        return 1;
+    }
+
 }

@@ -70,15 +70,14 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
 
         /*
          * (non-Javadoc)
-         * 
          * @see org.apache.hadoop.mapreduce.Mapper#map(java.lang.Object,
          * java.lang.Object, org.apache.hadoop.mapreduce.Mapper.Context)
          */
         @Override
         protected void map(RuleWritable key, RuleInfoWritable value,
                 Context context) throws IOException, InterruptedException {
-            sourceMarginal.setSource(key.getSource());
-            targetMarginal.setTarget(key.getTarget());
+            sourceMarginal.makeSourceMarginal(key);
+            targetMarginal.makeTargetMarginal(key);
             targetAndCount.set(targetMarginal, one);
             context.write(sourceMarginal, targetAndCount);
         }
@@ -103,7 +102,6 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
 
         /*
          * (non-Javadoc)
-         * 
          * @see
          * org.apache.hadoop.mapreduce.Reducer#setup(org.apache.hadoop.mapreduce
          * .Reducer.Context)
@@ -116,7 +114,6 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
 
         /*
          * (non-Javadoc)
-         * 
          * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
          * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
          */
@@ -129,18 +126,19 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
             // use HashMap because we don't need to have the rules sorted
             Map<RuleWritable, Integer> ruleCounts =
                     new HashMap<RuleWritable, Integer>();
-            for (PairWritable targetAndCount : values) {
+            for (PairWritable targetAndCount: values) {
                 marginalCount += targetAndCount.second.get();
                 RuleWritable rw = new RuleWritable(key, targetAndCount.first);
                 if (!ruleCounts.containsKey(rw)) {
                     ruleCounts.put(rw, targetAndCount.second.get());
-                } else {
+                }
+                else {
                     ruleCounts.put(rw, ruleCounts.get(rw)
                             + targetAndCount.second.get());
                 }
             }
             // do a second pass for normalization
-            for (RuleWritable rw : ruleCounts.keySet()) {
+            for (RuleWritable rw: ruleCounts.keySet()) {
                 count.set(ruleCounts.get(rw));
                 probability.set(count.get() / marginalCount);
                 IntWritable featureIndex = new IntWritable(featureStartIndex);

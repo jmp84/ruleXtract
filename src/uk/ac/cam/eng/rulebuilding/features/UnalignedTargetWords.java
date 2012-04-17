@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SortedMapWritable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
@@ -31,9 +32,14 @@ public class UnalignedTargetWords implements Feature {
             SortedMapWritable mapReduceFeatures, Configuration conf) {
         // TODO check length
         Map<Integer, Number> res = new HashMap<>();
+        // the mapreduce feature unaligned_words has 2 features, the first is
+        // unaligned_source_words and the second is unaligned_target_words
+        IntWritable mapreduceFeatureIndex =
+                new IntWritable(conf.getInt("unaligned_words-mapreduce", 0) + 1);
         int featureIndex = conf.getInt(featureName, 0);
         res.put(featureIndex,
-                ((DoubleWritable) mapReduceFeatures.get(featureIndex)).get());
+                ((DoubleWritable) mapReduceFeatures.get(mapreduceFeatureIndex))
+                        .get());
         return res;
     }
 
@@ -64,5 +70,16 @@ public class UnalignedTargetWords implements Feature {
         int featureIndex = conf.getInt(featureName, 0);
         res.put(featureIndex, 0);
         return res;
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see
+     * uk.ac.cam.eng.rulebuilding.features.Feature#getNumberOfFeatures(org.apache
+     * .hadoop.conf.Configuration)
+     */
+    @Override
+    public int getNumberOfFeatures(Configuration conf) {
+        return 1;
     }
 }

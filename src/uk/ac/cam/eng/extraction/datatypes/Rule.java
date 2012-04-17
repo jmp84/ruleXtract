@@ -604,12 +604,22 @@ public final class Rule { // final because immutable class
         // return false;
         // }
         // TODO check this, must be wrong
+        // check if the rule is swapping because we have X2...X1 in the source
         for (int sourceElement: source) {
             if (sourceElement < 0) {
                 if (sourceElement == X2) {
                     return true;
                 }
-                return false;
+                break;
+            }
+        }
+        // check if the rule is swapping because we have X2...X1 in the target
+        for (int targetElement: target) {
+            if (targetElement < 0) {
+                if (targetElement == X2) {
+                    return true;
+                }
+                break;
             }
         }
         return false;

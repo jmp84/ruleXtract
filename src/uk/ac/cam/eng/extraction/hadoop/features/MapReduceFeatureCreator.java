@@ -23,7 +23,7 @@ public class MapReduceFeatureCreator {
         features.put("source2target_lexical_probability",
                 new Source2TargetLexicalProbabilityJob());
         features.put("target2source_lexical_probability",
-                new Target2SourcePatternProbabilityJob());
+                new Target2SourceLexicalProbabilityJob());
         features.put("source2target_pattern_probability",
                 new Source2TargetPatternProbabilityJob());
         features.put("source2target_pattern_probability",

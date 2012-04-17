@@ -30,4 +30,6 @@ public interface Feature {
     public Map<Integer, Number> valueGlue(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf);
 
+    public int getNumberOfFeatures(Configuration conf);
+
 }

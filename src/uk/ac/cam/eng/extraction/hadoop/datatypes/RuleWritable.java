@@ -107,12 +107,33 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         return res;
     }
 
-    public static RuleWritable makeSourceMarginal(RuleWritable r) {
-        RuleWritable res = new RuleWritable();
-        res.leftHandSide = new Text(r.leftHandSide);
-        res.source = new Text(r.source);
-        res.target = new Text();
-        return res;
+    /**
+     * Keep only the source information. In case of a rule with two
+     * nonterminals, use the order X1...X2 in the source
+     * 
+     * @param r
+     */
+    public void makeSourceMarginal(RuleWritable r) {
+        makeSourceMarginal(r, true);
+    }
+
+    public void makeSourceMarginal(RuleWritable r, boolean source2target) {
+        this.leftHandSide = r.leftHandSide;
+        if (source2target) {
+            this.source = r.source;
+        }
+        else {
+            Rule rule = new Rule(r);
+            if (rule.isSwapping()) {
+                RuleWritable ruleInvertOnTheSource =
+                        new RuleWritable(rule.invertNonTerminals());
+                this.source = ruleInvertOnTheSource.source;
+            }
+            else {
+                this.source = r.source;
+            }
+        }
+        this.target = new Text();
     }
 
     public static RuleWritable makeTargetMarginal(Rule r) {
@@ -124,12 +145,27 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         return res;
     }
 
-    public static RuleWritable makeTargetMarginal(RuleWritable r) {
-        RuleWritable res = new RuleWritable();
-        res.leftHandSide = new Text(r.leftHandSide);
-        res.source = new Text();
-        res.target = new Text(r.target);
-        return res;
+    public void makeTargetMarginal(RuleWritable r) {
+        makeTargetMarginal(r, true);
+    }
+
+    public void makeTargetMarginal(RuleWritable r, boolean source2target) {
+        this.leftHandSide = r.leftHandSide;
+        this.source = new Text();
+        if (source2target) {
+            this.target = r.target;
+        }
+        else {
+            Rule rule = new Rule(r);
+            if (rule.isSwapping()) {
+                RuleWritable ruleInvertOnTheSource =
+                        new RuleWritable(rule.invertNonTerminals());
+                this.target = ruleInvertOnTheSource.target;
+            }
+            else {
+                this.target = r.target;
+            }
+        }
     }
 
     /**

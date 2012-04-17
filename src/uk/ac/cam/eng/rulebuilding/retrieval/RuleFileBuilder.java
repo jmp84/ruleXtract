@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
@@ -30,7 +29,7 @@ import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileScanner;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.SortedMapWritable;
 import org.apache.hadoop.io.Writable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
@@ -47,11 +46,11 @@ import uk.ac.cam.eng.rulebuilding.features.FeatureCreator;
 public class RuleFileBuilder {
 
     private RuleFilter ruleFilter;
-    private PatternInstanceCreator2 patternInstanceCreator;
     private String testFile;
     private HFileScanner hfileScanner;
     private FeatureCreator featureCreator;
     private String asciiConstraints;
+    private int MAX_SOURCE_PHRASE;
 
     public RuleFileBuilder(Configuration conf) throws IOException {
         testFile = conf.get("testfile");
@@ -68,7 +67,7 @@ public class RuleFileBuilder {
         HFile.Reader hfileReader =
                 HFile.createReader(fs, new Path(hfile), new CacheConfig(conf));
         hfileReader.loadFileInfo();
-        // 1st false: do not cacher blocks (TODO check if true is better)
+        // 1st false: do not cache blocks (TODO check if true is better)
         // 2nd true: use positional read (better for random reads), TODO check
         // if false is better
         // 3rd false: do not use for compaction
@@ -80,9 +79,9 @@ public class RuleFileBuilder {
                     .println("Missing property 'filter_config' in the config");
             System.exit(1);
         }
-        ruleFilter = new RuleFilter();
+        ruleFilter = new RuleFilter(conf);
         ruleFilter.loadConfig(filterConfig);
-        patternInstanceCreator = new PatternInstanceCreator2(conf);
+        MAX_SOURCE_PHRASE = conf.getInt("max_source_phrase", 5);
     }
 
     private static byte[] object2ByteArray(Writable obj) throws IOException {
@@ -105,11 +104,6 @@ public class RuleFileBuilder {
             throw new RuntimeException(e);
         }
         return value;
-    }
-
-    Set<Rule> getSourceRuleInstances() throws FileNotFoundException,
-            IOException {
-        return patternInstanceCreator.createSourcePatternInstances(testFile);
     }
 
     public List<GeneralPairWritable3> getRules(RuleWritable sourceRule)
@@ -144,8 +138,7 @@ public class RuleFileBuilder {
                     List<Integer> target = new ArrayList<Integer>();
                     int i = 0;
                     while (i < sourceString.length) {
-                        if (i % patternInstanceCreator.MAX_SOURCE_PHRASE == 0
-                                && i > 0) {
+                        if (i % MAX_SOURCE_PHRASE == 0 && i > 0) {
                             Rule rule = new Rule(-1, source, target);
                             res.add(rule);
                             source.clear();
@@ -217,15 +210,16 @@ public class RuleFileBuilder {
      * @return
      * @throws IOException
      */
-    private List<PairWritable3> getAsciiOovDeletionRules() throws IOException {
-        List<PairWritable3> res = new ArrayList<PairWritable3>();
+    private List<GeneralPairWritable3> getAsciiOovDeletionRules()
+            throws IOException {
+        List<GeneralPairWritable3> res = new ArrayList<>();
         Set<Rule> asciiRules = getAsciiConstraints();
         Set<Integer> asciiVocab = getAsciiVocab();
         Set<Integer> testVocab = getTestVocab();
         // read the HFile and select the rules matching the source phrases
         for (Rule asciiRule: asciiRules) {
-            res.add(new PairWritable3(new RuleWritable(asciiRule),
-                    new ArrayWritable(DoubleWritable.class)));
+            res.add(new GeneralPairWritable3(new RuleWritable(asciiRule),
+                    new SortedMapWritable()));
         }
         for (Integer testWord: testVocab) {
             if (asciiVocab.contains(testWord)) {
@@ -241,8 +235,8 @@ public class RuleFileBuilder {
             if (success != 0) { // did not found the source: add an oov rule
                 // TODO find a better way to represent an oov rule
                 Rule oovRule = new Rule(-1, source, new ArrayList<Integer>());
-                res.add(new PairWritable3(new RuleWritable(oovRule),
-                        new ArrayWritable(DoubleWritable.class)));
+                res.add(new GeneralPairWritable3(new RuleWritable(oovRule),
+                        new SortedMapWritable()));
             }
             else { // found it: add deletion rule
                 List<Integer> deletion = new ArrayList<Integer>();
@@ -251,62 +245,62 @@ public class RuleFileBuilder {
                 Rule deletionRule = new Rule(-1, source, deletion);
                 RuleWritable deletionRuleWritable =
                         new RuleWritable(deletionRule);
-                res.add(new PairWritable3(deletionRuleWritable,
-                        new ArrayWritable(DoubleWritable.class)));
+                res.add(new GeneralPairWritable3(deletionRuleWritable,
+                        new SortedMapWritable()));
             }
         }
         return res;
     }
 
-    public List<PairWritable3> getGlueRules() {
-        List<PairWritable3> res = new ArrayList<PairWritable3>();
+    public List<GeneralPairWritable3> getGlueRules() {
+        List<GeneralPairWritable3> res = new ArrayList<>();
         List<Integer> sideGlueRule1 = new ArrayList<Integer>();
         sideGlueRule1.add(-4);
         sideGlueRule1.add(-1);
         Rule glueRule1 = new Rule(-4, sideGlueRule1, sideGlueRule1);
-        res.add(new PairWritable3(new RuleWritable(glueRule1),
-                new ArrayWritable(DoubleWritable.class)));
+        res.add(new GeneralPairWritable3(new RuleWritable(glueRule1),
+                new SortedMapWritable()));
         List<Integer> sideGlueRule2 = new ArrayList<Integer>();
         sideGlueRule2.add(-1);
         Rule glueRule2 = new Rule(-1, sideGlueRule2, sideGlueRule2);
-        res.add(new PairWritable3(new RuleWritable(glueRule2),
-                new ArrayWritable(DoubleWritable.class)));
+        res.add(new GeneralPairWritable3(new RuleWritable(glueRule2),
+                new SortedMapWritable()));
         List<Integer> startSentenceSide = new ArrayList<Integer>();
         startSentenceSide.add(1);
         Rule startSentence = new Rule(-1, startSentenceSide, startSentenceSide);
-        res.add(new PairWritable3(new RuleWritable(startSentence),
-                new ArrayWritable(DoubleWritable.class)));
+        res.add(new GeneralPairWritable3(new RuleWritable(startSentence),
+                new SortedMapWritable()));
         List<Integer> endSentenceSide = new ArrayList<Integer>();
         endSentenceSide.add(2);
         Rule endSentence = new Rule(-1, endSentenceSide, endSentenceSide);
-        res.add(new PairWritable3(new RuleWritable(endSentence),
-                new ArrayWritable(DoubleWritable.class)));
+        res.add(new GeneralPairWritable3(new RuleWritable(endSentence),
+                new SortedMapWritable()));
         // TODO add a missing glue here
         return res;
     }
 
     public List<GeneralPairWritable3> getRulesWithFeatures(Configuration conf,
-            List<GeneralPairWritable3> rules) throws FileNotFoundException,
-            IOException, InterruptedException, ExecutionException {
-        List<PairWritable3> res = new ArrayList<>();
+            List<GeneralPairWritable3> rules) throws IOException {
+        List<GeneralPairWritable3> res = new ArrayList<>();
         // lazy initialization of featureCreator
         // call here rather than in the constructor because takes time to load
         // the lexical models
         featureCreator = new FeatureCreator(conf, rules);
         List<GeneralPairWritable3> regularRulesWithFeatures =
                 featureCreator.createFeatures(rules);
-        List<PairWritable3> asciiOovDeletionRules = getAsciiOovDeletionRules();
-        List<PairWritable3> asciiOovDeletionRulesWithFeatures =
+        List<GeneralPairWritable3> asciiOovDeletionRules =
+                getAsciiOovDeletionRules();
+        List<GeneralPairWritable3> asciiOovDeletionRulesWithFeatures =
                 featureCreator
                         .createFeaturesAsciiOovDeletion(asciiOovDeletionRules);
-        List<PairWritable3> glueRules = getGlueRules();
-        List<PairWritable3> glueRulesWithFeatures =
+        List<GeneralPairWritable3> glueRules = getGlueRules();
+        List<GeneralPairWritable3> glueRulesWithFeatures =
                 featureCreator.createFeaturesGlueRules(glueRules);
         // TODO should be called only once
         Set<Rule> asciiRules = getAsciiConstraints();
-        for (PairWritable3 ruleWithFeatures: regularRulesWithFeatures) {
+        for (GeneralPairWritable3 ruleWithFeatures: regularRulesWithFeatures) {
             // check if rule is not an ascii rule
-            Rule checkNotAscii = new Rule(-1, ruleWithFeatures.first);
+            Rule checkNotAscii = new Rule(-1, ruleWithFeatures.getFirst());
             if (asciiRules.contains(checkNotAscii)) {
                 // this rule will be included as an ascii rule, don't
                 // include it here
@@ -335,16 +329,18 @@ public class RuleFileBuilder {
         return sb.toString();
     }
 
-    public void writeSetSpecificRuleFile(List<PairWritable3> rulesWithFeatures,
+    public void writeSetSpecificRuleFile(
+            List<GeneralPairWritable3> rulesWithFeatures,
             String outRuleFile) throws FileNotFoundException, IOException {
         try (BufferedOutputStream bos =
                 new BufferedOutputStream(new GZIPOutputStream(
                         new FileOutputStream(outRuleFile)))) {
-            for (PairWritable3 ruleWithFeatures: rulesWithFeatures) {
-                bos.write(ruleWithFeatures.first.toString().getBytes());
-                Writable[] features = ruleWithFeatures.second.get();
-                for (Writable w: features) {
-                    bos.write((" " + w.toString()).getBytes());
+            for (GeneralPairWritable3 ruleWithFeatures: rulesWithFeatures) {
+                bos.write(ruleWithFeatures.getFirst().toString().getBytes());
+                SortedMapWritable features = ruleWithFeatures.getSecond();
+                for (Writable featureIndex: features.keySet()) {
+                    bos.write((" " + features.get(featureIndex).toString()
+                            + "@" + featureIndex).getBytes());
                 }
                 bos.write("\n".getBytes());
             }

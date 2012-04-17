@@ -21,6 +21,7 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
+import uk.ac.cam.eng.extraction.datatypes.Rule;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
@@ -70,15 +71,14 @@ public class Target2SourceProbabilityJob implements MapReduceFeature {
 
         /*
          * (non-Javadoc)
-         * 
          * @see org.apache.hadoop.mapreduce.Mapper#map(java.lang.Object,
          * java.lang.Object, org.apache.hadoop.mapreduce.Mapper.Context)
          */
         @Override
         protected void map(RuleWritable key, RuleInfoWritable value,
                 Context context) throws IOException, InterruptedException {
-            sourceMarginal.setSource(key.getSource());
-            targetMarginal.setTarget(key.getTarget());
+            sourceMarginal.makeSourceMarginal(key, false);
+            targetMarginal.makeTargetMarginal(key, false);
             sourceAndCount.set(sourceMarginal, one);
             context.write(targetMarginal, sourceAndCount);
         }
@@ -103,7 +103,6 @@ public class Target2SourceProbabilityJob implements MapReduceFeature {
 
         /*
          * (non-Javadoc)
-         * 
          * @see
          * org.apache.hadoop.mapreduce.Reducer#setup(org.apache.hadoop.mapreduce
          * .Reducer.Context)
@@ -116,7 +115,6 @@ public class Target2SourceProbabilityJob implements MapReduceFeature {
 
         /*
          * (non-Javadoc)
-         * 
          * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
          * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
          */
@@ -128,25 +126,37 @@ public class Target2SourceProbabilityJob implements MapReduceFeature {
             // use HashMap because we don't need to have the rules sorted
             Map<RuleWritable, Integer> ruleCounts =
                     new HashMap<RuleWritable, Integer>();
-            for (PairWritable sourceAndCount : values) {
+            for (PairWritable sourceAndCount: values) {
                 marginalCount += sourceAndCount.second.get();
                 RuleWritable rw = new RuleWritable(sourceAndCount.first, key);
                 if (!ruleCounts.containsKey(rw)) {
                     ruleCounts.put(rw, sourceAndCount.second.get());
-                } else {
+                }
+                else {
                     ruleCounts.put(rw, ruleCounts.get(rw)
                             + sourceAndCount.second.get());
                 }
             }
             // do a second pass for normalization
-            for (RuleWritable rw : ruleCounts.keySet()) {
+            for (RuleWritable rw: ruleCounts.keySet()) {
                 count.set(ruleCounts.get(rw));
                 probability.set(count.get() / marginalCount);
                 IntWritable featureIndex = new IntWritable(featureStartIndex);
                 features.put(featureIndex, probability);
                 featureIndex = new IntWritable(featureStartIndex + 1);
                 features.put(featureIndex, count);
-                context.write(rw, features);
+                Rule rule = new Rule(rw);
+                // write the rules in a consistent way with the rules obtained
+                // from the extraction (nonterminals inverted on the target
+                // side)
+                if (rule.isSwapping()) {
+                    RuleWritable ruleInvertOnTheTarget =
+                            new RuleWritable(rule.invertNonTerminals());
+                    context.write(ruleInvertOnTheTarget, features);
+                }
+                else {
+                    context.write(rw, features);
+                }
             }
         }
     }

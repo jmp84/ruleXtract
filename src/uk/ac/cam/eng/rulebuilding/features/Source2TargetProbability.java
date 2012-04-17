@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SortedMapWritable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
@@ -33,9 +34,12 @@ public class Source2TargetProbability implements Feature {
             SortedMapWritable mapReduceFeatures, Configuration conf) {
         // TODO could use the log in the mapreduce job
         Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName, 0);
+        IntWritable mapreduceFeatureIndex =
+                new IntWritable(conf.getInt(featureName + "-mapreduce", 0));
         double s2t =
-                ((DoubleWritable) mapReduceFeatures.get(featureIndex)).get();
+                ((DoubleWritable) mapReduceFeatures.get(mapreduceFeatureIndex))
+                        .get();
+        int featureIndex = conf.getInt(featureName, 0);
         res.put(featureIndex, s2t == 0 ? defaultS2t : Math.log(s2t));
         return res;
     }
@@ -67,5 +71,16 @@ public class Source2TargetProbability implements Feature {
         int featureIndex = conf.getInt(featureName, 0);
         res.put(featureIndex, 0);
         return res;
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see
+     * uk.ac.cam.eng.rulebuilding.features.Feature#getNumberOfFeatures(org.apache
+     * .hadoop.conf.Configuration)
+     */
+    @Override
+    public int getNumberOfFeatures(Configuration conf) {
+        return 1;
     }
 }

@@ -37,7 +37,14 @@ public class Source2TargetLexicalProbabilityJob implements MapReduceFeature {
     }
 
     public Job getJob(Configuration conf) throws IOException {
-        Job job = new Job(conf, name);
+        // add some memory to load the lex models
+        // mapreduce.reduce.java.opts=-Xmx4000m
+        // use a copy of the conf just in case this conf is reused elsewhere
+        Configuration newconf = new Configuration(conf);
+        // this is 1.0.* syntax
+        // in the future it will be mapreduce.reduce.java.opts
+        newconf.set("mapred.reduce.child.java.opts", "-Xmx4000m");
+        Job job = new Job(newconf, name);
         job.setJarByClass(Source2TargetLexicalProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(RuleInfoWritable.class);
@@ -69,7 +76,6 @@ public class Source2TargetLexicalProbabilityJob implements MapReduceFeature {
 
         /*
          * (non-Javadoc)
-         * 
          * @see
          * org.apache.hadoop.mapreduce.Reducer#setup(org.apache.hadoop.mapreduce
          * .Reducer.Context)
@@ -82,7 +88,6 @@ public class Source2TargetLexicalProbabilityJob implements MapReduceFeature {
 
         /*
          * (non-Javadoc)
-         * 
          * @see
          * org.apache.hadoop.mapreduce.Reducer#run(org.apache.hadoop.mapreduce
          * .Reducer .Context)
@@ -105,7 +110,7 @@ public class Source2TargetLexicalProbabilityJob implements MapReduceFeature {
             MapWritable features = new MapWritable();
             IntWritable featureIndex = new IntWritable(featureStartIndex);
             DoubleWritable featureValue = new DoubleWritable();
-            for (RuleWritable rule : reducerRules) {
+            for (RuleWritable rule: reducerRules) {
                 double lexProb = lexModel.value(rule);
                 featureValue.set(lexProb);
                 features.put(featureIndex, featureValue);

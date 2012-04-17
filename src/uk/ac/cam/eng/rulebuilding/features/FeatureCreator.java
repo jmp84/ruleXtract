@@ -4,24 +4,20 @@
 
 package uk.ac.cam.eng.rulebuilding.features;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SortedMapWritable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable3;
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
-import uk.ac.cam.eng.extraction.hadoop.features.Source2TargetLexicalProbability;
+import uk.ac.cam.eng.extraction.hadoop.features.MapReduceFeature;
+import uk.ac.cam.eng.extraction.hadoop.features.MapReduceFeatureCreator;
 
 /**
  * @author jmp84 This class creates a set of features given a list of rules
@@ -35,9 +31,7 @@ public class FeatureCreator {
     // configuration (features, feature indices)
     private Configuration conf;
 
-    public FeatureCreator(Configuration conf, List<GeneralPairWritable3> rules)
-            throws FileNotFoundException, IOException, InterruptedException,
-            ExecutionException {
+    public FeatureCreator(Configuration conf, List<GeneralPairWritable3> rules) {
         this.conf = conf;
         features = new HashMap<String, Feature>();
         features.put("source2target_probability",
@@ -51,66 +45,50 @@ public class FeatureCreator {
         features.put("rule_count_1", new RuleCount1());
         features.put("rule_count_2", new RuleCount2());
         features.put("rule_count_greater_than_2", new RuleCountGreaterThan2());
-        String source2targetLexicalModel =
-                conf.get("source2target_lexical_model");
-        if (source2targetLexicalModel == null) {
-            System.err.println("Missing property " +
-                    "'source2target_lexical_model' in the config");
-            System.exit(1);
-        }
         features.put("source2target_lexical_probability",
-                new Source2TargetLexicalProbability(source2targetLexicalModel,
-                        rules));
-        String target2sourceLexicalModel =
-                conf.get("target2source_lexical_model");
-        if (target2sourceLexicalModel == null) {
-            System.err.println("Missing property " +
-                    "'target2source_lexical_model' in the config");
-            System.exit(1);
-        }
+                new Source2TargetLexicalProbability());
         features.put("target2source_lexical_probability",
-                new Target2SourceLexicalProbability(target2sourceLexicalModel,
-                        rules));
-        String rulePatternAndFeaturesFile =
-                conf.get("rulepattern_and_features");
-        if (rulePatternAndFeaturesFile != null) {
-            features.put("source2target_pattern_probability",
-                    new Source2TargetPatternProbability(
-                            rulePatternAndFeaturesFile));
-            features.put("target2source_pattern_probability",
-                    new Target2SourcePatternProbability(
-                            rulePatternAndFeaturesFile));
-        }
+                new Target2SourceLexicalProbability());
         features.put("unaligned_source_words", new UnalignedSourceWords());
         features.put("unaligned_target_words", new UnalignedTargetWords());
-        String provenancesString = conf.get("provenances");
-        String[] provenances = null;
-        if (provenancesString != null) {
-            provenances = provenancesString.split(",");
-        }
-        String source2targetLexicalModelsString =
-                conf.get("s2t_lexical_models");
-        String target2sourceLexicalModelsString =
-                conf.get("t2s_lexical_models");
-        String[] source2targetLexicalModels = null;
-        String[] target2sourceLexicalModels = null;
-        if (source2targetLexicalModelsString != null) {
-            source2targetLexicalModels =
-                    source2targetLexicalModelsString.split(",");
-        }
-        if (target2sourceLexicalModelsString != null) {
-            target2sourceLexicalModels =
-                    target2sourceLexicalModelsString.split(",");
-        }
-        if (provenances != null) {
-            features.put("provenance_translation", new ProvenanceTranslation(
-                    provenances));
-            if (source2targetLexicalModels != null
-                    && target2sourceLexicalModels != null)
-                features.put("provenance_lexical", new ProvenanceLexical(
-                        source2targetLexicalModels, target2sourceLexicalModels,
-                        rules));
-        }
+        // String rulePatternAndFeaturesFile =
+        // conf.get("rulepattern_and_features");
+        // if (rulePatternAndFeaturesFile != null) {
+        // features.put("source2target_pattern_probability",
+        // new Source2TargetPatternProbability(
+        // rulePatternAndFeaturesFile));
+        // features.put("target2source_pattern_probability",
+        // new Target2SourcePatternProbability(
+        // rulePatternAndFeaturesFile));
+        // }
+        // String provenancesString = conf.get("provenances");
+        // String[] provenances = null;
+        // if (provenancesString != null) {
+        // provenances = provenancesString.split(",");
+        // }
+        // String source2targetLexicalModelsString =
+        // conf.get("s2t_lexical_models");
+        // String target2sourceLexicalModelsString =
+        // conf.get("t2s_lexical_models");
+        // String[] source2targetLexicalModels = null;
+        // String[] target2sourceLexicalModels = null;
+        // if (source2targetLexicalModelsString != null) {
+        // source2targetLexicalModels =
+        // source2targetLexicalModelsString.split(",");
+        // }
+        // if (target2sourceLexicalModelsString != null) {
+        // target2sourceLexicalModels =
+        // target2sourceLexicalModelsString.split(",");
+        // }
+        // if (provenances != null) {
+        // features.put("provenance_translation", new ProvenanceTranslation(
+        // provenances));
+        // if (source2targetLexicalModels != null
+        // && target2sourceLexicalModels != null)
+        // features.put("provenance_lexical", new ProvenanceLexical(
+        // source2targetLexicalModels, target2sourceLexicalModels,
+        // rules));
+        // }
         String selectedFeaturesString = conf.get("features");
         if (selectedFeaturesString == null) {
             System.err.println("Missing property " +
@@ -118,6 +96,34 @@ public class FeatureCreator {
             System.exit(1);
         }
         selectedFeatures = selectedFeaturesString.split(",");
+        // initial feature index is zero, then increments with the number of
+        // features of each feature type. nextFeatureIndex is used to prevent
+        // conf to be overwritten before being used.
+        int featureIndex = 0, nextFeatureIndex = 0;
+        for (String selectedFeature: selectedFeatures) {
+            featureIndex = nextFeatureIndex;
+            nextFeatureIndex +=
+                    features.get(selectedFeature).getNumberOfFeatures(conf);
+            conf.setInt(selectedFeature, featureIndex);
+        }
+        String mapreduceFeaturesString = conf.get("mapreduce_features");
+        if (mapreduceFeaturesString == null) {
+            System.err.println("Missing property " +
+                    "'mapreduce_features' in the config");
+            System.exit(1);
+        }
+        String[] mapreduceFeatures = mapreduceFeaturesString.split(",");
+        MapReduceFeatureCreator featureCreator = new MapReduceFeatureCreator();
+        featureIndex = 0;
+        nextFeatureIndex = 0;
+        for (String mapreduceFeature: mapreduceFeatures) {
+            featureIndex = nextFeatureIndex;
+            MapReduceFeature featureJob =
+                    featureCreator.getFeatureJob(mapreduceFeature);
+            nextFeatureIndex += featureJob.getNumberOfFeatures(conf);
+            // add "-mapreduce" to avoid name clashing
+            conf.setInt(mapreduceFeature + "-mapreduce", featureIndex);
+        }
     }
 
     private Map<Integer, Number> createFeatures(String featureName,
@@ -127,17 +133,17 @@ public class FeatureCreator {
                 ruleAndMapReduceFeatures.getSecond(), conf);
     }
 
-    private List<Double> createFeatureAsciiOovDeletion(String featureName,
-            PairWritable3 asciiOovDeletionRule) {
+    private Map<Integer, Number> createFeatureAsciiOovDeletion(
+            String featureName, GeneralPairWritable3 asciiOovDeletionRule) {
         return features.get(featureName).valueAsciiOovDeletion(
-                new Rule(asciiOovDeletionRule.first),
-                asciiOovDeletionRule.second);
+                new Rule(asciiOovDeletionRule.getFirst()),
+                asciiOovDeletionRule.getSecond(), conf);
     }
 
-    private List<Double> createFeatureGlueRule(String featureName,
-            PairWritable3 glueRule) {
-        return features.get(featureName).valueGlue(new Rule(glueRule.first),
-                glueRule.second);
+    private Map<Integer, Number> createFeatureGlueRule(String featureName,
+            GeneralPairWritable3 glueRule) {
+        return features.get(featureName).valueGlue(
+                new Rule(glueRule.getFirst()), glueRule.getSecond(), conf);
     }
 
     private GeneralPairWritable3
@@ -145,7 +151,6 @@ public class FeatureCreator {
         GeneralPairWritable3 res = new GeneralPairWritable3();
         res.setFirst(ruleAndMapReduceFeatures.getFirst());
         SortedMapWritable allFeatures = new SortedMapWritable();
-        int i = 0;
         for (String featureName: selectedFeatures) {
             Map<Integer, Number> features =
                     createFeatures(featureName, ruleAndMapReduceFeatures);
@@ -172,41 +177,66 @@ public class FeatureCreator {
         return res;
     }
 
-    private PairWritable3 createFeaturesAsciiOovDeletion(
-            PairWritable3 asciiOovDeletionRule) {
-        PairWritable3 res = new PairWritable3();
-        res.first = asciiOovDeletionRule.first;
-        DoubleWritable[] allFeatureValues =
-                new DoubleWritable[getNumberOfFeatures()];
-        int i = 0;
+    private GeneralPairWritable3 createFeaturesAsciiOovDeletion(
+            GeneralPairWritable3 asciiOovDeletionRule) {
+        GeneralPairWritable3 res = new GeneralPairWritable3();
+        res.setFirst(asciiOovDeletionRule.getFirst());
+        SortedMapWritable allFeatures = new SortedMapWritable();
         for (String featureName: selectedFeatures) {
-            List<Double> featureValues =
+            Map<Integer, Number> features =
                     createFeatureAsciiOovDeletion(featureName,
                             asciiOovDeletionRule);
-            for (Double featureValue: featureValues) {
-                allFeatureValues[i] = new DoubleWritable(featureValue);
-                i++;
+            for (Integer featureIndex: features.keySet()) {
+                IntWritable featureIndexWritable =
+                        new IntWritable(featureIndex);
+                if (allFeatures.containsKey(featureIndexWritable)) {
+                    System.err.println("ERROR: feature index already exists: "
+                            + featureIndex);
+                    System.exit(1);
+                }
+                Number feature = features.get(featureIndex);
+                if (feature.getClass() == Integer.class) {
+                    allFeatures.put(featureIndexWritable, new IntWritable(
+                            (Integer) feature));
+                }
+                else if (feature.getClass() == Double.class) {
+                    allFeatures.put(featureIndexWritable, new DoubleWritable(
+                            (Double) feature));
+                }
             }
         }
-        res.second = new ArrayWritable(DoubleWritable.class, allFeatureValues);
+        res.setSecond(allFeatures);
         return res;
     }
 
-    private PairWritable3 createFeaturesGlueRule(PairWritable3 glueRule) {
-        PairWritable3 res = new PairWritable3();
-        res.first = glueRule.first;
-        DoubleWritable[] allFeatureValues =
-                new DoubleWritable[getNumberOfFeatures()];
-        int i = 0;
+    private GeneralPairWritable3 createFeaturesGlueRule(
+            GeneralPairWritable3 glueRule) {
+        GeneralPairWritable3 res = new GeneralPairWritable3();
+        res.setFirst(glueRule.getFirst());
+        SortedMapWritable allFeatures = new SortedMapWritable();
         for (String featureName: selectedFeatures) {
-            List<Double> featureValues =
+            Map<Integer, Number> features =
                     createFeatureGlueRule(featureName, glueRule);
-            for (Double featureValue: featureValues) {
-                allFeatureValues[i] = new DoubleWritable(featureValue);
-                i++;
+            for (Integer featureIndex: features.keySet()) {
+                IntWritable featureIndexWritable =
+                        new IntWritable(featureIndex);
+                if (allFeatures.containsKey(featureIndexWritable)) {
+                    System.err.println("ERROR: feature index already exists: "
+                            + featureIndex);
+                    System.exit(1);
+                }
+                Number feature = features.get(featureIndex);
+                if (feature.getClass() == Integer.class) {
+                    allFeatures.put(featureIndexWritable, new IntWritable(
+                            (Integer) feature));
+                }
+                else if (feature.getClass() == Double.class) {
+                    allFeatures.put(featureIndexWritable, new DoubleWritable(
+                            (Double) feature));
+                }
             }
         }
-        res.second = new ArrayWritable(DoubleWritable.class, allFeatureValues);
+        res.setSecond(allFeatures);
         return res;
     }
 
@@ -221,22 +251,22 @@ public class FeatureCreator {
         return res;
     }
 
-    public List<PairWritable3> createFeaturesAsciiOovDeletion(
-            List<PairWritable3> asciiOovDeletionRules) {
-        List<PairWritable3> res = new ArrayList<PairWritable3>();
-        for (PairWritable3 asciiOovDeletionRule: asciiOovDeletionRules) {
-            PairWritable3 asciiOovDeletionRuleAndFeatures =
+    public List<GeneralPairWritable3> createFeaturesAsciiOovDeletion(
+            List<GeneralPairWritable3> asciiOovDeletionRules) {
+        List<GeneralPairWritable3> res = new ArrayList<>();
+        for (GeneralPairWritable3 asciiOovDeletionRule: asciiOovDeletionRules) {
+            GeneralPairWritable3 asciiOovDeletionRuleAndFeatures =
                     createFeaturesAsciiOovDeletion(asciiOovDeletionRule);
             res.add(asciiOovDeletionRuleAndFeatures);
         }
         return res;
     }
 
-    public List<PairWritable3> createFeaturesGlueRules(
-            List<PairWritable3> glueRules) {
-        List<PairWritable3> res = new ArrayList<PairWritable3>();
-        for (PairWritable3 glueRule: glueRules) {
-            PairWritable3 glueRuleAndFeatures =
+    public List<GeneralPairWritable3> createFeaturesGlueRules(
+            List<GeneralPairWritable3> glueRules) {
+        List<GeneralPairWritable3> res = new ArrayList<>();
+        for (GeneralPairWritable3 glueRule: glueRules) {
+            GeneralPairWritable3 glueRuleAndFeatures =
                     createFeaturesGlueRule(glueRule);
             res.add(glueRuleAndFeatures);
         }

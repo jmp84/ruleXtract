@@ -63,8 +63,9 @@ public class Extraction extends Configured implements Tool {
         BytesWritable key = new BytesWritable();
         ArrayWritable value = new ArrayWritable(GeneralPairWritable3.class);
         while (sequenceReader.next(key, value)) {
+            byte[] keyBytes = Util.getBytes(key);
             byte[] valueBytes = Util.object2ByteArray(value);
-            hfileWriter.append(key.getBytes(), valueBytes);
+            hfileWriter.append(keyBytes, valueBytes);
         }
         hfileWriter.close();
     }
@@ -75,12 +76,13 @@ public class Extraction extends Configured implements Tool {
         Properties p = new Properties();
         try {
             p.load(new FileInputStream(configFile));
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
         Configuration conf = getConf();
-        for (String prop : p.stringPropertyNames()) {
+        for (String prop: p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
         // working hdfs directory that will contain the rules and the mapreduce
@@ -120,15 +122,18 @@ public class Extraction extends Configured implements Tool {
         }
         String[] mapreduceFeaturesArray = mapreduceFeatures.split(",");
         MapReduceFeatureCreator featureCreator = new MapReduceFeatureCreator();
-        // initial feature index is zero
-        int featureIndex = 0;
-        for (String mapreduceFeature : mapreduceFeaturesArray) {
+        // initial feature index is zero, then increments with the number of
+        // features of each feature type. nextFeatureIndex is used to prevent
+        // conf to be overwritten before being used.
+        int featureIndex = 0, nextFeatureIndex = 0;
+        for (String mapreduceFeature: mapreduceFeaturesArray) {
+            featureIndex = nextFeatureIndex;
             MapReduceFeature featureJob =
                     featureCreator.getFeatureJob(mapreduceFeature);
-            conf.setInt(mapreduceFeature, featureIndex);
             // the next feature index is the current plus the number of features
             // of the current feature class.
-            featureIndex += featureJob.getNumberOfFeatures(conf);
+            nextFeatureIndex += featureJob.getNumberOfFeatures(conf);
+            conf.setInt(mapreduceFeature, featureIndex);
             ControlledJob controlledFeatureJob =
                     new ControlledJob(featureJob.getJob(conf), extractionHold);
             jobControl.addJob(controlledFeatureJob);
@@ -145,8 +150,8 @@ public class Extraction extends Configured implements Tool {
         while (!jobControl.allFinished()) {
             try {
                 Thread.sleep(5000);
-            } catch (Exception e) {
             }
+            catch (Exception e) {}
         }
         sequenceFile2HFile(conf);
         // TODO what to return ?

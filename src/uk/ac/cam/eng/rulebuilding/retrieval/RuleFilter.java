@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
@@ -84,6 +85,18 @@ public class RuleFilter {
     // tables (default) or keep the union of the rules coming from the main
     // and provenance tables
     private boolean provenanceUnion = false;
+    private IntWritable source2targetProbabilityIndex;
+    private IntWritable target2sourceProbabilityIndex;
+    private IntWritable countIndex;
+
+    public RuleFilter(Configuration conf) {
+        int s2t = conf.getInt("source2target_probability-mapreduce", 0);
+        source2targetProbabilityIndex = new IntWritable(s2t);
+        countIndex = new IntWritable(s2t + 1);
+        target2sourceProbabilityIndex =
+                new IntWritable(conf.getInt(
+                        "target2source_probability-mapreduce", 0));
+    }
 
     // TODO use Properties instead
     public void loadConfig(String configFile) throws FileNotFoundException,
@@ -162,11 +175,13 @@ public class RuleFilter {
             int countIndex) {
         Map<RuleWritable, Integer> targetsAndCounts = new HashMap<>();
         Map<RuleWritable, Integer> indices = new HashMap<>();
+        IntWritable countIndexWritable = new IntWritable(countIndex);
         for (int i = 0; i < listTargetAndProb.get().length; i++) {
             targetsAndCounts.put(((GeneralPairWritable3) listTargetAndProb
                     .get()[i]).getFirst(),
                     ((IntWritable) ((GeneralPairWritable3) listTargetAndProb
-                            .get()[i]).getSecond().get(countIndex)).get());
+                            .get()[i]).getSecond().get(countIndexWritable))
+                            .get());
             indices.put(((GeneralPairWritable3) listTargetAndProb.get()[i])
                     .getFirst(), i);
         }
@@ -184,9 +199,9 @@ public class RuleFilter {
     }
 
     public List<GeneralPairWritable3> filter(RuleWritable source,
-            ArrayWritable listTargetAndProb, int countIndex) {
+            ArrayWritable listTargetAndProb, IntWritable countIndex) {
         ArrayWritable listTargetAndProbSorted =
-                sortByCount(listTargetAndProb, countIndex);
+                sortByCount(listTargetAndProb, countIndex.get());
         List<GeneralPairWritable3> res = new ArrayList<GeneralPairWritable3>();
         SidePattern sourcePattern = SidePattern.getSourcePattern(source);
         if (!sourcePattern.isPhrase()
@@ -211,10 +226,10 @@ public class RuleFilter {
             // TODO replace hardcoded feature indices
             double source2targetProbability =
                     ((DoubleWritable) targetAndProb.getSecond().get(
-                            countIndex - 2)).get();
+                            source2targetProbabilityIndex)).get();
             double target2sourceProbability =
                     ((DoubleWritable) targetAndProb.getSecond().get(
-                            countIndex - 1)).get();
+                            target2sourceProbabilityIndex)).get();
             int numberOfOccurrences =
                     ((IntWritable) targetAndProb.getSecond().get(countIndex))
                             .get();
@@ -350,10 +365,14 @@ public class RuleFilter {
 
     public List<GeneralPairWritable3> filter(RuleWritable source,
             ArrayWritable listTargetAndProb) {
+        // TODO remove hard coded value
         if (!provenanceUnion) {
-            return filter(source, listTargetAndProb, 2);
+            return filter(source, listTargetAndProb, countIndex);
         }
-        List<GeneralPairWritable3> res = filter(source, listTargetAndProb, 2);
+        System.err.println("Provenance (dense) not implemented yet!");
+        System.exit(1);
+        List<GeneralPairWritable3> res =
+                filter(source, listTargetAndProb, new IntWritable(1));
         Set<RuleWritable> ruleSet = new HashSet<>();
         for (GeneralPairWritable3 mainRuleAndFeatures: res) {
             ruleSet.add(mainRuleAndFeatures.getFirst());
@@ -372,7 +391,7 @@ public class RuleFilter {
         }
         for (int i = 7; i < nbFeatures; i += 3) {
             List<GeneralPairWritable3> resProvenance =
-                    filter(source, listTargetAndProb, i);
+                    filter(source, listTargetAndProb, new IntWritable(i));
             for (GeneralPairWritable3 ruleAndFeatures: resProvenance) {
                 if (!ruleSet.contains(ruleAndFeatures.getFirst())) {
                     res.add(ruleAndFeatures);
