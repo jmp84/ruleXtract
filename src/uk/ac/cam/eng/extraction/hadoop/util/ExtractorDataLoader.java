@@ -6,12 +6,15 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.MapWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 
@@ -29,6 +32,7 @@ public class ExtractorDataLoader {
         BufferedReader in;
         StringBuilder out = new StringBuilder();
         int sentence;
+        Set<String> provenance = new HashSet<>();
 
         void setFileName(String fileName) throws FileNotFoundException,
                 IOException {
@@ -74,8 +78,11 @@ public class ExtractorDataLoader {
                     throw new RuntimeException(
                             "Error in the word alignment file");
                 }
-                sentence = Integer.parseInt(prevLine.substring("SENT: "
-                        .length()));
+                String[] parts = prevLine.split("\\s+");
+                sentence = Integer.parseInt(parts[1]);
+                for (int i = 2; i < parts.length; i++) {
+                    provenance.add(parts[i]);
+                }
                 out.setLength(0);
                 String line = in.readLine();
                 if (line == null) {
@@ -102,7 +109,7 @@ public class ExtractorDataLoader {
         Path path = new Path(hdfsName);
 
         SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, path,
-                IntWritable.class, TextArrayWritable.class);
+                MapWritable.class, TextArrayWritable.class);
         try {
             Text sentenceText = new Text();
             Text alignmentText = new Text();
@@ -110,7 +117,10 @@ public class ExtractorDataLoader {
             array[0] = sentenceText;
             array[1] = alignmentText;
             TextArrayWritable arrayWritable = new TextArrayWritable();
-            IntWritable sentenceNumber = new IntWritable();
+            Text sentenceNumber = new Text();
+            // metadata: provenance, e.g. genre, collection, training instance
+            // id, etc.
+            MapWritable metadata = new MapWritable();
             int sentenceNumberInt = 0;
             String sentence = sentenceReader.getNext();
             String alignment = alignmentReader.getNext();
@@ -118,7 +128,12 @@ public class ExtractorDataLoader {
                 // we ignore the sentence number given by the input file
                 // because it is not reliable (data splitting)
                 // sentenceNumber.set(alignmentReader.sentence);
-                sentenceNumber.set(sentenceNumberInt);
+                sentenceNumber.set(Integer.toString(sentenceNumberInt));
+                metadata.clear();
+                metadata.put(sentenceNumber, NullWritable.get());
+                for (String prov: alignmentReader.provenance) {
+                    metadata.put(new Text(prov), NullWritable.get());
+                }
                 sentenceNumberInt++;
                 sentenceText.set(sentence);
                 // handle empty alignment case
@@ -129,7 +144,7 @@ public class ExtractorDataLoader {
                     alignmentText.set(alignment);
                 }
                 arrayWritable.set(array);
-                writer.append(sentenceNumber, arrayWritable);
+                writer.append(metadata, arrayWritable);
                 sentence = sentenceReader.getNext();
                 alignment = alignmentReader.getNext();
             }

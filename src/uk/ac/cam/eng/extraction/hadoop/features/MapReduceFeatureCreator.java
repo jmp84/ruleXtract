@@ -7,14 +7,16 @@ package uk.ac.cam.eng.extraction.hadoop.features;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
+
 /**
  * @author jmp84
  */
 public class MapReduceFeatureCreator {
 
-    private static Map<String, MapReduceFeature> features = null;
+    private Map<String, MapReduceFeature> features;
 
-    private void initFeatures() {
+    public MapReduceFeatureCreator(Configuration conf) {
         features = new HashMap<>();
         features.put("source2target_probability",
                 new Source2TargetProbabilityJob());
@@ -30,12 +32,25 @@ public class MapReduceFeatureCreator {
                 new Source2TargetPatternProbabilityJob());
         features.put("unaligned_words", new UnalignedWordJob());
         features.put("binary_provenance", new BinaryProvenanceJob());
+        String provenance = conf.get("provenance");
+        if (provenance != null) {
+            String[] provenances = provenance.split(",");
+            for (String prov: provenances) {
+                features.put("provenance_source2target_probability-" + prov,
+                        new ProvenanceSource2TargetProbabilityJob(prov));
+                features.put("provenance_target2source_probability-" + prov,
+                        new ProvenanceTarget2SourceProbabilityJob(prov));
+                features.put("provenance_source2target_lexical_probability-"
+                        + prov,
+                        new ProvenanceSource2TargetLexicalProbabilityJob(prov));
+                features.put("provenance_target2source_lexical_probability-"
+                        + prov,
+                        new ProvenanceTarget2SourceLexicalProbabilityJob(prov));
+            }
+        }
     }
 
     public MapReduceFeature getFeatureJob(String featureName) {
-        if (features == null) {
-            initFeatures();
-        }
         if (features.containsKey(featureName)) {
             return features.get(featureName);
         }

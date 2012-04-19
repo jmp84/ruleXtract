@@ -30,7 +30,14 @@ public class BinaryProvenanceJob implements MapReduceFeature {
     private final static String name = "binary_provenance";
 
     public int getNumberOfFeatures(Configuration conf) {
-        return conf.getInt(name, 0);
+        int res = conf.getInt(name, 0);
+        if (res == 0) {
+            System.err.println("ERROR: missing property 'binary_provenance' " +
+                    "to indicate the number of features " +
+                    "for this feature class");
+            System.exit(1);
+        }
+        return res;
     }
 
     public Job getJob(Configuration conf) throws IOException {
@@ -71,7 +78,6 @@ public class BinaryProvenanceJob implements MapReduceFeature {
 
         /*
          * (non-Javadoc)
-         * 
          * @see
          * org.apache.hadoop.mapreduce.Reducer#setup(org.apache.hadoop.mapreduce
          * .Reducer.Context)
@@ -85,7 +91,6 @@ public class BinaryProvenanceJob implements MapReduceFeature {
 
         /*
          * (non-Javadoc)
-         * 
          * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
          * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
          */
@@ -97,9 +102,9 @@ public class BinaryProvenanceJob implements MapReduceFeature {
             // not needed for other features where the same indices are reused
             // and the values are overwritten
             features.clear();
-            for (RuleInfoWritable ruleInfoWritable : values) {
-                for (Writable provenance : ruleInfoWritable
-                        .getBinaryProvenance().keySet()) {
+            for (RuleInfoWritable ruleInfoWritable: values) {
+                for (Writable provenance: ruleInfoWritable.getProvenance()
+                        .keySet()) {
                     IntWritable featureIndex =
                             new IntWritable(featureStartIndex
                                     + ((IntWritable) provenance).get());

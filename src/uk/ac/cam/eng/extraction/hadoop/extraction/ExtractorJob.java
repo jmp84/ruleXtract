@@ -5,7 +5,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -53,7 +53,7 @@ public class ExtractorJob implements HadoopJob {
      */
     private static class ExtractorMapper
             extends
-            Mapper<IntWritable, TextArrayWritable, RuleWritable, RuleInfoWritable> {
+            Mapper<MapWritable, TextArrayWritable, RuleWritable, RuleInfoWritable> {
 
         /*
          * (non-Javadoc)
@@ -62,7 +62,7 @@ public class ExtractorJob implements HadoopJob {
          */
         @Override
         protected void
-                map(IntWritable key, TextArrayWritable value, Context context)
+                map(MapWritable key, TextArrayWritable value, Context context)
                         throws IOException, InterruptedException {
             Configuration conf = context.getConfiguration();
             String sentenceAlign = ((Text) value.get()[0]).toString();
@@ -75,8 +75,8 @@ public class ExtractorJob implements HadoopJob {
                 // TODO replace with static objects ?
                 RuleWritable rw = new RuleWritable(r);
                 RuleInfoWritable riw = new RuleInfoWritable(r);
-                // the key is the provenance id of the instance
-                riw.setBinaryProvenance(key);
+                // the key is the set of provenances of the instance
+                riw.setProvenance(key);
                 context.write(rw, riw);
             }
         }

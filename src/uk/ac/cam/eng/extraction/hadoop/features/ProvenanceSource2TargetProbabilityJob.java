@@ -28,9 +28,14 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 /**
  * @author jmp84 MapReduce job to compute source-to-target probability
  */
-public class Source2TargetProbabilityJob implements MapReduceFeature {
+public class ProvenanceSource2TargetProbabilityJob implements MapReduceFeature {
 
-    private final static String name = "source2target_probability";
+    private final static String name = "provenance_source2target_probability";
+    private String provenance;
+
+    public ProvenanceSource2TargetProbabilityJob(String provenance) {
+        this.provenance = provenance;
+    }
 
     public int getNumberOfFeatures(Configuration conf) {
         // 2 features: the probability and the count
@@ -38,19 +43,20 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
     }
 
     public Job getJob(Configuration conf) throws IOException {
-        Job job = new Job(conf, name);
-        job.setJarByClass(Source2TargetProbabilityJob.class);
+        conf.set("provenance", provenance);
+        Job job = new Job(conf, name + "-" + provenance);
+        job.setJarByClass(ProvenanceSource2TargetProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(PairWritable.class);
         job.setOutputKeyClass(RuleWritable.class);
         job.setOutputValueClass(MapWritable.class);
-        job.setMapperClass(Source2TargetProbabilityMapper.class);
-        job.setReducerClass(Source2TargetProbabilityReducer.class);
+        job.setMapperClass(ProvenanceSource2TargetProbabilityMapper.class);
+        job.setReducerClass(ProvenanceSource2TargetProbabilityReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("work_dir") + "/rules");
         FileOutputFormat.setOutputPath(job, new Path(conf.get("work_dir") + "/"
-                + name));
+                + name + "-" + provenance));
         FileOutputFormat.setCompressOutput(job, true);
         return job;
     }
@@ -59,14 +65,28 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
      * Mapper to compute source-to-target probability. Uses method 3 described
      * in "Fast, easy, cheap, etc." by Chris Dyer et al.
      */
-    private static class Source2TargetProbabilityMapper extends
+    private static class ProvenanceSource2TargetProbabilityMapper extends
             Mapper<RuleWritable, RuleInfoWritable, RuleWritable, PairWritable> {
+
+        private String provenance;
 
         // static writables to avoid memory consumption
         private final static IntWritable one = new IntWritable(1);
-        private static RuleWritable sourceMarginal = new RuleWritable();
-        private static RuleWritable targetMarginal = new RuleWritable();
-        private static PairWritable targetAndCount = new PairWritable();
+        private RuleWritable sourceMarginal = new RuleWritable();
+        private RuleWritable targetMarginal = new RuleWritable();
+        private PairWritable targetAndCount = new PairWritable();
+
+        /*
+         * (non-Javadoc)
+         * @see
+         * org.apache.hadoop.mapreduce.Mapper#setup(org.apache.hadoop.mapreduce
+         * .Mapper.Context)
+         */
+        @Override
+        protected void setup(Context context) {
+            Configuration conf = context.getConfiguration();
+            provenance = conf.get("provenance");
+        }
 
         /*
          * (non-Javadoc)
@@ -76,29 +96,42 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
         @Override
         protected void map(RuleWritable key, RuleInfoWritable value,
                 Context context) throws IOException, InterruptedException {
-            sourceMarginal.makeSourceMarginal(key);
-            targetMarginal.makeTargetMarginal(key);
-            targetAndCount.set(targetMarginal, one);
-            context.write(sourceMarginal, targetAndCount);
+            if (value.hasProvenance(provenance)) {
+                sourceMarginal.makeSourceMarginal(key);
+                targetMarginal.makeTargetMarginal(key);
+                targetAndCount.set(targetMarginal, one);
+                try {
+                    context.write(sourceMarginal, targetAndCount);
+                }
+                catch (Exception e) {
+                    System.err.println("key: " + key);
+                    System.err.println("sourceMarginal: " + sourceMarginal);
+                    System.err.println("targetMarginal: " + targetMarginal);
+                    e.printStackTrace();
+                    System.exit(1);
+                }
+            }
         }
     }
 
     /**
      * Reducer to compute source-to-target probability
      */
-    private static class Source2TargetProbabilityReducer extends
+    private static class ProvenanceSource2TargetProbabilityReducer extends
             Reducer<RuleWritable, PairWritable, RuleWritable, MapWritable> {
+
+        private String provenance;
 
         /**
          * Starting index for this mapreduce feature. This is given by a config
          * and set in the setup method.
          */
-        private static int featureStartIndex;
+        private int featureStartIndex;
 
         // static writables to avoid memory consumption
-        private static MapWritable features = new MapWritable();
-        private static DoubleWritable probability = new DoubleWritable();
-        private static IntWritable count = new IntWritable();
+        private MapWritable features = new MapWritable();
+        private DoubleWritable probability = new DoubleWritable();
+        private IntWritable count = new IntWritable();
 
         /*
          * (non-Javadoc)
@@ -109,7 +142,8 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
         @Override
         protected void setup(Context context) {
             Configuration conf = context.getConfiguration();
-            featureStartIndex = conf.getInt(name, 0);
+            provenance = conf.get("provenance");
+            featureStartIndex = conf.getInt(name + "-" + provenance, 0);
         }
 
         /*
@@ -120,7 +154,6 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
         @Override
         protected void reduce(RuleWritable key, Iterable<PairWritable> values,
                 Context context) throws IOException, InterruptedException {
-            Configuration conf = context.getConfiguration();
             // first loop through the targets and gather counts
             double marginalCount = 0;
             // use HashMap because we don't need to have the rules sorted

@@ -121,23 +121,54 @@ public class Extraction extends Configured implements Tool {
             System.exit(1);
         }
         String[] mapreduceFeaturesArray = mapreduceFeatures.split(",");
-        MapReduceFeatureCreator featureCreator = new MapReduceFeatureCreator();
+        MapReduceFeatureCreator featureCreator =
+                new MapReduceFeatureCreator(conf);
         // initial feature index is zero, then increments with the number of
         // features of each feature type. nextFeatureIndex is used to prevent
         // conf to be overwritten before being used.
         int featureIndex = 0, nextFeatureIndex = 0;
         for (String mapreduceFeature: mapreduceFeaturesArray) {
-            featureIndex = nextFeatureIndex;
-            MapReduceFeature featureJob =
-                    featureCreator.getFeatureJob(mapreduceFeature);
-            // the next feature index is the current plus the number of features
-            // of the current feature class.
-            nextFeatureIndex += featureJob.getNumberOfFeatures(conf);
-            conf.setInt(mapreduceFeature, featureIndex);
-            ControlledJob controlledFeatureJob =
-                    new ControlledJob(featureJob.getJob(conf), extractionHold);
-            jobControl.addJob(controlledFeatureJob);
-            mapreduceFeaturesHold.add(controlledFeatureJob);
+            if (mapreduceFeature.equals(
+                    "provenance_source2target_lexical_probability")
+                    || mapreduceFeature
+                            .equals("provenance_target2source_lexical_probability")
+                    || mapreduceFeature
+                            .equals("provenance_source2target_probability")
+                    || mapreduceFeature
+                            .equals("provenance_target2source_probability")) {
+                for (String provenance: conf.get("provenance").split(",")) {
+                    featureIndex = nextFeatureIndex;
+                    MapReduceFeature featureJob =
+                            featureCreator.getFeatureJob(mapreduceFeature + "-"
+                                    + provenance);
+                    // the next feature index is the current plus the number of
+                    // features
+                    // of the current feature class.
+                    nextFeatureIndex += featureJob.getNumberOfFeatures(conf);
+                    conf.setInt(mapreduceFeature + "-" + provenance,
+                            featureIndex);
+                    ControlledJob controlledFeatureJob =
+                            new ControlledJob(featureJob.getJob(conf),
+                                    extractionHold);
+                    jobControl.addJob(controlledFeatureJob);
+                    mapreduceFeaturesHold.add(controlledFeatureJob);
+                }
+            }
+            else {
+                featureIndex = nextFeatureIndex;
+                MapReduceFeature featureJob =
+                        featureCreator.getFeatureJob(mapreduceFeature);
+                // the next feature index is the current plus the number of
+                // features
+                // of the current feature class.
+                nextFeatureIndex += featureJob.getNumberOfFeatures(conf);
+                conf.setInt(mapreduceFeature, featureIndex);
+                ControlledJob controlledFeatureJob =
+                        new ControlledJob(featureJob.getJob(conf),
+                                extractionHold);
+                jobControl.addJob(controlledFeatureJob);
+                mapreduceFeaturesHold.add(controlledFeatureJob);
+            }
         }
         // set up the merge job
         HadoopJob mergeJob = new MapReduceFeatureMergeJob();

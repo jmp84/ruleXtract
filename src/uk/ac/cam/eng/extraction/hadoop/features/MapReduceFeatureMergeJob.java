@@ -54,8 +54,24 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
         String mapreduceFeatures = conf.get("mapreduce_features");
         String[] mapreduceFeaturesArray = mapreduceFeatures.split(",");
         for (String mapreduceFeature: mapreduceFeaturesArray) {
-            FileInputFormat.addInputPath(job, new Path(conf.get("work_dir")
-                    + "/" + mapreduceFeature));
+            if (mapreduceFeature.equals(
+                    "provenance_source2target_lexical_probability")
+                    || mapreduceFeature
+                            .equals("provenance_target2source_lexical_probability")
+                    || mapreduceFeature
+                            .equals("provenance_source2target_probability")
+                    || mapreduceFeature
+                            .equals("provenance_target2source_probability")) {
+                for (String provenance: conf.get("provenance").split(",")) {
+                    FileInputFormat.addInputPath(job,
+                            new Path(conf.get("work_dir") + "/" +
+                                    mapreduceFeature + "-" + provenance));
+                }
+            }
+            else {
+                FileInputFormat.addInputPath(job, new Path(conf.get("work_dir")
+                        + "/" + mapreduceFeature));
+            }
         }
         FileOutputFormat.setOutputPath(job, new Path(conf.get("work_dir") + "/"
                 + name));

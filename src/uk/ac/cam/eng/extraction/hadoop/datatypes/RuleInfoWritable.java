@@ -10,7 +10,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapWritable;
-import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
@@ -34,13 +34,12 @@ public class RuleInfoWritable implements Writable {
      * it is important to use a MapWritable as opposed to a SortedMapWritable
      * for speed
      */
-    private MapWritable binaryProvenance;
+    private MapWritable provenance;
 
     public RuleInfoWritable() {
         numberUnalignedSourceWords = new IntWritable();
         numberUnalignedTargetWords = new IntWritable();
-
-        binaryProvenance = new MapWritable();
+        provenance = new MapWritable();
     }
 
     public RuleInfoWritable(Rule r) {
@@ -48,16 +47,14 @@ public class RuleInfoWritable implements Writable {
                 new IntWritable(r.getNumberUnalignedSourceWords());
         numberUnalignedTargetWords =
                 new IntWritable(r.getNumberUnalignedTargetWords());
-        binaryProvenance = new MapWritable();
     }
 
-    public void setBinaryProvenance(IntWritable provenanceId) {
-        binaryProvenance.put(provenanceId,
-                NullWritable.get());
+    public void setProvenance(MapWritable provenance) {
+        this.provenance = provenance;
     }
 
-    public MapWritable getBinaryProvenance() {
-        return binaryProvenance;
+    public MapWritable getProvenance() {
+        return provenance;
     }
 
     public int getNumberUnalignedSourceWords() {
@@ -68,6 +65,14 @@ public class RuleInfoWritable implements Writable {
         return numberUnalignedTargetWords.get();
     }
 
+    public boolean hasProvenance(String prov) {
+        Text key = new Text(prov);
+        if (provenance.containsKey(key)) {
+            return true;
+        }
+        return false;
+    }
+
     /*
      * (non-Javadoc)
      * @see org.apache.hadoop.io.Writable#write(java.io.DataOutput)
@@ -76,7 +81,7 @@ public class RuleInfoWritable implements Writable {
     public void write(DataOutput out) throws IOException {
         numberUnalignedSourceWords.write(out);
         numberUnalignedTargetWords.write(out);
-        binaryProvenance.write(out);
+        provenance.write(out);
     }
 
     /*
@@ -87,6 +92,6 @@ public class RuleInfoWritable implements Writable {
     public void readFields(DataInput in) throws IOException {
         numberUnalignedSourceWords.readFields(in);
         numberUnalignedTargetWords.readFields(in);
-        binaryProvenance.readFields(in);
+        provenance.readFields(in);
     }
 }
