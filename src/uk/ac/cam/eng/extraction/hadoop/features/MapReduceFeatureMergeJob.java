@@ -41,7 +41,10 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
 
     public Job getJob(Configuration conf) throws IOException {
         String name = "merge";
-        Job job = new Job(conf, name);
+        // add some memory
+        Configuration newconf = new Configuration(conf);
+        newconf.set("mapred.reduce.child.java.opts", "-Xmx8000m");
+        Job job = new Job(newconf, name);
         job.setJarByClass(MapReduceFeatureMergeJob.class);
         job.setMapOutputKeyClass(BytesWritable.class);
         job.setMapOutputValueClass(GeneralPairWritable2.class);
@@ -51,6 +54,8 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
         job.setReducerClass(MapReduceFeatureMergeReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        // only one reduce task to keep sorted before dumping to hfile
+        job.setNumReduceTasks(1);
         String mapreduceFeatures = conf.get("mapreduce_features");
         String[] mapreduceFeaturesArray = mapreduceFeatures.split(",");
         for (String mapreduceFeature: mapreduceFeaturesArray) {
@@ -86,10 +91,10 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
             extends
             Mapper<RuleWritable, MapWritable, BytesWritable, GeneralPairWritable2> {
 
-        private static RuleWritable source = new RuleWritable();
-        private static BytesWritable sourceBytesWritable = new BytesWritable();
-        private static RuleWritable target = new RuleWritable();
-        private static GeneralPairWritable2 targetAndFeatures =
+        private RuleWritable source = new RuleWritable();
+        private BytesWritable sourceBytesWritable = new BytesWritable();
+        private RuleWritable target = new RuleWritable();
+        private GeneralPairWritable2 targetAndFeatures =
                 new GeneralPairWritable2();
 
         /*
@@ -120,7 +125,7 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
             Reducer<BytesWritable, GeneralPairWritable2, BytesWritable, ArrayWritable> {
 
         // static writables to avoid memory consumption
-        private static ArrayWritable targetsAndFeaturesOutputValue =
+        private ArrayWritable targetsAndFeaturesOutputValue =
                 new ArrayWritable(GeneralPairWritable3.class);
 
         /**

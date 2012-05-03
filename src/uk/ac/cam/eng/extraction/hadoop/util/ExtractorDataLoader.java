@@ -80,6 +80,8 @@ public class ExtractorDataLoader {
                 }
                 String[] parts = prevLine.split("\\s+");
                 sentence = Integer.parseInt(parts[1]);
+                // clear provenance beforehand
+                provenance.clear();
                 for (int i = 2; i < parts.length; i++) {
                     provenance.add(parts[i]);
                 }

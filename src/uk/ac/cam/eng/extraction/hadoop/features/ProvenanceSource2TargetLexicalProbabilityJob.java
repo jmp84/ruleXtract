@@ -5,15 +5,12 @@
 package uk.ac.cam.eng.extraction.hadoop.features;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapWritable;
-import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -46,7 +43,7 @@ public class ProvenanceSource2TargetLexicalProbabilityJob implements
     public Job getJob(Configuration conf) throws IOException {
         // add some memory to load the lex models
         // mapreduce.reduce.java.opts=-Xmx4000m
-        // use a copy of the conf just in case this conf is reused elsewhere
+        // use a copy of the conf because conf reused in other features
         Configuration newconf = new Configuration(conf);
         newconf.set("provenance", provenance);
         // this is 1.0.* syntax
@@ -85,6 +82,8 @@ public class ProvenanceSource2TargetLexicalProbabilityJob implements
          */
         private int featureStartIndex;
 
+        private Source2TargetLexicalProbability2 lexModel;
+
         /*
          * (non-Javadoc)
          * @see
@@ -92,10 +91,14 @@ public class ProvenanceSource2TargetLexicalProbabilityJob implements
          * .Reducer.Context)
          */
         @Override
-        protected void setup(Context context) {
+        protected void setup(Context context) throws IOException {
             Configuration conf = context.getConfiguration();
             provenance = conf.get("provenance");
             featureStartIndex = conf.getInt(name + "-" + provenance, 0);
+            String modelFile =
+                    conf.get("provenance_lexical_model") + "/" + provenance
+                            + "-lex.s2t.gz";
+            lexModel = new Source2TargetLexicalProbability2(modelFile);
         }
 
         /*
@@ -108,28 +111,36 @@ public class ProvenanceSource2TargetLexicalProbabilityJob implements
         public void run(Context context) throws IOException,
                 InterruptedException {
             setup(context);
-            List<RuleWritable> reducerRules = new ArrayList<>();
-            Configuration conf = context.getConfiguration();
-            while (context.nextKey()) {
-                // reduce(context.getCurrentKey(), context.getValues(),
-                // context);
-                reducerRules.add(WritableUtils.clone(context.getCurrentKey(),
-                        conf));
-            }
-            String modelFile =
-                    conf.get("provenance_lexical_model") + "/" + provenance
-                            + "-lex.s2t.gz";
-            Source2TargetLexicalProbability lexModel =
-                    new Source2TargetLexicalProbability(modelFile, reducerRules);
+            // List<RuleWritable> reducerRules = new ArrayList<>();
+            // Configuration conf = context.getConfiguration();
             MapWritable features = new MapWritable();
             IntWritable featureIndex = new IntWritable(featureStartIndex);
             DoubleWritable featureValue = new DoubleWritable();
-            for (RuleWritable rule: reducerRules) {
+            while (context.nextKey()) {
+                // reduce(context.getCurrentKey(), context.getValues(),
+                // context);
+                // reducerRules.add(WritableUtils.clone(context.getCurrentKey(),
+                // conf));
+                RuleWritable rule = context.getCurrentKey();
                 double lexProb = lexModel.value(rule);
                 featureValue.set(lexProb);
                 features.put(featureIndex, featureValue);
                 context.write(rule, features);
             }
+            // String modelFile =
+            // conf.get("provenance_lexical_model") + "/" + provenance
+            // + "-lex.s2t.gz";
+            // Source2TargetLexicalProbability lexModel =
+            // new Source2TargetLexicalProbability(modelFile, reducerRules);
+            // MapWritable features = new MapWritable();
+            // IntWritable featureIndex = new IntWritable(featureStartIndex);
+            // DoubleWritable featureValue = new DoubleWritable();
+            // for (RuleWritable rule: reducerRules) {
+            // double lexProb = lexModel.value(rule);
+            // featureValue.set(lexProb);
+            // features.put(featureIndex, featureValue);
+            // context.write(rule, features);
+            // }
             cleanup(context);
         }
     }

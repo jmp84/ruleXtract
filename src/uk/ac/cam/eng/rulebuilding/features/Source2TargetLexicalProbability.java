@@ -55,6 +55,7 @@ public class Source2TargetLexicalProbability implements Feature {
         // logMinSum in case the ascii constraint is actually part of the corpus
         Map<Integer, Number> res = new HashMap<>();
         int featureIndex = conf.getInt(featureName, 0);
+        // TODO the ==1 should be >= 1 because there are multiword ascii rules
         if (r.getTargetWords().size() == 1 && r.getTargetWords().get(0) != 0) {
             IntWritable mapreduceFeatureIndex =
                     new IntWritable(conf.getInt(featureName + "-mapreduce", 0));

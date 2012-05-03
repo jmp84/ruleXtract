@@ -43,8 +43,11 @@ public class ProvenanceSource2TargetProbabilityJob implements MapReduceFeature {
     }
 
     public Job getJob(Configuration conf) throws IOException {
-        conf.set("provenance", provenance);
-        Job job = new Job(conf, name + "-" + provenance);
+        // set the provenance to the conf
+        // use a copy of the conf because conf reused in other features
+        Configuration newconf = new Configuration(conf);
+        newconf.set("provenance", provenance);
+        Job job = new Job(newconf, name + "-" + provenance);
         job.setJarByClass(ProvenanceSource2TargetProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(PairWritable.class);
@@ -100,16 +103,7 @@ public class ProvenanceSource2TargetProbabilityJob implements MapReduceFeature {
                 sourceMarginal.makeSourceMarginal(key);
                 targetMarginal.makeTargetMarginal(key);
                 targetAndCount.set(targetMarginal, one);
-                try {
-                    context.write(sourceMarginal, targetAndCount);
-                }
-                catch (Exception e) {
-                    System.err.println("key: " + key);
-                    System.err.println("sourceMarginal: " + sourceMarginal);
-                    System.err.println("targetMarginal: " + targetMarginal);
-                    e.printStackTrace();
-                    System.exit(1);
-                }
+                context.write(sourceMarginal, targetAndCount);
             }
         }
     }

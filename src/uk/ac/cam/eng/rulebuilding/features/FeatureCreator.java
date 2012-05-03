@@ -31,7 +31,7 @@ public class FeatureCreator {
     // configuration (features, feature indices)
     private Configuration conf;
 
-    public FeatureCreator(Configuration conf, List<GeneralPairWritable3> rules) {
+    public FeatureCreator(Configuration conf) {
         this.conf = conf;
         features = new HashMap<String, Feature>();
         features.put("source2target_probability",
@@ -51,44 +51,23 @@ public class FeatureCreator {
                 new Target2SourceLexicalProbability());
         features.put("unaligned_source_words", new UnalignedSourceWords());
         features.put("unaligned_target_words", new UnalignedTargetWords());
-        // String rulePatternAndFeaturesFile =
-        // conf.get("rulepattern_and_features");
-        // if (rulePatternAndFeaturesFile != null) {
-        // features.put("source2target_pattern_probability",
-        // new Source2TargetPatternProbability(
-        // rulePatternAndFeaturesFile));
-        // features.put("target2source_pattern_probability",
-        // new Target2SourcePatternProbability(
-        // rulePatternAndFeaturesFile));
-        // }
-        // String provenancesString = conf.get("provenances");
-        // String[] provenances = null;
-        // if (provenancesString != null) {
-        // provenances = provenancesString.split(",");
-        // }
-        // String source2targetLexicalModelsString =
-        // conf.get("s2t_lexical_models");
-        // String target2sourceLexicalModelsString =
-        // conf.get("t2s_lexical_models");
-        // String[] source2targetLexicalModels = null;
-        // String[] target2sourceLexicalModels = null;
-        // if (source2targetLexicalModelsString != null) {
-        // source2targetLexicalModels =
-        // source2targetLexicalModelsString.split(",");
-        // }
-        // if (target2sourceLexicalModelsString != null) {
-        // target2sourceLexicalModels =
-        // target2sourceLexicalModelsString.split(",");
-        // }
-        // if (provenances != null) {
-        // features.put("provenance_translation", new ProvenanceTranslation(
-        // provenances));
-        // if (source2targetLexicalModels != null
-        // && target2sourceLexicalModels != null)
-        // features.put("provenance_lexical", new ProvenanceLexical(
-        // source2targetLexicalModels, target2sourceLexicalModels,
-        // rules));
-        // }
+        features.put("binary_provenance", new BinaryProvenance());
+        String provenance = conf.get("provenance");
+        if (provenance != null) {
+            String[] provenances = provenance.split(",");
+            for (String prov: provenances) {
+                features.put("provenance_source2target_probability-" + prov,
+                        new ProvenanceSource2TargetProbability(prov));
+                features.put("provenance_target2source_probability-" + prov,
+                        new ProvenanceTarget2SourceProbability(prov));
+                features.put("provenance_source2target_lexical_probability-"
+                        + prov, new ProvenanceSource2TargetLexicalProbability(
+                        prov));
+                features.put("provenance_target2source_lexical_probability-"
+                        + prov, new ProvenanceTarget2SourceLexicalProbability(
+                        prov));
+            }
+        }
         String selectedFeaturesString = conf.get("features");
         if (selectedFeaturesString == null) {
             System.err.println("Missing property " +
@@ -101,10 +80,33 @@ public class FeatureCreator {
         // conf to be overwritten before being used.
         int featureIndex = 0, nextFeatureIndex = 0;
         for (String selectedFeature: selectedFeatures) {
-            featureIndex = nextFeatureIndex;
-            nextFeatureIndex +=
-                    features.get(selectedFeature).getNumberOfFeatures(conf);
-            conf.setInt(selectedFeature, featureIndex);
+            if (selectedFeature.equals(
+                    "provenance_source2target_lexical_probability")
+                    || selectedFeature
+                            .equals("provenance_target2source_lexical_probability")
+                    || selectedFeature
+                            .equals("provenance_source2target_probability")
+                    || selectedFeature
+                            .equals("provenance_target2source_probability")) {
+                for (String prov: conf.get("provenance").split(",")) {
+                    featureIndex = nextFeatureIndex;
+                    nextFeatureIndex +=
+                            features.get(selectedFeature + "-" + prov)
+                                    .getNumberOfFeatures(conf);
+                    conf.setInt(selectedFeature + "-" + prov,
+                            featureIndex);
+                }
+            }
+            else {
+                featureIndex = nextFeatureIndex;
+                nextFeatureIndex +=
+                        features.get(selectedFeature).getNumberOfFeatures(conf);
+                // TODO change this (maybe something like
+                // conf.setInt(selectedFeature+"-"+"startindex", featureIndex))
+                conf.setInt(selectedFeature + "-nbfeats",
+                        features.get(selectedFeature).getNumberOfFeatures(conf));
+                conf.setInt(selectedFeature, featureIndex);
+            }
         }
         String mapreduceFeaturesString = conf.get("mapreduce_features");
         if (mapreduceFeaturesString == null) {
@@ -113,16 +115,37 @@ public class FeatureCreator {
             System.exit(1);
         }
         String[] mapreduceFeatures = mapreduceFeaturesString.split(",");
-        MapReduceFeatureCreator featureCreator = new MapReduceFeatureCreator();
+        MapReduceFeatureCreator featureCreator =
+                new MapReduceFeatureCreator(conf);
         featureIndex = 0;
         nextFeatureIndex = 0;
         for (String mapreduceFeature: mapreduceFeatures) {
-            featureIndex = nextFeatureIndex;
-            MapReduceFeature featureJob =
-                    featureCreator.getFeatureJob(mapreduceFeature);
-            nextFeatureIndex += featureJob.getNumberOfFeatures(conf);
-            // add "-mapreduce" to avoid name clashing
-            conf.setInt(mapreduceFeature + "-mapreduce", featureIndex);
+            if (mapreduceFeature.equals(
+                    "provenance_source2target_lexical_probability")
+                    || mapreduceFeature
+                            .equals("provenance_target2source_lexical_probability")
+                    || mapreduceFeature
+                            .equals("provenance_source2target_probability")
+                    || mapreduceFeature
+                            .equals("provenance_target2source_probability")) {
+                for (String prov: conf.get("provenance").split(",")) {
+                    featureIndex = nextFeatureIndex;
+                    MapReduceFeature featureJob =
+                            featureCreator.getFeatureJob(mapreduceFeature + "-"
+                                    + prov);
+                    nextFeatureIndex += featureJob.getNumberOfFeatures(conf);
+                    conf.setInt(mapreduceFeature + "-" + prov + "-mapreduce",
+                            featureIndex);
+                }
+            }
+            else {
+                featureIndex = nextFeatureIndex;
+                MapReduceFeature featureJob =
+                        featureCreator.getFeatureJob(mapreduceFeature);
+                nextFeatureIndex += featureJob.getNumberOfFeatures(conf);
+                // add "-mapreduce" to avoid name clashing
+                conf.setInt(mapreduceFeature + "-mapreduce", featureIndex);
+            }
         }
     }
 
@@ -152,24 +175,63 @@ public class FeatureCreator {
         res.setFirst(ruleAndMapReduceFeatures.getFirst());
         SortedMapWritable allFeatures = new SortedMapWritable();
         for (String featureName: selectedFeatures) {
-            Map<Integer, Number> features =
-                    createFeatures(featureName, ruleAndMapReduceFeatures);
-            for (Integer featureIndex: features.keySet()) {
-                IntWritable featureIndexWritable =
-                        new IntWritable(featureIndex);
-                if (allFeatures.containsKey(featureIndexWritable)) {
-                    System.err.println("ERROR: feature index already exists: "
-                            + featureIndex);
-                    System.exit(1);
+            if (featureName.equals(
+                    "provenance_source2target_lexical_probability")
+                    || featureName
+                            .equals("provenance_target2source_lexical_probability")
+                    || featureName
+                            .equals("provenance_source2target_probability")
+                    || featureName
+                            .equals("provenance_target2source_probability")) {
+                for (String provenance: conf.get("provenance").split(",")) {
+                    Map<Integer, Number> features =
+                            createFeatures(featureName + "-" + provenance,
+                                    ruleAndMapReduceFeatures);
+                    for (Integer featureIndex: features.keySet()) {
+                        IntWritable featureIndexWritable =
+                                new IntWritable(featureIndex);
+                        if (allFeatures.containsKey(featureIndexWritable)) {
+                            System.err.println(
+                                    "ERROR: feature index already exists: "
+                                            + featureIndex);
+                            System.exit(1);
+                        }
+                        Number feature = features.get(featureIndex);
+                        if (feature.getClass() == Integer.class) {
+                            allFeatures.put(featureIndexWritable,
+                                    new IntWritable(
+                                            (Integer) feature));
+                        }
+                        else if (feature.getClass() == Double.class) {
+                            allFeatures.put(featureIndexWritable,
+                                    new DoubleWritable(
+                                            (Double) feature));
+                        }
+                    }
                 }
-                Number feature = features.get(featureIndex);
-                if (feature.getClass() == Integer.class) {
-                    allFeatures.put(featureIndexWritable, new IntWritable(
-                            (Integer) feature));
-                }
-                else if (feature.getClass() == Double.class) {
-                    allFeatures.put(featureIndexWritable, new DoubleWritable(
-                            (Double) feature));
+            }
+            else {
+                Map<Integer, Number> features =
+                        createFeatures(featureName, ruleAndMapReduceFeatures);
+                for (Integer featureIndex: features.keySet()) {
+                    IntWritable featureIndexWritable =
+                            new IntWritable(featureIndex);
+                    if (allFeatures.containsKey(featureIndexWritable)) {
+                        System.err
+                                .println("ERROR: feature index already exists: "
+                                        + featureIndex);
+                        System.exit(1);
+                    }
+                    Number feature = features.get(featureIndex);
+                    if (feature.getClass() == Integer.class) {
+                        allFeatures.put(featureIndexWritable, new IntWritable(
+                                (Integer) feature));
+                    }
+                    else if (feature.getClass() == Double.class) {
+                        allFeatures.put(featureIndexWritable,
+                                new DoubleWritable(
+                                        (Double) feature));
+                    }
                 }
             }
         }
@@ -183,25 +245,64 @@ public class FeatureCreator {
         res.setFirst(asciiOovDeletionRule.getFirst());
         SortedMapWritable allFeatures = new SortedMapWritable();
         for (String featureName: selectedFeatures) {
-            Map<Integer, Number> features =
-                    createFeatureAsciiOovDeletion(featureName,
-                            asciiOovDeletionRule);
-            for (Integer featureIndex: features.keySet()) {
-                IntWritable featureIndexWritable =
-                        new IntWritable(featureIndex);
-                if (allFeatures.containsKey(featureIndexWritable)) {
-                    System.err.println("ERROR: feature index already exists: "
-                            + featureIndex);
-                    System.exit(1);
+            if (featureName.equals(
+                    "provenance_source2target_lexical_probability")
+                    || featureName
+                            .equals("provenance_target2source_lexical_probability")
+                    || featureName
+                            .equals("provenance_source2target_probability")
+                    || featureName
+                            .equals("provenance_target2source_probability")) {
+                for (String provenance: conf.get("provenance").split(",")) {
+                    Map<Integer, Number> features =
+                            createFeatureAsciiOovDeletion(featureName + "-"
+                                    + provenance, asciiOovDeletionRule);
+                    for (Integer featureIndex: features.keySet()) {
+                        IntWritable featureIndexWritable =
+                                new IntWritable(featureIndex);
+                        if (allFeatures.containsKey(featureIndexWritable)) {
+                            System.err.println(
+                                    "ERROR: feature index already exists: "
+                                            + featureIndex);
+                            System.exit(1);
+                        }
+                        Number feature = features.get(featureIndex);
+                        if (feature.getClass() == Integer.class) {
+                            allFeatures.put(featureIndexWritable,
+                                    new IntWritable(
+                                            (Integer) feature));
+                        }
+                        else if (feature.getClass() == Double.class) {
+                            allFeatures.put(featureIndexWritable,
+                                    new DoubleWritable(
+                                            (Double) feature));
+                        }
+                    }
                 }
-                Number feature = features.get(featureIndex);
-                if (feature.getClass() == Integer.class) {
-                    allFeatures.put(featureIndexWritable, new IntWritable(
-                            (Integer) feature));
-                }
-                else if (feature.getClass() == Double.class) {
-                    allFeatures.put(featureIndexWritable, new DoubleWritable(
-                            (Double) feature));
+            }
+            else {
+                Map<Integer, Number> features =
+                        createFeatureAsciiOovDeletion(featureName,
+                                asciiOovDeletionRule);
+                for (Integer featureIndex: features.keySet()) {
+                    IntWritable featureIndexWritable =
+                            new IntWritable(featureIndex);
+                    if (allFeatures.containsKey(featureIndexWritable)) {
+                        System.err
+                                .println("ERROR: feature index already exists: "
+                                        + featureIndex);
+                        System.exit(1);
+                    }
+                    Number feature = features.get(featureIndex);
+                    if (feature.getClass() == Integer.class) {
+                        allFeatures.put(featureIndexWritable, new IntWritable(
+                                (Integer) feature));
+                    }
+                    else if (feature.getClass() == Double.class) {
+                        allFeatures.put(featureIndexWritable,
+                                new DoubleWritable(
+                                        (Double) feature));
+                    }
                 }
             }
         }
@@ -215,24 +316,63 @@ public class FeatureCreator {
         res.setFirst(glueRule.getFirst());
         SortedMapWritable allFeatures = new SortedMapWritable();
         for (String featureName: selectedFeatures) {
-            Map<Integer, Number> features =
-                    createFeatureGlueRule(featureName, glueRule);
-            for (Integer featureIndex: features.keySet()) {
-                IntWritable featureIndexWritable =
-                        new IntWritable(featureIndex);
-                if (allFeatures.containsKey(featureIndexWritable)) {
-                    System.err.println("ERROR: feature index already exists: "
-                            + featureIndex);
-                    System.exit(1);
+            if (featureName.equals(
+                    "provenance_source2target_lexical_probability")
+                    || featureName
+                            .equals("provenance_target2source_lexical_probability")
+                    || featureName
+                            .equals("provenance_source2target_probability")
+                    || featureName
+                            .equals("provenance_target2source_probability")) {
+                for (String provenance: conf.get("provenance").split(",")) {
+                    Map<Integer, Number> features =
+                            createFeatureGlueRule(featureName + "-"
+                                    + provenance, glueRule);
+                    for (Integer featureIndex: features.keySet()) {
+                        IntWritable featureIndexWritable =
+                                new IntWritable(featureIndex);
+                        if (allFeatures.containsKey(featureIndexWritable)) {
+                            System.err.println(
+                                    "ERROR: feature index already exists: "
+                                            + featureIndex);
+                            System.exit(1);
+                        }
+                        Number feature = features.get(featureIndex);
+                        if (feature.getClass() == Integer.class) {
+                            allFeatures.put(featureIndexWritable,
+                                    new IntWritable(
+                                            (Integer) feature));
+                        }
+                        else if (feature.getClass() == Double.class) {
+                            allFeatures.put(featureIndexWritable,
+                                    new DoubleWritable(
+                                            (Double) feature));
+                        }
+                    }
                 }
-                Number feature = features.get(featureIndex);
-                if (feature.getClass() == Integer.class) {
-                    allFeatures.put(featureIndexWritable, new IntWritable(
-                            (Integer) feature));
-                }
-                else if (feature.getClass() == Double.class) {
-                    allFeatures.put(featureIndexWritable, new DoubleWritable(
-                            (Double) feature));
+            }
+            else {
+                Map<Integer, Number> features =
+                        createFeatureGlueRule(featureName, glueRule);
+                for (Integer featureIndex: features.keySet()) {
+                    IntWritable featureIndexWritable =
+                            new IntWritable(featureIndex);
+                    if (allFeatures.containsKey(featureIndexWritable)) {
+                        System.err
+                                .println("ERROR: feature index already exists: "
+                                        + featureIndex);
+                        System.exit(1);
+                    }
+                    Number feature = features.get(featureIndex);
+                    if (feature.getClass() == Integer.class) {
+                        allFeatures.put(featureIndexWritable, new IntWritable(
+                                (Integer) feature));
+                    }
+                    else if (feature.getClass() == Double.class) {
+                        allFeatures.put(featureIndexWritable,
+                                new DoubleWritable(
+                                        (Double) feature));
+                    }
                 }
             }
         }

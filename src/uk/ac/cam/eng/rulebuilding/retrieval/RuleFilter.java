@@ -27,6 +27,8 @@ import org.apache.hadoop.io.IntWritable;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
+import uk.ac.cam.eng.extraction.hadoop.features.MapReduceFeature;
+import uk.ac.cam.eng.extraction.hadoop.features.MapReduceFeatureCreator;
 
 /**
  * @author jmp84 This class filters rules according to constraints in a config
@@ -85,17 +87,49 @@ public class RuleFilter {
     // tables (default) or keep the union of the rules coming from the main
     // and provenance tables
     private boolean provenanceUnion = false;
-    private IntWritable source2targetProbabilityIndex;
-    private IntWritable target2sourceProbabilityIndex;
-    private IntWritable countIndex;
+    private Configuration conf;
 
     public RuleFilter(Configuration conf) {
-        int s2t = conf.getInt("source2target_probability-mapreduce", 0);
-        source2targetProbabilityIndex = new IntWritable(s2t);
-        countIndex = new IntWritable(s2t + 1);
-        target2sourceProbabilityIndex =
-                new IntWritable(conf.getInt(
-                        "target2source_probability-mapreduce", 0));
+        // TODO this part is repeated in several places. keep it in one place
+        String mapreduceFeaturesString = conf.get("mapreduce_features");
+        if (mapreduceFeaturesString == null) {
+            System.err.println("Missing property " +
+                    "'mapreduce_features' in the config");
+            System.exit(1);
+        }
+        String[] mapreduceFeatures = mapreduceFeaturesString.split(",");
+        MapReduceFeatureCreator featureCreator =
+                new MapReduceFeatureCreator(conf);
+        int featureIndex = 0, nextFeatureIndex = 0;
+        for (String mapreduceFeature: mapreduceFeatures) {
+            if (mapreduceFeature.equals(
+                    "provenance_source2target_lexical_probability")
+                    || mapreduceFeature
+                            .equals("provenance_target2source_lexical_probability")
+                    || mapreduceFeature
+                            .equals("provenance_source2target_probability")
+                    || mapreduceFeature
+                            .equals("provenance_target2source_probability")) {
+                for (String prov: conf.get("provenance").split(",")) {
+                    featureIndex = nextFeatureIndex;
+                    MapReduceFeature featureJob =
+                            featureCreator.getFeatureJob(mapreduceFeature + "-"
+                                    + prov);
+                    nextFeatureIndex += featureJob.getNumberOfFeatures(conf);
+                    conf.setInt(mapreduceFeature + "-" + prov + "-mapreduce",
+                            featureIndex);
+                }
+            }
+            else {
+                featureIndex = nextFeatureIndex;
+                MapReduceFeature featureJob =
+                        featureCreator.getFeatureJob(mapreduceFeature);
+                nextFeatureIndex += featureJob.getNumberOfFeatures(conf);
+                // add "-mapreduce" to avoid name clashing
+                conf.setInt(mapreduceFeature + "-mapreduce", featureIndex);
+            }
+        }
+        this.conf = conf;
     }
 
     // TODO use Properties instead
@@ -177,13 +211,19 @@ public class RuleFilter {
         Map<RuleWritable, Integer> indices = new HashMap<>();
         IntWritable countIndexWritable = new IntWritable(countIndex);
         for (int i = 0; i < listTargetAndProb.get().length; i++) {
-            targetsAndCounts.put(((GeneralPairWritable3) listTargetAndProb
-                    .get()[i]).getFirst(),
-                    ((IntWritable) ((GeneralPairWritable3) listTargetAndProb
-                            .get()[i]).getSecond().get(countIndexWritable))
-                            .get());
-            indices.put(((GeneralPairWritable3) listTargetAndProb.get()[i])
-                    .getFirst(), i);
+            // need to check existence of the key because sparse map
+            if (((GeneralPairWritable3) listTargetAndProb.get()[i]).getSecond()
+                    .containsKey(countIndexWritable)) {
+                targetsAndCounts
+                        .put(((GeneralPairWritable3) listTargetAndProb
+                                .get()[i]).getFirst(),
+                                ((IntWritable) ((GeneralPairWritable3) listTargetAndProb
+                                        .get()[i]).getSecond().get(
+                                        countIndexWritable))
+                                        .get());
+                indices.put(((GeneralPairWritable3) listTargetAndProb.get()[i])
+                        .getFirst(), i);
+            }
         }
         Map<RuleWritable, Integer> sortedMap = sortMapByValue(targetsAndCounts);
         GeneralPairWritable3[] valueRes =
@@ -199,7 +239,20 @@ public class RuleFilter {
     }
 
     public List<GeneralPairWritable3> filter(RuleWritable source,
-            ArrayWritable listTargetAndProb, IntWritable countIndex) {
+            ArrayWritable listTargetAndProb, String provenance) {
+        int s2tIndex =
+                provenance.equals("") ? conf.getInt(
+                        "source2target_probability-mapreduce", 0) : conf
+                        .getInt("provenance_source2target_probability-"
+                                + provenance + "-mapreduce", 0);
+        IntWritable source2targetProbabilityIndex = new IntWritable(s2tIndex);
+        int t2sIndex =
+                provenance.equals("") ? conf.getInt(
+                        "target2source_probability-mapreduce", 0) : conf
+                        .getInt("provenance_target2source_probability-"
+                                + provenance + "-mapreduce", 0);
+        IntWritable target2sourceProbabilityIndex = new IntWritable(t2sIndex);
+        IntWritable countIndex = new IntWritable(s2tIndex + 1);
         ArrayWritable listTargetAndProbSorted =
                 sortByCount(listTargetAndProb, countIndex.get());
         List<GeneralPairWritable3> res = new ArrayList<GeneralPairWritable3>();
@@ -223,7 +276,6 @@ public class RuleFilter {
         for (int i = 0; i < listTargetAndProbSorted.get().length; i++) {
             GeneralPairWritable3 targetAndProb =
                     (GeneralPairWritable3) listTargetAndProbSorted.get()[i];
-            // TODO replace hardcoded feature indices
             double source2targetProbability =
                     ((DoubleWritable) targetAndProb.getSecond().get(
                             source2targetProbabilityIndex)).get();
@@ -367,31 +419,19 @@ public class RuleFilter {
             ArrayWritable listTargetAndProb) {
         // TODO remove hard coded value
         if (!provenanceUnion) {
-            return filter(source, listTargetAndProb, countIndex);
+            return filter(source, listTargetAndProb, "");
         }
-        System.err.println("Provenance (dense) not implemented yet!");
-        System.exit(1);
         List<GeneralPairWritable3> res =
-                filter(source, listTargetAndProb, new IntWritable(1));
+                filter(source, listTargetAndProb, "");
         Set<RuleWritable> ruleSet = new HashSet<>();
         for (GeneralPairWritable3 mainRuleAndFeatures: res) {
             ruleSet.add(mainRuleAndFeatures.getFirst());
         }
-        int nbFeatures =
-                ((GeneralPairWritable3) listTargetAndProb.get()[0]).getSecond()
-                        .size();
-        // nbFeatures should be 5 + number_of_provenances*3
-        // this is because the main table has 5 features (s2t, t2s, count,
-        // src unaligned, trg unaligned) and the provenance tables have
-        // 3 features (s2t, t2s, count)
-        if (nbFeatures % 3 != 2) {
-            System.err.println("ERROR: wrong number of features in the HFile: "
-                    + nbFeatures);
-            System.exit(1);
-        }
-        for (int i = 7; i < nbFeatures; i += 3) {
+        // TODO use getStrings function elsewhere
+        String[] provenances = conf.getStrings("provenance");
+        for (String provenance: provenances) {
             List<GeneralPairWritable3> resProvenance =
-                    filter(source, listTargetAndProb, new IntWritable(i));
+                    filter(source, listTargetAndProb, provenance);
             for (GeneralPairWritable3 ruleAndFeatures: resProvenance) {
                 if (!ruleSet.contains(ruleAndFeatures.getFirst())) {
                     res.add(ruleAndFeatures);

@@ -30,6 +30,7 @@ import org.apache.hadoop.hbase.io.hfile.HFileScanner;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.SortedMapWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
@@ -218,8 +219,42 @@ public class RuleFileBuilder {
         Set<Integer> testVocab = getTestVocab();
         // read the HFile and select the rules matching the source phrases
         for (Rule asciiRule: asciiRules) {
-            res.add(new GeneralPairWritable3(new RuleWritable(asciiRule),
-                    new SortedMapWritable()));
+            RuleWritable ruleWritable =
+                    RuleWritable.makeSourceMarginal(asciiRule);
+            ruleWritable.setLeftHandSide(new Text("0"));
+            byte[] ruleBytes = object2ByteArray(ruleWritable);
+            int success = hfileScanner.seekTo(ruleBytes);
+            if (success != 0) { // did not found the source: add empty features
+                res.add(new GeneralPairWritable3(new RuleWritable(asciiRule),
+                        new SortedMapWritable()));
+            }
+            else { // found the source, look through the targets
+                ArrayWritable targetsAndFeatures =
+                        convertValueBytes(hfileScanner.getValue());
+                RuleWritable target =
+                        RuleWritable.makeTargetMarginal(asciiRule);
+                target.setLeftHandSide(new Text("0"));
+                boolean found = false;
+                for (int i = 0; i < targetsAndFeatures.get().length; i++) {
+                    GeneralPairWritable3 currentTargetAndFeatures =
+                            (GeneralPairWritable3) targetsAndFeatures.get()[i];
+                    RuleWritable currentTarget =
+                            currentTargetAndFeatures.getFirst();
+                    if (target.equals(currentTarget)) { // found the rule
+                        res.add(new GeneralPairWritable3(new RuleWritable(
+                                asciiRule), currentTargetAndFeatures
+                                .getSecond()));
+                        found = true;
+                        break;
+                    }
+                }
+                // did not found the rule, add empty features
+                if (!found) {
+                    res.add(new GeneralPairWritable3(
+                            new RuleWritable(asciiRule),
+                            new SortedMapWritable()));
+                }
+            }
         }
         for (Integer testWord: testVocab) {
             if (asciiVocab.contains(testWord)) {
@@ -228,7 +263,6 @@ public class RuleFileBuilder {
             List<Integer> source = new ArrayList<Integer>();
             source.add(testWord);
             Rule rule = new Rule(source, new ArrayList<Integer>());
-            // don't include the unaligned word info which is not there anyway
             RuleWritable ruleWritable = RuleWritable.makeSourceMarginal(rule);
             byte[] ruleBytes = object2ByteArray(ruleWritable);
             int success = hfileScanner.seekTo(ruleBytes);
@@ -282,10 +316,7 @@ public class RuleFileBuilder {
     public List<GeneralPairWritable3> getRulesWithFeatures(Configuration conf,
             List<GeneralPairWritable3> rules) throws IOException {
         List<GeneralPairWritable3> res = new ArrayList<>();
-        // lazy initialization of featureCreator
-        // call here rather than in the constructor because takes time to load
-        // the lexical models
-        featureCreator = new FeatureCreator(conf, rules);
+        featureCreator = new FeatureCreator(conf);
         List<GeneralPairWritable3> regularRulesWithFeatures =
                 featureCreator.createFeatures(rules);
         List<GeneralPairWritable3> asciiOovDeletionRules =

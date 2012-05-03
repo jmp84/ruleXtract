@@ -17,25 +17,33 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
 /**
  * @author jmp84
  */
-public class Target2SourceLexicalProbability implements Feature {
+public class ProvenanceTarget2SourceLexicalProbability implements Feature {
 
     private final static String featureName =
-            "target2source_lexical_probability";
+            "provenance_target2source_lexical_probability";
     private final static double logMinSum = -40;
+
+    private String provenance;
+
+    public ProvenanceTarget2SourceLexicalProbability(String provenance) {
+        this.provenance = provenance;
+    }
 
     /*
      * (non-Javadoc)
      * @see
      * uk.ac.cam.eng.rulebuilding.features.Feature#value(uk.ac.cam.eng.extraction
-     * .datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
+     * .datatypes.Rule, org.apache.hadoop.io.SortedMapWritable,
+     * org.apache.hadoop.conf.Configuration)
      */
     @Override
     public Map<Integer, Number> value(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
         Map<Integer, Number> res = new HashMap<>();
         IntWritable mapreduceFeatureIndex =
-                new IntWritable(conf.getInt(featureName + "-mapreduce", 0));
-        int featureIndex = conf.getInt(featureName, 0);
+                new IntWritable(conf.getInt(featureName + "-" + provenance
+                        + "-mapreduce", 0));
+        int featureIndex = conf.getInt(featureName + "-" + provenance, 0);
         res.put(featureIndex,
                 ((DoubleWritable) mapReduceFeatures.get(mapreduceFeatureIndex))
                         .get());
@@ -46,7 +54,9 @@ public class Target2SourceLexicalProbability implements Feature {
      * (non-Javadoc)
      * @see
      * uk.ac.cam.eng.rulebuilding.features.Feature#valueAsciiOovDeletion(uk.
-     * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
+     * ac.cam.eng.extraction.datatypes.Rule,
+     * org.apache.hadoop.io.SortedMapWritable,
+     * org.apache.hadoop.conf.Configuration)
      */
     @Override
     public Map<Integer, Number> valueAsciiOovDeletion(Rule r,
@@ -54,16 +64,14 @@ public class Target2SourceLexicalProbability implements Feature {
         // if ascii rule, return the usual value. this can be different than
         // logMinSum in case the ascii constraint is actually part of the corpus
         Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName, 0);
-        // TODO the ==1 should be >= 1 because there are multiword ascii rules
+        int featureIndex = conf.getInt(featureName + "-" + provenance, 0);
         if (r.getTargetWords().size() == 1 && r.getTargetWords().get(0) != 0) {
             IntWritable mapreduceFeatureIndex =
-                    new IntWritable(conf.getInt(featureName + "-mapreduce", 0));
+                    new IntWritable(conf.getInt(featureName + "-" + provenance
+                            + "-mapreduce", 0));
             if (mapReduceFeatures.containsKey(mapreduceFeatureIndex)) {
-                res.put(featureIndex,
-                        ((DoubleWritable) mapReduceFeatures
-                                .get(mapreduceFeatureIndex))
-                                .get());
+                res.put(featureIndex, ((DoubleWritable) mapReduceFeatures
+                        .get(mapreduceFeatureIndex)).get());
             }
             else {
                 res.put(featureIndex, logMinSum);
@@ -77,13 +85,14 @@ public class Target2SourceLexicalProbability implements Feature {
     /*
      * (non-Javadoc)
      * @see uk.ac.cam.eng.rulebuilding.features.Feature#valueGlue(uk.ac.cam.eng.
-     * extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
+     * extraction.datatypes.Rule, org.apache.hadoop.io.SortedMapWritable,
+     * org.apache.hadoop.conf.Configuration)
      */
     @Override
     public Map<Integer, Number> valueGlue(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
         Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName, 0);
+        int featureIndex = conf.getInt(featureName + "-" + provenance, 0);
         res.put(featureIndex, 0);
         return res;
     }

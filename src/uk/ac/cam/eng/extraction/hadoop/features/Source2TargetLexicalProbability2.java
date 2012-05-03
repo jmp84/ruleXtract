@@ -10,10 +10,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
@@ -23,32 +21,14 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
  * @author jmp84 Helper class for Source2TargetProbabilityReducer. Computes the
  *         source-to-target lexical probability.
  */
-public class Source2TargetLexicalProbability {
+public class Source2TargetLexicalProbability2 {
 
     private final double minSum = 4.24e-18; // exp(-40)
 
-    // TODO change this to have the key to be a pair of integers
     private Map<Integer, Map<Integer, Double>> model;
 
-    private Set<Integer>
-            getVocabulary(List<RuleWritable> rules, boolean source) {
-        Set<Integer> res = new HashSet<Integer>();
-        res.add(0); // null word
-        for (RuleWritable rule: rules) {
-            Rule r = new Rule(rule);
-            List<Integer> words =
-                    source ? r.getSourceWords() : r.getTargetWords();
-            for (int word: words) {
-                res.add(word);
-            }
-        }
-        return res;
-    }
-
-    public Source2TargetLexicalProbability(String modelFile,
-            List<RuleWritable> rules) throws FileNotFoundException, IOException {
-        Set<Integer> sourceVocabulary = getVocabulary(rules, true);
-        Set<Integer> targetVocabulary = getVocabulary(rules, false);
+    public Source2TargetLexicalProbability2(String modelFile)
+            throws FileNotFoundException, IOException {
         model = new HashMap<Integer, Map<Integer, Double>>();
         try (BufferedReader br =
                 new BufferedReader(new InputStreamReader(new GZIPInputStream(
@@ -64,10 +44,6 @@ public class Source2TargetLexicalProbability {
                 int sourceWord = Integer.parseInt(parts[0]);
                 int targetWord = Integer.parseInt(parts[1]);
                 double model1Probability = Double.parseDouble(parts[2]);
-                if (!sourceVocabulary.contains(sourceWord)
-                        || !targetVocabulary.contains(targetWord)) {
-                    continue;
-                }
                 Map<Integer, Double> value = null;
                 if (model.containsKey(sourceWord)) {
                     value = model.get(sourceWord);

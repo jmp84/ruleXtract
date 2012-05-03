@@ -5,15 +5,12 @@
 package uk.ac.cam.eng.extraction.hadoop.features;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.MapWritable;
-import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -43,7 +40,7 @@ public class Target2SourceLexicalProbabilityJob implements MapReduceFeature {
         Configuration newconf = new Configuration(conf);
         // this is 1.0.* syntax
         // in the future it will be mapreduce.reduce.java.opts
-        newconf.set("mapred.reduce.child.java.opts", "-Xmx4000m");
+        newconf.set("mapred.reduce.child.java.opts", "-Xmx8000m");
         Job job = new Job(newconf, name);
         job.setJarByClass(Target2SourceLexicalProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
@@ -74,6 +71,8 @@ public class Target2SourceLexicalProbabilityJob implements MapReduceFeature {
          */
         private static int featureStartIndex;
 
+        private Target2SourceLexicalProbability2 lexModel;
+
         /*
          * (non-Javadoc)
          * @see
@@ -81,9 +80,11 @@ public class Target2SourceLexicalProbabilityJob implements MapReduceFeature {
          * .Reducer.Context)
          */
         @Override
-        protected void setup(Context context) {
+        protected void setup(Context context) throws IOException {
             Configuration conf = context.getConfiguration();
             featureStartIndex = conf.getInt(name, 0);
+            String modelFile = conf.get("target2source_lexical_model");
+            lexModel = new Target2SourceLexicalProbability2(modelFile);
         }
 
         /*
@@ -96,24 +97,32 @@ public class Target2SourceLexicalProbabilityJob implements MapReduceFeature {
         public void run(Context context) throws IOException,
                 InterruptedException {
             setup(context);
-            List<RuleWritable> reducerRules = new ArrayList<>();
-            Configuration conf = context.getConfiguration();
-            while (context.nextKey()) {
-                reducerRules.add(WritableUtils.clone(context.getCurrentKey(),
-                        conf));
-            }
-            String modelFile = conf.get("target2source_lexical_model");
-            Target2SourceLexicalProbability lexModel =
-                    new Target2SourceLexicalProbability(modelFile, reducerRules);
+            // List<RuleWritable> reducerRules = new ArrayList<>();
+            // Configuration conf = context.getConfiguration();
             MapWritable features = new MapWritable();
             IntWritable featureIndex = new IntWritable(featureStartIndex);
             DoubleWritable featureValue = new DoubleWritable();
-            for (RuleWritable rule: reducerRules) {
+            while (context.nextKey()) {
+                // reducerRules.add(WritableUtils.clone(context.getCurrentKey(),
+                // conf));
+                RuleWritable rule = context.getCurrentKey();
                 double lexProb = lexModel.value(rule);
                 featureValue.set(lexProb);
                 features.put(featureIndex, featureValue);
                 context.write(rule, features);
             }
+            // String modelFile = conf.get("target2source_lexical_model");
+            // Target2SourceLexicalProbability lexModel =
+            // new Target2SourceLexicalProbability(modelFile, reducerRules);
+            // MapWritable features = new MapWritable();
+            // IntWritable featureIndex = new IntWritable(featureStartIndex);
+            // DoubleWritable featureValue = new DoubleWritable();
+            // for (RuleWritable rule: reducerRules) {
+            // double lexProb = lexModel.value(rule);
+            // featureValue.set(lexProb);
+            // features.put(featureIndex, featureValue);
+            // context.write(rule, features);
+            // }
             cleanup(context);
         }
     }

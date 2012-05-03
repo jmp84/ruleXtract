@@ -68,7 +68,6 @@ public class GeneralPairWritable3 implements Writable {
 
     /*
      * (non-Javadoc)
-     * 
      * @see org.apache.hadoop.io.Writable#write(java.io.DataOutput)
      */
     @Override
@@ -79,7 +78,6 @@ public class GeneralPairWritable3 implements Writable {
 
     /*
      * (non-Javadoc)
-     * 
      * @see org.apache.hadoop.io.Writable#readFields(java.io.DataInput)
      */
     @Override

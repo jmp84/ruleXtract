@@ -44,8 +44,11 @@ public class ProvenanceTarget2SourceProbabilityJob implements MapReduceFeature {
     }
 
     public Job getJob(Configuration conf) throws IOException {
-        conf.set("provenance", provenance);
-        Job job = new Job(conf, name + "-" + provenance);
+        // set the provenance to the conf
+        // use a copy of the conf because conf reused in other features
+        Configuration newconf = new Configuration(conf);
+        newconf.set("provenance", provenance);
+        Job job = new Job(newconf, name + "-" + provenance);
         job.setJarByClass(ProvenanceTarget2SourceProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(PairWritable.class);

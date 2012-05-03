@@ -105,10 +105,23 @@ public class BinaryProvenanceJob implements MapReduceFeature {
             for (RuleInfoWritable ruleInfoWritable: values) {
                 for (Writable provenance: ruleInfoWritable.getProvenance()
                         .keySet()) {
-                    IntWritable featureIndex =
-                            new IntWritable(featureStartIndex
-                                    + ((IntWritable) provenance).get());
-                    features.put(featureIndex, one);
+                    // provenance can be either a string (for example to
+                    // indicate a genre/collection provenance like nw, web,
+                    // etc.) or an integer (for example to indicate a
+                    // provenance like training instance id)
+                    try {
+                        int featureIndexInt =
+                                Integer.parseInt(provenance.toString());
+                        IntWritable featureIndex =
+                                new IntWritable(featureStartIndex
+                                        + featureIndexInt);
+                        features.put(featureIndex, one);
+                    }
+                    catch (NumberFormatException e) {
+                        // the provenance is not an integer, continue to the
+                        // next provenance
+                        continue;
+                    }
                 }
             }
             context.write(key, features);

@@ -85,6 +85,9 @@ public class Retrieval extends Configured implements Tool {
             Writable key = new GeneralPairWritable3();
             while (reader.next(key)) {
                 rules.add((GeneralPairWritable3) WritableUtils.clone(key, conf));
+                // we need to clear the map containing the mapreduce features,
+                // otherwise the map becomes dense instead of staying sparse
+                ((GeneralPairWritable3) key).getSecond().clear();
             }
             reader.close();
         }

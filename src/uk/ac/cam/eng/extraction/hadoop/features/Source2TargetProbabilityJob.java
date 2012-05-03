@@ -76,10 +76,12 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
         @Override
         protected void map(RuleWritable key, RuleInfoWritable value,
                 Context context) throws IOException, InterruptedException {
-            sourceMarginal.makeSourceMarginal(key);
-            targetMarginal.makeTargetMarginal(key);
-            targetAndCount.set(targetMarginal, one);
-            context.write(sourceMarginal, targetAndCount);
+            if (value.hasProvenance("main")) {
+                sourceMarginal.makeSourceMarginal(key);
+                targetMarginal.makeTargetMarginal(key);
+                targetAndCount.set(targetMarginal, one);
+                context.write(sourceMarginal, targetAndCount);
+            }
         }
     }
 

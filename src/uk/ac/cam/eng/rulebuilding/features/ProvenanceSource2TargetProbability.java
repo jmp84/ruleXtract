@@ -17,28 +17,40 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
 /**
  * @author jmp84
  */
-public class Target2SourceLexicalProbability implements Feature {
+public class ProvenanceSource2TargetProbability implements Feature {
 
     private final static String featureName =
-            "target2source_lexical_probability";
-    private final static double logMinSum = -40;
+            "provenance_source2target_probability";
+    // TODO add this to the config
+    private final static double defaultS2t = -4.7;
+
+    private String provenance;
+
+    public ProvenanceSource2TargetProbability(String provenance) {
+        this.provenance = provenance;
+    }
 
     /*
      * (non-Javadoc)
      * @see
      * uk.ac.cam.eng.rulebuilding.features.Feature#value(uk.ac.cam.eng.extraction
-     * .datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
+     * .datatypes.Rule, org.apache.hadoop.io.SortedMapWritable,
+     * org.apache.hadoop.conf.Configuration)
      */
     @Override
     public Map<Integer, Number> value(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
         Map<Integer, Number> res = new HashMap<>();
         IntWritable mapreduceFeatureIndex =
-                new IntWritable(conf.getInt(featureName + "-mapreduce", 0));
-        int featureIndex = conf.getInt(featureName, 0);
-        res.put(featureIndex,
-                ((DoubleWritable) mapReduceFeatures.get(mapreduceFeatureIndex))
-                        .get());
+                new IntWritable(conf.getInt(featureName + "-" + provenance
+                        + "-mapreduce", 0));
+        double s2t = 0;
+        if (mapReduceFeatures.containsKey(mapreduceFeatureIndex)) {
+            s2t = ((DoubleWritable) mapReduceFeatures
+                    .get(mapreduceFeatureIndex)).get();
+        }
+        int featureIndex = conf.getInt(featureName + "-" + provenance, 0);
+        res.put(featureIndex, s2t == 0 ? defaultS2t : Math.log(s2t));
         return res;
     }
 
@@ -46,30 +58,15 @@ public class Target2SourceLexicalProbability implements Feature {
      * (non-Javadoc)
      * @see
      * uk.ac.cam.eng.rulebuilding.features.Feature#valueAsciiOovDeletion(uk.
-     * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
+     * ac.cam.eng.extraction.datatypes.Rule,
+     * org.apache.hadoop.io.SortedMapWritable,
+     * org.apache.hadoop.conf.Configuration)
      */
     @Override
     public Map<Integer, Number> valueAsciiOovDeletion(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        // if ascii rule, return the usual value. this can be different than
-        // logMinSum in case the ascii constraint is actually part of the corpus
         Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName, 0);
-        // TODO the ==1 should be >= 1 because there are multiword ascii rules
-        if (r.getTargetWords().size() == 1 && r.getTargetWords().get(0) != 0) {
-            IntWritable mapreduceFeatureIndex =
-                    new IntWritable(conf.getInt(featureName + "-mapreduce", 0));
-            if (mapReduceFeatures.containsKey(mapreduceFeatureIndex)) {
-                res.put(featureIndex,
-                        ((DoubleWritable) mapReduceFeatures
-                                .get(mapreduceFeatureIndex))
-                                .get());
-            }
-            else {
-                res.put(featureIndex, logMinSum);
-            }
-            return res;
-        }
+        int featureIndex = conf.getInt(featureName + "-" + provenance, 0);
         res.put(featureIndex, 0);
         return res;
     }
@@ -77,13 +74,14 @@ public class Target2SourceLexicalProbability implements Feature {
     /*
      * (non-Javadoc)
      * @see uk.ac.cam.eng.rulebuilding.features.Feature#valueGlue(uk.ac.cam.eng.
-     * extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
+     * extraction.datatypes.Rule, org.apache.hadoop.io.SortedMapWritable,
+     * org.apache.hadoop.conf.Configuration)
      */
     @Override
     public Map<Integer, Number> valueGlue(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
         Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName, 0);
+        int featureIndex = conf.getInt(featureName + "-" + provenance, 0);
         res.put(featureIndex, 0);
         return res;
     }
