@@ -40,8 +40,11 @@ public class Target2SourceLexicalProbabilityJob implements MapReduceFeature {
         Configuration newconf = new Configuration(conf);
         // this is 1.0.* syntax
         // in the future it will be mapreduce.reduce.java.opts
-        newconf.set("mapred.reduce.child.java.opts", "-Xmx8000m");
+        newconf.set("mapred.reduce.child.java.opts", "-Xmx20000m");
         Job job = new Job(newconf, name);
+        // we limit the number of reducers because loading the lex models
+        // takes a bit of memory
+        job.setNumReduceTasks(3);
         job.setJarByClass(Target2SourceLexicalProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(RuleInfoWritable.class);

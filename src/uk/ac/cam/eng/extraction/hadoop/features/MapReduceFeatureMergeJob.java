@@ -35,7 +35,7 @@ import uk.ac.cam.eng.extraction.hadoop.util.Util;
 /**
  * @author jmp84 MapReduce job that takes the output of all MapReduce features
  *         and converts them to an HFile that will be processed by the retrieval
- *         part
+ *         part TODO update doc
  */
 public class MapReduceFeatureMergeJob implements HadoopJob {
 
