@@ -42,6 +42,9 @@ public class SourcePatternInstancesSortJob implements HadoopJob {
         // sort sources in the same order as the keys of the HFile where we will
         // do a lookup.
         job.setSortComparatorClass(Bytes.ByteArrayComparator.class);
+        // only one reduce task so that the input to the rule retrieval job
+        // is not splitted too much
+        job.setNumReduceTasks(1);
         FileInputFormat.setInputPaths(job, conf.get("work_dir")
                 + "/source_pattern_instances");
         FileOutputFormat.setOutputPath(job, new Path(conf.get("work_dir")
