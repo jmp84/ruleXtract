@@ -6,6 +6,7 @@ package uk.ac.cam.eng.extraction.hadoop.util;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -15,10 +16,14 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileScanner;
+import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable3;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 import uk.ac.cam.eng.extraction.hadoop.extraction.Extraction;
+import uk.ac.cam.eng.rulebuilding.retrieval.RuleFilter;
 
 /**
  * @author jmp84 This class merges the features in an hfile by doing the dot
@@ -36,13 +41,12 @@ public class MergeHFileFeaturesAndFilter extends Configured implements Tool {
         Properties p = new Properties();
         try {
             p.load(new FileInputStream(configFile));
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
         Configuration conf = getConf();
-        for (String prop: p.stringPropertyNames()) {
+        for (String prop : p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
         String[] stringWeights = conf.getStrings("weights");
@@ -54,29 +58,36 @@ public class MergeHFileFeaturesAndFilter extends Configured implements Tool {
         for (int i = 0; i < stringWeights.length; i++) {
             weights[i] = Double.parseDouble(stringWeights[i]);
         }
+        RuleFilter ruleFilter = new RuleFilter(conf);
         String hfileInput = conf.get("hfile_input");
         String hfileOutput = conf.get("hfile_output");
         if (hfileInput == null || hfileOutput == null) {
-            System.err.println("ERROR: missing input ('hfile_input') or " +
-                    "output ('hfile_output') hfile property");
+            System.err.println("ERROR: missing input ('hfile_input') or "
+                    + "output ('hfile_output') hfile property");
             System.exit(1);
         }
         FileSystem fs = FileSystem.get(conf);
+        HFile.WriterFactory hfileWriterFactory = HFile.getWriterFactory(conf);
+        Path path = new Path(hfileOutput);
+        HFile.Writer hfileWriter =
+                hfileWriterFactory
+                        .createWriter(fs, path, 64 * 1024, "gz", null);
         HFile.Reader hfileReader =
                 HFile.createReader(fs, new Path(hfileInput), new CacheConfig(
                         conf));
         hfileReader.loadFileInfo();
         HFileScanner scanner = hfileReader.getScanner(false, false);
         scanner.seekTo();
-        HFile.WriterFactory hfileWriterFactory = HFile.getWriterFactory(conf);
-        Path path = new Path(hfileOutput);
-        HFile.Writer hfileWriter =
-                hfileWriterFactory
-                        .createWriter(fs, path, 64 * 1024, "gz", null);
         do {
+            RuleWritable key = Util.bytes2RuleWritable(scanner.getKey());
+            ArrayWritable value = Util.bytes2ArrayWritable(scanner.getValue());
+            List<GeneralPairWritable3> filteredRules =
+                    ruleFilter.filter(key, value);
+            for (GeneralPairWritable3 rule : filteredRules) {
 
-        }
-        while (scanner.next());
+            }
+        } while (scanner.next());
+        return 0;
     }
 
     public static void main(String[] args) throws Exception {
