@@ -17,12 +17,16 @@ import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileScanner;
 import org.apache.hadoop.io.ArrayWritable;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.SortedMapWritable;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
-import uk.ac.cam.eng.extraction.hadoop.extraction.Extraction;
+import uk.ac.cam.eng.rulebuilding.features.FeatureCreator;
 import uk.ac.cam.eng.rulebuilding.retrieval.RuleFilter;
 
 /**
@@ -31,6 +35,21 @@ import uk.ac.cam.eng.rulebuilding.retrieval.RuleFilter;
  *         rules according to a config
  */
 public class MergeHFileFeaturesAndFilter extends Configured implements Tool {
+
+    private SortedMapWritable dotProduct(double[] weights,
+            SortedMapWritable features) {
+        SortedMapWritable res = new SortedMapWritable();
+        double score = 0;
+        for (int i = 0; i < weights.length; i++) {
+            IntWritable key = new IntWritable(i);
+            if (features.containsKey(key)) {
+                score +=
+                        weights[i] * ((DoubleWritable) features.get(key)).get();
+            }
+        }
+        res.put(new IntWritable(0), new DoubleWritable(score));
+        return res;
+    }
 
     /**
      * @param args
@@ -41,12 +60,13 @@ public class MergeHFileFeaturesAndFilter extends Configured implements Tool {
         Properties p = new Properties();
         try {
             p.load(new FileInputStream(configFile));
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
         Configuration conf = getConf();
-        for (String prop : p.stringPropertyNames()) {
+        for (String prop: p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
         String[] stringWeights = conf.getStrings("weights");
@@ -58,8 +78,16 @@ public class MergeHFileFeaturesAndFilter extends Configured implements Tool {
         for (int i = 0; i < stringWeights.length; i++) {
             weights[i] = Double.parseDouble(stringWeights[i]);
         }
+        String filterConfig = conf.get("filter_config");
+        if (filterConfig == null) {
+            System.err
+                    .println("Missing property 'filter_config' in the config");
+            System.exit(1);
+        }
         RuleFilter ruleFilter = new RuleFilter(conf);
-        String hfileInput = conf.get("hfile_input");
+        ruleFilter.loadConfig(filterConfig);
+        FeatureCreator featureCreator = new FeatureCreator(conf);
+        String hfileInput = conf.get("hfile");
         String hfileOutput = conf.get("hfile_output");
         if (hfileInput == null || hfileOutput == null) {
             System.err.println("ERROR: missing input ('hfile_input') or "
@@ -83,10 +111,33 @@ public class MergeHFileFeaturesAndFilter extends Configured implements Tool {
             ArrayWritable value = Util.bytes2ArrayWritable(scanner.getValue());
             List<GeneralPairWritable3> filteredRules =
                     ruleFilter.filter(key, value);
-            for (GeneralPairWritable3 rule : filteredRules) {
-
+            List<GeneralPairWritable3> rulesWithFeatures =
+                    featureCreator.createFeatures(filteredRules);
+            if (!rulesWithFeatures.isEmpty()) {
+                RuleWritable source = new RuleWritable();
+                source.makeSourceMarginal(rulesWithFeatures.get(0).getFirst());
+                byte[] sourceByteArray = Util.object2ByteArray(source);
+                ArrayWritable targetsAndFeatures =
+                        new ArrayWritable(GeneralPairWritable3.class);
+                Writable[] targetsAndFeaturesArray =
+                        new GeneralPairWritable3[rulesWithFeatures.size()];
+                for (int i = 0; i < rulesWithFeatures.size(); i++) {
+                    RuleWritable target = new RuleWritable();
+                    target.makeTargetMarginal(
+                            rulesWithFeatures.get(i).getFirst());
+                    SortedMapWritable score =
+                            dotProduct(weights, rulesWithFeatures.get(i)
+                                    .getSecond());
+                    targetsAndFeaturesArray[i] =
+                            new GeneralPairWritable3(target, score);
+                }
+                targetsAndFeatures.set(targetsAndFeaturesArray);
+                byte[] targetsAndFeaturesBytes =
+                        Util.object2ByteArray(targetsAndFeatures);
+                hfileWriter.append(sourceByteArray, targetsAndFeaturesBytes);
             }
-        } while (scanner.next());
+        }
+        while (scanner.next());
         return 0;
     }
 
@@ -95,7 +146,7 @@ public class MergeHFileFeaturesAndFilter extends Configured implements Tool {
             System.err.println("Args: <configFile>");
             System.exit(1);
         }
-        int res = ToolRunner.run(new Extraction(), args);
+        int res = ToolRunner.run(new MergeHFileFeaturesAndFilter(), args);
         System.exit(res);
     }
 

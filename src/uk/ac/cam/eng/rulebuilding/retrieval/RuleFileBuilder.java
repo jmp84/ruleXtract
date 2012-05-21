@@ -369,6 +369,7 @@ public class RuleFileBuilder {
             for (GeneralPairWritable3 ruleWithFeatures: rulesWithFeatures) {
                 bos.write(ruleWithFeatures.getFirst().toString().getBytes());
                 SortedMapWritable features = ruleWithFeatures.getSecond();
+                // TODO format better
                 for (Writable featureIndex: features.keySet()) {
                     bos.write((" " + features.get(featureIndex).toString()
                             + "@" + featureIndex).getBytes());

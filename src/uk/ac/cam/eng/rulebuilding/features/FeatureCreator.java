@@ -197,16 +197,8 @@ public class FeatureCreator {
                             System.exit(1);
                         }
                         Number feature = features.get(featureIndex);
-                        if (feature.getClass() == Integer.class) {
-                            allFeatures.put(featureIndexWritable,
-                                    new IntWritable(
-                                            (Integer) feature));
-                        }
-                        else if (feature.getClass() == Double.class) {
-                            allFeatures.put(featureIndexWritable,
-                                    new DoubleWritable(
-                                            (Double) feature));
-                        }
+                        allFeatures.put(featureIndexWritable,
+                                new DoubleWritable(feature.doubleValue()));
                     }
                 }
             }
@@ -223,15 +215,8 @@ public class FeatureCreator {
                         System.exit(1);
                     }
                     Number feature = features.get(featureIndex);
-                    if (feature.getClass() == Integer.class) {
-                        allFeatures.put(featureIndexWritable, new IntWritable(
-                                (Integer) feature));
-                    }
-                    else if (feature.getClass() == Double.class) {
-                        allFeatures.put(featureIndexWritable,
-                                new DoubleWritable(
-                                        (Double) feature));
-                    }
+                    allFeatures.put(featureIndexWritable, new DoubleWritable(
+                            feature.doubleValue()));
                 }
             }
         }
@@ -267,16 +252,8 @@ public class FeatureCreator {
                             System.exit(1);
                         }
                         Number feature = features.get(featureIndex);
-                        if (feature.getClass() == Integer.class) {
-                            allFeatures.put(featureIndexWritable,
-                                    new IntWritable(
-                                            (Integer) feature));
-                        }
-                        else if (feature.getClass() == Double.class) {
-                            allFeatures.put(featureIndexWritable,
-                                    new DoubleWritable(
-                                            (Double) feature));
-                        }
+                        allFeatures.put(featureIndexWritable,
+                                new DoubleWritable(feature.doubleValue()));
                     }
                 }
             }
@@ -294,15 +271,8 @@ public class FeatureCreator {
                         System.exit(1);
                     }
                     Number feature = features.get(featureIndex);
-                    if (feature.getClass() == Integer.class) {
-                        allFeatures.put(featureIndexWritable, new IntWritable(
-                                (Integer) feature));
-                    }
-                    else if (feature.getClass() == Double.class) {
-                        allFeatures.put(featureIndexWritable,
-                                new DoubleWritable(
-                                        (Double) feature));
-                    }
+                    allFeatures.put(featureIndexWritable, new DoubleWritable(
+                            feature.doubleValue()));
                 }
             }
         }
@@ -338,16 +308,8 @@ public class FeatureCreator {
                             System.exit(1);
                         }
                         Number feature = features.get(featureIndex);
-                        if (feature.getClass() == Integer.class) {
-                            allFeatures.put(featureIndexWritable,
-                                    new IntWritable(
-                                            (Integer) feature));
-                        }
-                        else if (feature.getClass() == Double.class) {
-                            allFeatures.put(featureIndexWritable,
-                                    new DoubleWritable(
-                                            (Double) feature));
-                        }
+                        allFeatures.put(featureIndexWritable,
+                                new DoubleWritable(feature.doubleValue()));
                     }
                 }
             }
@@ -364,15 +326,8 @@ public class FeatureCreator {
                         System.exit(1);
                     }
                     Number feature = features.get(featureIndex);
-                    if (feature.getClass() == Integer.class) {
-                        allFeatures.put(featureIndexWritable, new IntWritable(
-                                (Integer) feature));
-                    }
-                    else if (feature.getClass() == Double.class) {
-                        allFeatures.put(featureIndexWritable,
-                                new DoubleWritable(
-                                        (Double) feature));
-                    }
+                    allFeatures.put(featureIndexWritable, new DoubleWritable(
+                            feature.doubleValue()));
                 }
             }
         }
