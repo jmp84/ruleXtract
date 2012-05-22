@@ -52,7 +52,8 @@ public class Util {
         ArrayWritable value = new ArrayWritable(GeneralPairWritable3.class);
         try {
             value.readFields(in);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             // Byte buffer is memory backed so no exception is possible. Just in
             // case chain it to a runtime exception
             throw new RuntimeException(e);
@@ -66,7 +67,23 @@ public class Util {
         RuleWritable value = new RuleWritable();
         try {
             value.readFields(in);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
+            // Byte buffer is memory backed so no exception is possible. Just in
+            // case chain it to a runtime exception
+            throw new RuntimeException(e);
+        }
+        return value;
+    }
+
+    public static RuleWritable byteArray2RuleWritable(byte[] bytes) {
+        DataInputBuffer in = new DataInputBuffer();
+        in.reset(bytes, 0, bytes.length);
+        RuleWritable value = new RuleWritable();
+        try {
+            value.readFields(in);
+        }
+        catch (IOException e) {
             // Byte buffer is memory backed so no exception is possible. Just in
             // case chain it to a runtime exception
             throw new RuntimeException(e);

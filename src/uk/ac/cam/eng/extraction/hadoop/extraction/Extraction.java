@@ -14,7 +14,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.io.hfile.HFile;
+import org.apache.hadoop.hbase.regionserver.StoreFile.BloomType;
+import org.apache.hadoop.hbase.util.BloomFilterFactory;
+import org.apache.hadoop.hbase.util.BloomFilterWriter;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.SequenceFile;
@@ -60,11 +64,21 @@ public class Extraction extends Configured implements Tool {
         HFile.Writer hfileWriter =
                 hfileWriterFactory
                         .createWriter(fs, path, 64 * 1024, "gz", null);
+        CacheConfig cacheConfig = new CacheConfig(conf);
+        BloomFilterWriter bloomFilterWriter = null;
+        if (conf.getBoolean("bloom", false)) {
+            bloomFilterWriter =
+                    BloomFilterFactory.createBloomAtWrite(conf, cacheConfig,
+                            BloomType.ROW, -1, hfileWriter);
+        }
         BytesWritable key = new BytesWritable();
         ArrayWritable value = new ArrayWritable(GeneralPairWritable3.class);
         while (sequenceReader.next(key, value)) {
             byte[] keyBytes = Util.getBytes(key);
             byte[] valueBytes = Util.object2ByteArray(value);
+            if (conf.getBoolean("bloom", false)) {
+                bloomFilterWriter.add(keyBytes, 0, keyBytes.length);
+            }
             hfileWriter.append(keyBytes, valueBytes);
         }
         hfileWriter.close();

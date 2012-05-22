@@ -42,7 +42,7 @@ public class RuleRetrievalJob implements HadoopJob {
         // no reducer
         job.setNumReduceTasks(0);
         FileInputFormat.setInputPaths(job, conf.get("work_dir")
-                + "/source_pattern_instances_sorted");
+                + "/source_pattern_instances");
         FileOutputFormat.setOutputPath(job, new Path(conf.get("work_dir")
                 + "/rules_mr_features"));
         FileOutputFormat.setCompressOutput(job, true);

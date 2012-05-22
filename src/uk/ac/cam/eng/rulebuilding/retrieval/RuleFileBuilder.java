@@ -6,14 +6,13 @@ package uk.ac.cam.eng.rulebuilding.retrieval;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -27,8 +26,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileScanner;
+import org.apache.hadoop.hbase.util.BloomFilter;
+import org.apache.hadoop.hbase.util.BloomFilterFactory;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.ArrayWritable;
-import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.SortedMapWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -37,6 +38,7 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.GeneralPairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
+import uk.ac.cam.eng.extraction.hadoop.util.Util;
 import uk.ac.cam.eng.rulebuilding.features.FeatureCreator;
 
 /**
@@ -46,8 +48,12 @@ import uk.ac.cam.eng.rulebuilding.features.FeatureCreator;
  */
 public class RuleFileBuilder {
 
+    private static final Comparator<byte[]> COMPARATOR =
+            new Bytes.ByteArrayComparator();
+
     private RuleFilter ruleFilter;
     private String testFile;
+    private HFile.Reader hfileReader;
     private HFileScanner hfileScanner;
     private FeatureCreator featureCreator;
     private String asciiConstraints;
@@ -65,7 +71,7 @@ public class RuleFileBuilder {
             System.exit(1);
         }
         FileSystem fs = FileSystem.get(conf);
-        HFile.Reader hfileReader =
+        hfileReader =
                 HFile.createReader(fs, new Path(hfile), new CacheConfig(conf));
         hfileReader.loadFileInfo();
         // 1st false: do not cache blocks (TODO check if true is better)
@@ -85,37 +91,60 @@ public class RuleFileBuilder {
         MAX_SOURCE_PHRASE = conf.getInt("max_source_phrase", 5);
     }
 
-    private static byte[] object2ByteArray(Writable obj) throws IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        DataOutputStream out = new DataOutputStream(buffer);
-        obj.write(out);
-        return buffer.toByteArray();
-    }
-
-    private static ArrayWritable convertValueBytes(ByteBuffer bytes) {
-        DataInputBuffer in = new DataInputBuffer();
-        in.reset(bytes.array(), bytes.arrayOffset(), bytes.limit());
-        ArrayWritable value = new ArrayWritable(GeneralPairWritable3.class);
-        try {
-            value.readFields(in);
-        }
-        catch (IOException e) {
-            // Byte buffer is memory backed so no exception is possible. Just in
-            // case chain it to a runtime exception
-            throw new RuntimeException(e);
-        }
-        return value;
-    }
-
     public List<GeneralPairWritable3> getRules(RuleWritable sourceRule)
             throws IOException {
-        byte[] ruleBytes = object2ByteArray(sourceRule);
+        byte[] ruleBytes = Util.object2ByteArray(sourceRule);
         int found = hfileScanner.seekTo(ruleBytes);
         if (found == 0) { // found the source rule
-            return ruleFilter.filter(
-                    sourceRule, convertValueBytes(hfileScanner.getValue()));
+            return ruleFilter.filter(sourceRule,
+                    Util.bytes2ArrayWritable(hfileScanner.getValue()));
         }
         return new ArrayList<GeneralPairWritable3>();
+    }
+
+    /**
+     * Given a list of queries, retrieve rules in an HFile. The queries may be
+     * filtered with a Bloom filter.
+     * 
+     * @param sourcePatternInstances
+     *            The list of queries
+     * @return The rules retrieved in the HFile
+     * @throws IOException
+     */
+    public List<GeneralPairWritable3>
+            getRules(Set<Rule> sourcePatternInstances)
+                    throws IOException {
+        List<GeneralPairWritable3> res = new ArrayList<>();
+        List<byte[]> relevantSourcePatternInstances = new ArrayList<>();
+        BloomFilter filter = null;
+        if (hfileReader.getBloomFilterMetadata() != null) {
+            filter =
+                    BloomFilterFactory.createFromMeta(
+                            hfileReader.getBloomFilterMetadata(), hfileReader);
+        }
+        for (Rule sourcePatternInstance: sourcePatternInstances) {
+            RuleWritable sourcePatternInstanceWritable =
+                    RuleWritable.makeSourceMarginal(sourcePatternInstance);
+            byte[] ruleBytes =
+                    Util.object2ByteArray(sourcePatternInstanceWritable);
+            if (filter == null) {
+                relevantSourcePatternInstances.add(ruleBytes);
+            }
+            else if (filter.contains(ruleBytes, 0, ruleBytes.length, null)) {
+                relevantSourcePatternInstances.add(ruleBytes);
+            }
+        }
+        // sort the queries
+        Collections.sort(relevantSourcePatternInstances, COMPARATOR);
+        for (byte[] relevantSourcePatternInstance: relevantSourcePatternInstances) {
+            int found = hfileScanner.seekTo(relevantSourcePatternInstance);
+            if (found == 0) { // found the source rule
+                res.addAll(ruleFilter.filter(Util
+                        .byteArray2RuleWritable(relevantSourcePatternInstance),
+                        Util.bytes2ArrayWritable(hfileScanner.getValue())));
+            }
+        }
+        return res;
     }
 
     private Set<Rule> getAsciiConstraints() throws IOException {
@@ -222,7 +251,7 @@ public class RuleFileBuilder {
             RuleWritable ruleWritable =
                     RuleWritable.makeSourceMarginal(asciiRule);
             ruleWritable.setLeftHandSide(new Text("0"));
-            byte[] ruleBytes = object2ByteArray(ruleWritable);
+            byte[] ruleBytes = Util.object2ByteArray(ruleWritable);
             int success = hfileScanner.seekTo(ruleBytes);
             if (success != 0) { // did not found the source: add empty features
                 res.add(new GeneralPairWritable3(new RuleWritable(asciiRule),
@@ -230,7 +259,7 @@ public class RuleFileBuilder {
             }
             else { // found the source, look through the targets
                 ArrayWritable targetsAndFeatures =
-                        convertValueBytes(hfileScanner.getValue());
+                        Util.bytes2ArrayWritable(hfileScanner.getValue());
                 RuleWritable target =
                         RuleWritable.makeTargetMarginal(asciiRule);
                 target.setLeftHandSide(new Text("0"));
@@ -264,7 +293,7 @@ public class RuleFileBuilder {
             source.add(testWord);
             Rule rule = new Rule(source, new ArrayList<Integer>());
             RuleWritable ruleWritable = RuleWritable.makeSourceMarginal(rule);
-            byte[] ruleBytes = object2ByteArray(ruleWritable);
+            byte[] ruleBytes = Util.object2ByteArray(ruleWritable);
             int success = hfileScanner.seekTo(ruleBytes);
             if (success != 0) { // did not found the source: add an oov rule
                 // TODO find a better way to represent an oov rule
