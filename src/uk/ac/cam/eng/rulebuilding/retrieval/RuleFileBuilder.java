@@ -136,6 +136,10 @@ public class RuleFileBuilder {
         }
         // sort the queries
         Collections.sort(relevantSourcePatternInstances, COMPARATOR);
+        System.err.println("Number of queries before filter: "
+                + sourcePatternInstances.size());
+        System.err.println("Number of queries after filter "
+                + relevantSourcePatternInstances.size());
         for (byte[] relevantSourcePatternInstance: relevantSourcePatternInstances) {
             int found = hfileScanner.seekTo(relevantSourcePatternInstance);
             if (found == 0) { // found the source rule
