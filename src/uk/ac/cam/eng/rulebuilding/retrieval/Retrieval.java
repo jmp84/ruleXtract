@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.commons.lang.time.StopWatch;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
@@ -33,16 +34,17 @@ public class Retrieval extends Configured implements Tool {
         Properties p = new Properties();
         try {
             p.load(new FileInputStream(configFile));
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
         Configuration conf = getConf();
-        for (String prop: p.stringPropertyNames()) {
+        for (String prop : p.stringPropertyNames()) {
             conf.set(prop, p.getProperty(prop));
         }
         // first step: get the source pattern instances
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
         PatternInstanceCreator2 patternInstanceCreator =
                 new PatternInstanceCreator2(conf);
         String testFile = conf.get("testfile");
@@ -52,15 +54,23 @@ public class Retrieval extends Configured implements Tool {
         }
         Set<Rule> sourcePatternInstances =
                 patternInstanceCreator.createSourcePatternInstances(testFile);
+        stopWatch.stop();
+        System.err.println("Pattern instance creation took "
+                + stopWatch.getTime() + " milliseconds");
         // second step: retrieve the rules
         RuleFileBuilder ruleFileBuilder = new RuleFileBuilder(conf);
         List<GeneralPairWritable3> rules =
                 ruleFileBuilder.getRules(sourcePatternInstances);
         // third step: build features
+        stopWatch.reset();
+        stopWatch.start();
         List<GeneralPairWritable3> rulesWithFeatures =
                 ruleFileBuilder.getRulesWithFeatures(conf, rules);
-        ruleFileBuilder.writeSetSpecificRuleFile(
-                rulesWithFeatures, conf.get("rules_out"));
+        stopWatch.stop();
+        System.err.println("Building features took " + stopWatch.getTime()
+                + " milliseconds");
+        ruleFileBuilder.writeSetSpecificRuleFile(rulesWithFeatures,
+                conf.get("rules_out"));
         // TODO what to return
         return 0;
     }

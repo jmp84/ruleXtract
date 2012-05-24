@@ -20,6 +20,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.lang.time.StopWatch;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -112,8 +113,9 @@ public class RuleFileBuilder {
      * @throws IOException
      */
     public List<GeneralPairWritable3>
-            getRules(Set<Rule> sourcePatternInstances)
-                    throws IOException {
+            getRules(Set<Rule> sourcePatternInstances) throws IOException {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
         List<GeneralPairWritable3> res = new ArrayList<>();
         List<byte[]> relevantSourcePatternInstances = new ArrayList<>();
         BloomFilter filter = null;
@@ -122,25 +124,29 @@ public class RuleFileBuilder {
                     BloomFilterFactory.createFromMeta(
                             hfileReader.getBloomFilterMetadata(), hfileReader);
         }
-        for (Rule sourcePatternInstance: sourcePatternInstances) {
+        for (Rule sourcePatternInstance : sourcePatternInstances) {
             RuleWritable sourcePatternInstanceWritable =
                     RuleWritable.makeSourceMarginal(sourcePatternInstance);
             byte[] ruleBytes =
                     Util.object2ByteArray(sourcePatternInstanceWritable);
             if (filter == null) {
                 relevantSourcePatternInstances.add(ruleBytes);
-            }
-            else if (filter.contains(ruleBytes, 0, ruleBytes.length, null)) {
+            } else if (filter.contains(ruleBytes, 0, ruleBytes.length, null)) {
                 relevantSourcePatternInstances.add(ruleBytes);
             }
         }
         // sort the queries
         Collections.sort(relevantSourcePatternInstances, COMPARATOR);
+        stopWatch.stop();
+        System.err.println("Pattern instance processing (bloom filtering + "
+                + "sorting) took " + stopWatch.getTime() + " milliseconds");
         System.err.println("Number of queries before filter: "
                 + sourcePatternInstances.size());
         System.err.println("Number of queries after filter "
                 + relevantSourcePatternInstances.size());
-        for (byte[] relevantSourcePatternInstance: relevantSourcePatternInstances) {
+        stopWatch.reset();
+        stopWatch.start();
+        for (byte[] relevantSourcePatternInstance : relevantSourcePatternInstances) {
             int found = hfileScanner.seekTo(relevantSourcePatternInstance);
             if (found == 0) { // found the source rule
                 res.addAll(ruleFilter.filter(Util
@@ -148,6 +154,9 @@ public class RuleFileBuilder {
                         Util.bytes2ArrayWritable(hfileScanner.getValue())));
             }
         }
+        stopWatch.stop();
+        System.err.println("HFile lookup took " + stopWatch.getTime()
+                + " milliseconds");
         return res;
     }
 
@@ -184,8 +193,7 @@ public class RuleFileBuilder {
                     }
                     Rule rule = new Rule(-1, source, target);
                     res.add(rule);
-                }
-                else {
+                } else {
                     System.err.println("Malformed ascii constraint file: "
                             + asciiConstraints);
                     System.exit(1);
@@ -212,8 +220,7 @@ public class RuleFileBuilder {
                     if (sourceString.length == 1) {
                         res.add(Integer.parseInt(sourceString[0]));
                     }
-                }
-                else {
+                } else {
                     System.err.println("Malformed ascii constraint file: "
                             + asciiConstraints);
                     System.exit(1);
@@ -230,7 +237,7 @@ public class RuleFileBuilder {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split("\\s+");
-                for (String part: parts) {
+                for (String part : parts) {
                     res.add(Integer.parseInt(part));
                 }
             }
@@ -251,7 +258,7 @@ public class RuleFileBuilder {
         Set<Integer> asciiVocab = getAsciiVocab();
         Set<Integer> testVocab = getTestVocab();
         // read the HFile and select the rules matching the source phrases
-        for (Rule asciiRule: asciiRules) {
+        for (Rule asciiRule : asciiRules) {
             RuleWritable ruleWritable =
                     RuleWritable.makeSourceMarginal(asciiRule);
             ruleWritable.setLeftHandSide(new Text("0"));
@@ -260,8 +267,7 @@ public class RuleFileBuilder {
             if (success != 0) { // did not found the source: add empty features
                 res.add(new GeneralPairWritable3(new RuleWritable(asciiRule),
                         new SortedMapWritable()));
-            }
-            else { // found the source, look through the targets
+            } else { // found the source, look through the targets
                 ArrayWritable targetsAndFeatures =
                         Util.bytes2ArrayWritable(hfileScanner.getValue());
                 RuleWritable target =
@@ -289,7 +295,7 @@ public class RuleFileBuilder {
                 }
             }
         }
-        for (Integer testWord: testVocab) {
+        for (Integer testWord : testVocab) {
             if (asciiVocab.contains(testWord)) {
                 continue;
             }
@@ -304,8 +310,7 @@ public class RuleFileBuilder {
                 Rule oovRule = new Rule(-1, source, new ArrayList<Integer>());
                 res.add(new GeneralPairWritable3(new RuleWritable(oovRule),
                         new SortedMapWritable()));
-            }
-            else { // found it: add deletion rule
+            } else { // found it: add deletion rule
                 List<Integer> deletion = new ArrayList<Integer>();
                 // deletion is represented by a zero
                 deletion.add(0);
@@ -362,7 +367,7 @@ public class RuleFileBuilder {
                 featureCreator.createFeaturesGlueRules(glueRules);
         // TODO should be called only once
         Set<Rule> asciiRules = getAsciiConstraints();
-        for (GeneralPairWritable3 ruleWithFeatures: regularRulesWithFeatures) {
+        for (GeneralPairWritable3 ruleWithFeatures : regularRulesWithFeatures) {
             // check if rule is not an ascii rule
             Rule checkNotAscii = new Rule(-1, ruleWithFeatures.getFirst());
             if (asciiRules.contains(checkNotAscii)) {
@@ -382,10 +387,10 @@ public class RuleFileBuilder {
     public String
             printSetSpecificRuleFile(List<PairWritable3> rulesWithFeatures) {
         StringBuilder sb = new StringBuilder();
-        for (PairWritable3 ruleWithFeatures: rulesWithFeatures) {
+        for (PairWritable3 ruleWithFeatures : rulesWithFeatures) {
             sb.append(ruleWithFeatures.first);
             Writable[] features = ruleWithFeatures.second.get();
-            for (Writable w: features) {
+            for (Writable w : features) {
                 sb.append(" " + w.toString());
             }
             sb.append("\n");
@@ -394,16 +399,16 @@ public class RuleFileBuilder {
     }
 
     public void writeSetSpecificRuleFile(
-            List<GeneralPairWritable3> rulesWithFeatures,
-            String outRuleFile) throws FileNotFoundException, IOException {
+            List<GeneralPairWritable3> rulesWithFeatures, String outRuleFile)
+            throws FileNotFoundException, IOException {
         try (BufferedOutputStream bos =
                 new BufferedOutputStream(new GZIPOutputStream(
                         new FileOutputStream(outRuleFile)))) {
-            for (GeneralPairWritable3 ruleWithFeatures: rulesWithFeatures) {
+            for (GeneralPairWritable3 ruleWithFeatures : rulesWithFeatures) {
                 bos.write(ruleWithFeatures.getFirst().toString().getBytes());
                 SortedMapWritable features = ruleWithFeatures.getSecond();
                 // TODO format better
-                for (Writable featureIndex: features.keySet()) {
+                for (Writable featureIndex : features.keySet()) {
                     bos.write((" " + features.get(featureIndex).toString()
                             + "@" + featureIndex).getBytes());
                 }
