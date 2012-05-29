@@ -81,7 +81,9 @@ public class Extraction extends Configured implements Tool {
             }
             hfileWriter.append(keyBytes, valueBytes);
         }
-        hfileWriter.addBloomFilter(bloomFilterWriter);
+        if (conf.getBoolean("bloom", false)) {
+            hfileWriter.addBloomFilter(bloomFilterWriter);
+        }
         hfileWriter.close();
     }
 

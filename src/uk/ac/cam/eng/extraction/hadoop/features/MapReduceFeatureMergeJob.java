@@ -10,6 +10,7 @@ import java.util.TreeMap;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.mapreduce.hadoopbackport.TotalOrderPartitioner;
 import org.apache.hadoop.io.AbstractMapWritable;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BytesWritable;
@@ -44,7 +45,21 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
         // add some memory
         Configuration newconf = new Configuration(conf);
         newconf.set("mapred.reduce.child.java.opts", "-Xmx8000m");
+        // keep sorted before dumping to hfile: either have one reduce task or
+        // use a partitioner to keep output sorted
+        String partitions = conf.get("partitions");
+        if (partitions != null) {
+            newconf.set(TotalOrderPartitioner.PARTITIONER_PATH, partitions);
+            newconf.setInt("mapred.reduce.tasks", 50);
+        }
         Job job = new Job(newconf, name);
+        if (partitions != null) {
+            job.setNumReduceTasks(50);
+            job.setPartitionerClass(TotalOrderPartitioner.class);
+        }
+        else {
+            job.setNumReduceTasks(1);
+        }
         job.setJarByClass(MapReduceFeatureMergeJob.class);
         job.setMapOutputKeyClass(BytesWritable.class);
         job.setMapOutputValueClass(GeneralPairWritable2.class);
@@ -54,8 +69,6 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
         job.setReducerClass(MapReduceFeatureMergeReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
-        // only one reduce task to keep sorted before dumping to hfile
-        job.setNumReduceTasks(1);
         String mapreduceFeatures = conf.get("mapreduce_features");
         String[] mapreduceFeaturesArray = mapreduceFeatures.split(",");
         for (String mapreduceFeature: mapreduceFeaturesArray) {
