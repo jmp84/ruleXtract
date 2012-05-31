@@ -7,7 +7,6 @@ package uk.ac.cam.eng.extraction.hadoop.util;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -17,7 +16,6 @@ import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileScanner;
 import org.apache.hadoop.io.AbstractMapWritable;
 import org.apache.hadoop.io.ArrayWritable;
-import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.SortedMapWritable;
 import org.apache.hadoop.io.Writable;
 
@@ -28,34 +26,6 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
  * @author jmp84
  */
 public class HFile2Text2 {
-
-    private static ArrayWritable bytes2ArrayWritable(ByteBuffer bytes) {
-        DataInputBuffer in = new DataInputBuffer();
-        in.reset(bytes.array(), bytes.arrayOffset(), bytes.limit());
-        ArrayWritable value = new ArrayWritable(GeneralPairWritable3.class);
-        try {
-            value.readFields(in);
-        } catch (IOException e) {
-            // Byte buffer is memory backed so no exception is possible. Just in
-            // case chain it to a runtime exception
-            throw new RuntimeException(e);
-        }
-        return value;
-    }
-
-    private static RuleWritable bytes2RuleWritable(ByteBuffer bytes) {
-        DataInputBuffer in = new DataInputBuffer();
-        in.reset(bytes.array(), bytes.arrayOffset(), bytes.limit());
-        RuleWritable value = new RuleWritable();
-        try {
-            value.readFields(in);
-        } catch (IOException e) {
-            // Byte buffer is memory backed so no exception is possible. Just in
-            // case chain it to a runtime exception
-            throw new RuntimeException(e);
-        }
-        return value;
-    }
 
     /**
      * @param args
@@ -74,8 +44,9 @@ public class HFile2Text2 {
             HFileScanner scanner = hfileReader.getScanner(false, false);
             scanner.seekTo();
             do {
-                RuleWritable key = bytes2RuleWritable(scanner.getKey());
-                ArrayWritable value = bytes2ArrayWritable(scanner.getValue());
+                RuleWritable key = Util.bytes2RuleWritable(scanner.getKey());
+                ArrayWritable value =
+                        Util.bytes2ArrayWritable(scanner.getValue());
                 for (int i = 0; i < value.get().length; i++) {
                     bw.write(key.getLeftHandSide()
                             + " "
@@ -85,7 +56,7 @@ public class HFile2Text2 {
                                     .getFirst().getTarget());
                     AbstractMapWritable features =
                             ((GeneralPairWritable3) value.get()[i]).getSecond();
-                    for (Writable featureIndex : ((SortedMapWritable) features)
+                    for (Writable featureIndex: ((SortedMapWritable) features)
                             .keySet()) {
                         bw.write(" "
                                 + ((SortedMapWritable) features)
@@ -93,7 +64,8 @@ public class HFile2Text2 {
                     }
                     bw.write("\n");
                 }
-            } while (scanner.next());
+            }
+            while (scanner.next());
         }
     }
 }

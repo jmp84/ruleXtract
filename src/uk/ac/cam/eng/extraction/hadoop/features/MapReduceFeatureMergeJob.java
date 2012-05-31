@@ -10,11 +10,13 @@ import java.util.TreeMap;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.mapreduce.hadoopbackport.InputSampler;
 import org.apache.hadoop.hbase.mapreduce.hadoopbackport.TotalOrderPartitioner;
 import org.apache.hadoop.io.AbstractMapWritable;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.MapWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SortedMapWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -47,15 +49,31 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
         newconf.set("mapred.reduce.child.java.opts", "-Xmx8000m");
         // keep sorted before dumping to hfile: either have one reduce task or
         // use a partitioner to keep output sorted
-        String partitions = conf.get("partitions");
-        if (partitions != null) {
-            newconf.set(TotalOrderPartitioner.PARTITIONER_PATH, partitions);
-            newconf.setInt("mapred.reduce.tasks", 50);
-        }
+        String partitionInput = conf.get("partition");
         Job job = new Job(newconf, name);
-        if (partitions != null) {
-            job.setNumReduceTasks(50);
-            job.setPartitionerClass(TotalOrderPartitioner.class);
+        if (partitionInput != null) {
+            // newconf.set(TotalOrderPartitioner.PARTITIONER_PATH, partitions);
+            // newconf.setInt("mapred.reduce.tasks", 50);
+            InputSampler.Sampler<BytesWritable, NullWritable> sampler =
+                    new InputSampler.RandomSampler<>(0.1, 10000, 10);
+            Path partitionFile = new Path(partitionInput + "_partitionned");
+            TotalOrderPartitioner.setPartitionFile(newconf, partitionFile);
+            // add partitionInput as an input to the job for sampling
+            // then remove it
+            FileInputFormat.setInputPaths(job, new Path(partitionInput));
+            try {
+                InputSampler.writePartitionFile(job, sampler);
+                job.setPartitionerClass(TotalOrderPartitioner.class);
+            }
+            catch (ClassNotFoundException | InterruptedException e) {
+                e.printStackTrace();
+                System.err.println(
+                        "WARNING: reverting to only one reduce task");
+                job.setNumReduceTasks(1);
+            }
+            // remove partitionInput from FileInputFormat
+            newconf.set("mapred.input.dir", "");
+            // job.setNumReduceTasks(50);
         }
         else {
             job.setNumReduceTasks(1);

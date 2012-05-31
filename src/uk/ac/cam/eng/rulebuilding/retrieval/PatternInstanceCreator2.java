@@ -48,13 +48,12 @@ public class PatternInstanceCreator2 {
         HR_MAX_HEIGHT = conf.getInt("hr_max_height", 10);
         patternFile = conf.get("patternfile");
         if (patternFile == null) {
-            System.err.println(
-                    "Missing property 'patternfile' in the config");
+            System.err.println("Missing property 'patternfile' in the config");
             System.exit(1);
         }
     }
 
-    protected List<SidePattern> createSourcePatterns()
+    public List<SidePattern> createSourcePatterns()
             throws FileNotFoundException, IOException {
         List<SidePattern> res = new ArrayList<SidePattern>();
         try (BufferedReader br =
@@ -73,31 +72,45 @@ public class PatternInstanceCreator2 {
             List<SidePattern> sidePatterns) throws NumberFormatException,
             IOException {
         Set<Rule> res = new HashSet<Rule>();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                new FileInputStream(testFile)))) {
+        try (BufferedReader br =
+                new BufferedReader(new InputStreamReader(new FileInputStream(
+                        testFile)))) {
             String line;
-            String[] parts;
             while ((line = br.readLine()) != null) {
-                parts = line.split(" ");
-                List<Integer> sourceSentence = new ArrayList<Integer>();
-                for (int i = 0; i < parts.length; i++) {
-                    sourceSentence.add(Integer.parseInt(parts[i]));
-                    List<Integer> sourcePhrase = new ArrayList<Integer>();
-                    for (int j = 0; j < MAX_SOURCE_PHRASE
-                            && j < parts.length - i; j++) {
-                        sourcePhrase.add(Integer.parseInt(parts[i + j]));
-                        // add source phrase
-                        Rule r = new Rule(sourcePhrase,
-                                new ArrayList<Integer>());
-                        res.add(r);
-                    }
-                }
                 Set<Rule> sourcePatternInstances =
-                        getPatternInstancesFromSourceSentence(
-                                sourceSentence, sidePatterns);
+                        createSourcePatternInstancesOneLine(line, sidePatterns);
                 res.addAll(sourcePatternInstances);
             }
         }
+        return res;
+    }
+
+    /**
+     * @param sidePatterns
+     * @param res
+     * @param line
+     * @return
+     */
+    public Set<Rule> createSourcePatternInstancesOneLine(String line,
+            List<SidePattern> sidePatterns) {
+        Set<Rule> res = new HashSet<>();
+        String[] parts;
+        parts = line.split(" ");
+        List<Integer> sourceSentence = new ArrayList<Integer>();
+        for (int i = 0; i < parts.length; i++) {
+            sourceSentence.add(Integer.parseInt(parts[i]));
+            List<Integer> sourcePhrase = new ArrayList<Integer>();
+            for (int j = 0; j < MAX_SOURCE_PHRASE && j < parts.length - i; j++) {
+                sourcePhrase.add(Integer.parseInt(parts[i + j]));
+                // add source phrase
+                Rule r = new Rule(sourcePhrase, new ArrayList<Integer>());
+                res.add(r);
+            }
+        }
+        Set<Rule> sourcePatternInstances =
+                getPatternInstancesFromSourceSentence(sourceSentence,
+                        sidePatterns);
+        res.addAll(sourcePatternInstances);
         return res;
     }
 
@@ -110,7 +123,7 @@ public class PatternInstanceCreator2 {
     protected Set<Rule> getPatternInstancesFromSourceSentence(
             List<Integer> sourceSentence, List<SidePattern> sidePatterns) {
         Set<Rule> res = new HashSet<Rule>();
-        for (SidePattern sidePattern: sidePatterns) {
+        for (SidePattern sidePattern : sidePatterns) {
             for (int i = 0; i < sourceSentence.size(); i++) {
                 res.addAll(getPatternInstancesFromSourceAndPattern2(
                         sourceSentence, sidePattern, i, 0, 0, 0));
@@ -126,7 +139,7 @@ public class PatternInstanceCreator2 {
             res.add(new Rule(sourceLeft, new ArrayList<Integer>()));
             return res;
         }
-        for (Rule r: partialRight) {
+        for (Rule r : partialRight) {
             List<Integer> merged = new ArrayList<Integer>();
             List<Integer> sourceRight = r.getSource();
             merged.addAll(sourceLeft);
@@ -174,8 +187,7 @@ public class PatternInstanceCreator2 {
                 if (sidePattern.get(startPatternIndex + i).equals("w")) {
                     patternInstance.add(sourceSentence.get(startSentenceIndex
                             + i));
-                }
-                else {
+                } else {
                     patternInstance.add(Integer.parseInt(sidePattern
                             .get(startPatternIndex + i)));
                 }
@@ -193,16 +205,16 @@ public class PatternInstanceCreator2 {
                     && i < startSentenceIndex + HR_MAX_HEIGHT - nbCoveredWords; i++) {
                 partialPattern.add(sourceSentence.get(i));
                 Rule r = new Rule(partialPattern, new ArrayList<Integer>());
-                Set<Rule> right = getPatternInstancesFromSourceAndPattern2(
-                        sourceSentence, sidePattern, i + 1,
-                        startPatternIndex + 1, nbSrcElt + i
-                                - startSentenceIndex + 1, nbCoveredWords + i
-                                - startSentenceIndex + 1);
+                Set<Rule> right =
+                        getPatternInstancesFromSourceAndPattern2(
+                                sourceSentence, sidePattern, i + 1,
+                                startPatternIndex + 1, nbSrcElt + i
+                                        - startSentenceIndex + 1,
+                                nbCoveredWords + i - startSentenceIndex + 1);
                 Set<Rule> merged = merge(r, right);
                 res.addAll(merged);
             }
-        }
-        else {
+        } else {
             partialPattern.add(Integer.parseInt(sidePattern
                     .get(startPatternIndex)));
             Rule r = new Rule(partialPattern, new ArrayList<Integer>());
@@ -210,12 +222,13 @@ public class PatternInstanceCreator2 {
                     - (sidePattern.size() - startPatternIndex - 1)
                     && i < startSentenceIndex + MAX_NONTERMINAL_LENGTH
                     && i < startSentenceIndex + HR_MAX_HEIGHT - nbCoveredWords; i++) {
-                Set<Rule> merged = merge(
-                        r,
-                        getPatternInstancesFromSourceAndPattern2(
-                                sourceSentence, sidePattern, i + 1,
-                                startPatternIndex + 1, nbSrcElt + 1,
-                                nbCoveredWords + i - startSentenceIndex + 1));
+                Set<Rule> merged =
+                        merge(r,
+                                getPatternInstancesFromSourceAndPattern2(
+                                        sourceSentence, sidePattern, i + 1,
+                                        startPatternIndex + 1, nbSrcElt + 1,
+                                        nbCoveredWords + i - startSentenceIndex
+                                                + 1));
                 // System.err.println("merged: " + merged);
                 res.addAll(merged);
             }

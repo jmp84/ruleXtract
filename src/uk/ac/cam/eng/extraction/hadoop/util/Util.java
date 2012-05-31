@@ -76,6 +76,15 @@ public class Util {
         return value;
     }
 
+    public static BytesWritable bytes2BytesWritable(ByteBuffer bytes) {
+        byte[] bytesArr = new byte[bytes.limit()];
+        for (int i = 0; i < bytes.limit(); i++) {
+            bytesArr[i] = bytes.get(i);
+        }
+        BytesWritable res = new BytesWritable(bytesArr);
+        return res;
+    }
+
     public static RuleWritable byteArray2RuleWritable(byte[] bytes) {
         DataInputBuffer in = new DataInputBuffer();
         in.reset(bytes, 0, bytes.length);
