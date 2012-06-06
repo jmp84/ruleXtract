@@ -12,6 +12,7 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
@@ -47,23 +48,21 @@ public class Extraction extends Configured implements Tool {
      * SequenceFile output is sorted.
      */
     private void sequenceFile2HFile(Configuration conf) throws IOException {
-        // TODO see if we can avoid the part-r-00000
-        String input = conf.get("work_dir") + "/merge/part-r-00000";
-        String output = conf.get("hfile");
-        System.out.println("Reading " + input + " and writing hfile to "
-                + output);
         FileSystem fs = FileSystem.get(conf);
-        SequenceFile.Reader sequenceReader =
-                new SequenceFile.Reader(fs, new Path(input), conf);
-        Path path = new Path(output);
-        if (fs.exists(path)) {
+        Path inputPathPattern = new Path(conf.get("work_dir") + "/merge/part*");
+        FileStatus[] inputs = fs.globStatus(inputPathPattern);
+        String output = conf.get("hfile");
+        System.out.println("Reading " + inputPathPattern.toString()
+                + " and writing hfile to " + output);
+        Path outputPath = new Path(output);
+        if (fs.exists(outputPath)) {
             System.out.println("ERROR: " + output + " already exists");
             System.exit(1);
         }
         HFile.WriterFactory hfileWriterFactory = HFile.getWriterFactory(conf);
         HFile.Writer hfileWriter =
                 hfileWriterFactory
-                        .createWriter(fs, path, 64 * 1024, "gz", null);
+                        .createWriter(fs, outputPath, 64 * 1024, "gz", null);
         CacheConfig cacheConfig = new CacheConfig(conf);
         BloomFilterWriter bloomFilterWriter = null;
         if (conf.getBoolean("bloom", false)) {
@@ -73,13 +72,18 @@ public class Extraction extends Configured implements Tool {
         }
         BytesWritable key = new BytesWritable();
         ArrayWritable value = new ArrayWritable(GeneralPairWritable3.class);
-        while (sequenceReader.next(key, value)) {
-            byte[] keyBytes = Util.getBytes(key);
-            byte[] valueBytes = Util.object2ByteArray(value);
-            if (conf.getBoolean("bloom", false)) {
-                bloomFilterWriter.add(keyBytes, 0, keyBytes.length);
+        for (FileStatus input: inputs) {
+            Path path = input.getPath();
+            SequenceFile.Reader sequenceReader =
+                    new SequenceFile.Reader(fs, path, conf);
+            while (sequenceReader.next(key, value)) {
+                byte[] keyBytes = Util.getBytes(key);
+                byte[] valueBytes = Util.object2ByteArray(value);
+                if (conf.getBoolean("bloom", false)) {
+                    bloomFilterWriter.add(keyBytes, 0, keyBytes.length);
+                }
+                hfileWriter.append(keyBytes, valueBytes);
             }
-            hfileWriter.append(keyBytes, valueBytes);
         }
         if (conf.getBoolean("bloom", false)) {
             hfileWriter.addBloomFilter(bloomFilterWriter);
