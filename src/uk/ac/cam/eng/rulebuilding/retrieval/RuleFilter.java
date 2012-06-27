@@ -417,6 +417,8 @@ public class RuleFilter {
 
     public List<GeneralPairWritable3> filter(RuleWritable source,
             ArrayWritable listTargetAndProb) {
+        // TODO if filter=false, do not require existence of property
+        // filter_config in the config file
         if (!conf.getBoolean("filter", true)) {
             List<GeneralPairWritable3> res = new ArrayList<>();
             for (int i = 0; i < listTargetAndProb.get().length; i++) {
