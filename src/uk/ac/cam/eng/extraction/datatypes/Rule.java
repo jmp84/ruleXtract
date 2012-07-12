@@ -600,10 +600,6 @@ public final class Rule { // final because immutable class
     }
 
     public boolean isSwapping() {
-        // if (nbNonTerminal < 2) {
-        // return false;
-        // }
-        // TODO check this, must be wrong
         // check if the rule is swapping because we have X2...X1 in the source
         for (int sourceElement: source) {
             if (sourceElement < 0) {
@@ -623,9 +619,6 @@ public final class Rule { // final because immutable class
             }
         }
         return false;
-        // TODO logging
-        // throw new Error("Error: method isSwapping, cannot be here: " +
-        // source);
     }
 
     public Rule invertNonTerminals() {

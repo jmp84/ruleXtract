@@ -77,9 +77,8 @@ public class RuleFileBuilderPBML {
         hfileReader =
                 HFile.createReader(fs, new Path(hfile), new CacheConfig(conf));
         hfileReader.loadFileInfo();
-        // 1st false: do not cache blocks (TODO check if true is better)
-        // 2nd true: use positional read (better for random reads), TODO check
-        // if false is better
+        // 1st false: do not cache blocks
+        // 2nd true: use positional read (better for random reads)
         // 3rd false: do not use for compaction
         hfileScanner = hfileReader.getScanner(false, false, false);
         asciiConstraints = conf.get("ascii_constraints");
@@ -422,7 +421,6 @@ public class RuleFileBuilderPBML {
         Rule endSentence = new Rule(-1, endSentenceSide, endSentenceSide);
         res.add(new GeneralPairWritable3(new RuleWritable(endSentence),
                 new SortedMapWritable()));
-        // TODO add a missing glue here
         return res;
     }
 

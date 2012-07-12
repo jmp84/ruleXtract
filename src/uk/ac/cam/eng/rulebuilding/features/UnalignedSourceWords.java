@@ -30,7 +30,6 @@ public class UnalignedSourceWords implements Feature {
     @Override
     public Map<Integer, Number> value(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        // TODO check length
         Map<Integer, Number> res = new HashMap<>();
         IntWritable mapreduceFeatureIndex =
                 new IntWritable(conf.getInt("unaligned_words-mapreduce", 0));

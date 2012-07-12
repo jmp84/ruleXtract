@@ -85,7 +85,6 @@ public class BinaryProvenanceJob implements MapReduceFeature {
         @Override
         protected void setup(Context context) {
             Configuration conf = context.getConfiguration();
-            // TODO add a check here
             featureStartIndex = conf.getInt(name, 0);
         }
 

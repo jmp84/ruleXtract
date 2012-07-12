@@ -77,7 +77,6 @@ public class UnalignedWordJob implements MapReduceFeature {
 
         /*
          * (non-Javadoc)
-         * 
          * @see
          * org.apache.hadoop.mapreduce.Reducer#setup(org.apache.hadoop.mapreduce
          * .Reducer.Context)
@@ -85,13 +84,11 @@ public class UnalignedWordJob implements MapReduceFeature {
         @Override
         protected void setup(Context context) {
             Configuration conf = context.getConfiguration();
-            // TODO add a check here
             featureStartIndex = conf.getInt(name, 0);
         }
 
         /*
          * (non-Javadoc)
-         * 
          * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
          * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
          */
@@ -101,7 +98,7 @@ public class UnalignedWordJob implements MapReduceFeature {
                 throws IOException, InterruptedException {
             int numberUnalignedSourceWords = 0, numberUnalignedTargetWords = 0;
             int numberOccurrences = 0;
-            for (RuleInfoWritable ruleInfoWritable : values) {
+            for (RuleInfoWritable ruleInfoWritable: values) {
                 numberUnalignedSourceWords +=
                         ruleInfoWritable.getNumberUnalignedSourceWords();
                 numberUnalignedTargetWords +=

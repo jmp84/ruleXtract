@@ -238,7 +238,6 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
                 AbstractMapWritable features =
                         WritableUtils.clone(value.getSecond(), conf);
                 if (targetsAndFeatures.containsKey(target)) {
-                    // TODO check that this function modifies targetsAndFeatures
                     mergeFeatures(targetsAndFeatures.get(target),
                             (MapWritable) features);
                 }

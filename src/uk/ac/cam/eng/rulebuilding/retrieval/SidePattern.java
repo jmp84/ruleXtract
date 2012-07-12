@@ -96,7 +96,7 @@ public class SidePattern {
             if (elt < 0) {
                 pattern.add(elt.toString());
                 consecutiveTerminals = false;
-            } // TODO change formatting for if else
+            }
             else {
                 if (!consecutiveTerminals) {
                     pattern.add("w");

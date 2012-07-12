@@ -30,7 +30,6 @@ public class UnalignedTargetWords implements Feature {
     @Override
     public Map<Integer, Number> value(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        // TODO check length
         Map<Integer, Number> res = new HashMap<>();
         // the mapreduce feature unaligned_words has 2 features, the first is
         // unaligned_source_words and the second is unaligned_target_words

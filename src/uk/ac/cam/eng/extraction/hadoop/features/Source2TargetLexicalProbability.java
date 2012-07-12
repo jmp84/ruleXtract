@@ -27,7 +27,6 @@ public class Source2TargetLexicalProbability {
 
     private final double minSum = 4.24e-18; // exp(-40)
 
-    // TODO change this to have the key to be a pair of integers
     private Map<Integer, Map<Integer, Double>> model;
 
     private Set<Integer>
