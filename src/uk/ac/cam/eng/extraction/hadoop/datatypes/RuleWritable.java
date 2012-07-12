@@ -287,6 +287,22 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         return "";
     }
 
+    /**
+     * @return The length of the source side of the rule
+     */
+    public int getSourceLength() {
+        String[] parts = source.toString().split("_");
+        return parts.length;
+    }
+
+    /**
+     * @return The length of the target side of the rule
+     */
+    public int getTargetLength() {
+        String[] parts = target.toString().split("_");
+        return parts.length;
+    }
+
     /*
      * (non-Javadoc)
      * @see org.apache.hadoop.io.Writable#readFields(java.io.DataInput)

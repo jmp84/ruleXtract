@@ -26,11 +26,16 @@ import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
 import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
 
 /**
- * @author jmp84 MapReduce job to compute source-to-target probability
+ * @author jmp84 MapReduce job to compute source-to-target probability with a
+ *         prior. We use a Dirichlet prior where the hyperparameters are
+ *         min(|src|, |trg|)/max(|src|, |trg|) to favor balanced translations.
+ *         We do maximum a posteriori estimation, so the s2t probability is
+ *         simply relative frequency with pseudo counts given by the
+ *         hyperparameters
  */
-public class Source2TargetProbabilityJob implements MapReduceFeature {
+public class Source2TargetProbabilityWithPriorJob implements MapReduceFeature {
 
-    private final static String name = "source2target_probability";
+    private final static String name = "source2target_probability_prior";
 
     public int getNumberOfFeatures(Configuration conf) {
         // 2 features: the probability and the count
@@ -39,13 +44,13 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
 
     public Job getJob(Configuration conf) throws IOException {
         Job job = new Job(conf, name);
-        job.setJarByClass(Source2TargetProbabilityJob.class);
+        job.setJarByClass(Source2TargetProbabilityWithPriorJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(PairWritable.class);
         job.setOutputKeyClass(RuleWritable.class);
         job.setOutputValueClass(MapWritable.class);
-        job.setMapperClass(Source2TargetProbabilityMapper.class);
-        job.setReducerClass(Source2TargetProbabilityReducer.class);
+        job.setMapperClass(Source2TargetProbabilityWithPriorMapper.class);
+        job.setReducerClass(Source2TargetProbabilityWithPriorReducer.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         FileInputFormat.setInputPaths(job, conf.get("work_dir") + "/rules");
@@ -59,14 +64,13 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
      * Mapper to compute source-to-target probability. Uses method 3 described
      * in "Fast, easy, cheap, etc." by Chris Dyer et al.
      */
-    private static class Source2TargetProbabilityMapper extends
+    private static class Source2TargetProbabilityWithPriorMapper extends
             Mapper<RuleWritable, RuleInfoWritable, RuleWritable, PairWritable> {
 
-        // static writables to avoid memory consumption
         private final static IntWritable one = new IntWritable(1);
-        private static RuleWritable sourceMarginal = new RuleWritable();
-        private static RuleWritable targetMarginal = new RuleWritable();
-        private static PairWritable targetAndCount = new PairWritable();
+        private RuleWritable sourceMarginal = new RuleWritable();
+        private RuleWritable targetMarginal = new RuleWritable();
+        private PairWritable targetAndCount = new PairWritable();
 
         /*
          * (non-Javadoc)
@@ -88,7 +92,7 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
     /**
      * Reducer to compute source-to-target probability
      */
-    private static class Source2TargetProbabilityReducer extends
+    private static class Source2TargetProbabilityWithPriorReducer extends
             Reducer<RuleWritable, PairWritable, RuleWritable, MapWritable> {
 
         /**
@@ -97,10 +101,21 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
          */
         private static int featureStartIndex;
 
-        // static writables to avoid memory consumption
-        private static MapWritable features = new MapWritable();
-        private static DoubleWritable probability = new DoubleWritable();
-        private static IntWritable count = new IntWritable();
+        private MapWritable features = new MapWritable();
+        private DoubleWritable probability = new DoubleWritable();
+        private DoubleWritable count = new DoubleWritable();
+
+        /**
+         * Utility method to compute a pseudo-count.
+         * 
+         * @param srcLength
+         * @param trgLength
+         * @return
+         */
+        private double minMaxPseudoCount(int srcLength, int trgLength) {
+            return ((double) Math.min(srcLength, trgLength))
+                    / ((double) Math.max(srcLength, trgLength));
+        }
 
         /*
          * (non-Javadoc)
@@ -124,14 +139,20 @@ public class Source2TargetProbabilityJob implements MapReduceFeature {
                 Context context) throws IOException, InterruptedException {
             // first loop through the targets and gather counts
             double marginalCount = 0;
+            int sourceLength = key.getSourceLength();
             // use HashMap because we don't need to have the rules sorted
-            Map<RuleWritable, Integer> ruleCounts =
-                    new HashMap<RuleWritable, Integer>();
+            Map<RuleWritable, Double> ruleCounts = new HashMap<>();
             for (PairWritable targetAndCount: values) {
                 marginalCount += targetAndCount.second.get();
                 RuleWritable rw = new RuleWritable(key, targetAndCount.first);
                 if (!ruleCounts.containsKey(rw)) {
-                    ruleCounts.put(rw, targetAndCount.second.get());
+                    int targetLength = rw.getTargetLength();
+                    double pseudoCount =
+                            minMaxPseudoCount(sourceLength, targetLength);
+                    // we add the pseudo count only once per rule
+                    ruleCounts.put(rw, targetAndCount.second.get()
+                            + pseudoCount);
+                    marginalCount += pseudoCount;
                 }
                 else {
                     ruleCounts.put(rw, ruleCounts.get(rw)
