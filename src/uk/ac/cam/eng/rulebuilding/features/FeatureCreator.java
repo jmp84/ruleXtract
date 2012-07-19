@@ -52,6 +52,10 @@ public class FeatureCreator {
         features.put("unaligned_source_words", new UnalignedSourceWords());
         features.put("unaligned_target_words", new UnalignedTargetWords());
         features.put("binary_provenance", new BinaryProvenance());
+        features.put("source2target_probability_prior",
+                new Source2TargetProbabilityPrior());
+        features.put("target2source_probability_prior",
+                new Target2SourceProbabilityPrior());
         String provenance = conf.get("provenance");
         if (provenance != null) {
             String[] provenances = provenance.split(",");
@@ -80,6 +84,11 @@ public class FeatureCreator {
         // conf to be overwritten before being used.
         int featureIndex = 0, nextFeatureIndex = 0;
         for (String selectedFeature: selectedFeatures) {
+            if (!features.containsKey(selectedFeature)) {
+                System.err.println("ERROR: unknown mapreduce feature: "
+                        + selectedFeature);
+                System.exit(1);
+            }
             if (selectedFeature.equals(
                     "provenance_source2target_lexical_probability")
                     || selectedFeature

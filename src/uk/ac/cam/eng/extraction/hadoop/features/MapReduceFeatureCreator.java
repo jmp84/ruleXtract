@@ -32,6 +32,10 @@ public class MapReduceFeatureCreator {
                 new Source2TargetPatternProbabilityJob());
         features.put("unaligned_words", new UnalignedWordJob());
         features.put("binary_provenance", new BinaryProvenanceJob());
+        features.put("source2target_probability_prior",
+                new Source2TargetProbabilityWithPriorJob());
+        features.put("target2source_probability_prior",
+                new Target2SourceProbabilityWithPriorJob());
         String provenance = conf.get("provenance");
         if (provenance != null) {
             String[] provenances = provenance.split(",");
