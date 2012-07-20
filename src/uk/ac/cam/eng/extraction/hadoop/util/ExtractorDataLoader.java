@@ -31,7 +31,7 @@ public class ExtractorDataLoader {
 
         BufferedReader in;
         StringBuilder out = new StringBuilder();
-        int sentence;
+        int provenanceId;
         Set<String> provenance = new HashSet<>();
 
         void setFileName(String fileName) throws FileNotFoundException,
@@ -57,7 +57,7 @@ public class ExtractorDataLoader {
                 if (line == null) {
                     return null;
                 }
-                sentence = Integer.parseInt(line);
+                provenanceId = Integer.parseInt(line);
                 out.setLength(0);
                 out.append(in.readLine()).append("\n");
                 out.append(in.readLine()).append("\n");
@@ -79,7 +79,7 @@ public class ExtractorDataLoader {
                             "Error in the word alignment file");
                 }
                 String[] parts = prevLine.split("\\s+");
-                sentence = Integer.parseInt(parts[1]);
+                provenanceId = Integer.parseInt(parts[1]);
                 // clear provenance beforehand
                 provenance.clear();
                 for (int i = 2; i < parts.length; i++) {
@@ -119,24 +119,20 @@ public class ExtractorDataLoader {
             array[0] = sentenceText;
             array[1] = alignmentText;
             TextArrayWritable arrayWritable = new TextArrayWritable();
-            Text sentenceNumber = new Text();
+            Text provenanceIdText = new Text();
             // metadata: provenance, e.g. genre, collection, training instance
-            // id, etc.
+            // id, doc id, etc.
             MapWritable metadata = new MapWritable();
-            int sentenceNumberInt = 0;
             String sentence = sentenceReader.getNext();
             String alignment = alignmentReader.getNext();
             while (sentence != null || alignment != null) {
-                // we ignore the sentence number given by the input file
-                // because it is not reliable (data splitting)
-                // sentenceNumber.set(alignmentReader.sentence);
-                sentenceNumber.set(Integer.toString(sentenceNumberInt));
+                provenanceIdText.set(
+                        Integer.toString(alignmentReader.provenanceId));
                 metadata.clear();
-                metadata.put(sentenceNumber, NullWritable.get());
+                metadata.put(provenanceIdText, NullWritable.get());
                 for (String prov: alignmentReader.provenance) {
                     metadata.put(new Text(prov), NullWritable.get());
                 }
-                sentenceNumberInt++;
                 sentenceText.set(sentence);
                 // handle empty alignment case
                 if (alignment == null) {
