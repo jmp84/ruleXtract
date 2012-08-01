@@ -84,11 +84,6 @@ public class FeatureCreator {
         // conf to be overwritten before being used.
         int featureIndex = 0, nextFeatureIndex = 0;
         for (String selectedFeature: selectedFeatures) {
-            if (!features.containsKey(selectedFeature)) {
-                System.err.println("ERROR: unknown mapreduce feature: "
-                        + selectedFeature);
-                System.exit(1);
-            }
             if (selectedFeature.equals(
                     "provenance_source2target_lexical_probability")
                     || selectedFeature
