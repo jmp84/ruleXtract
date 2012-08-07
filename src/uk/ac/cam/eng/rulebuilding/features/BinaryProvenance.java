@@ -56,7 +56,7 @@ public class BinaryProvenance implements Feature {
     @Override
     public Map<Integer, Number> valueAsciiOovDeletion(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        return new HashMap<Integer, Number>();
+        return new HashMap<>();
     }
 
     /*
@@ -68,7 +68,7 @@ public class BinaryProvenance implements Feature {
     @Override
     public Map<Integer, Number> valueGlue(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        return new HashMap<Integer, Number>();
+        return new HashMap<>();
     }
 
     /*

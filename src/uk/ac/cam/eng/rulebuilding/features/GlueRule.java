@@ -34,9 +34,6 @@ public class GlueRule implements Feature {
         if (r.isConcatenatingGlue()) {
             res.put(featureIndex, 1);
         }
-        else {
-            res.put(featureIndex, 0);
-        }
         return res;
     }
 
@@ -49,10 +46,7 @@ public class GlueRule implements Feature {
     @Override
     public Map<Integer, Number> valueAsciiOovDeletion(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName, 0);
-        res.put(featureIndex, 0);
-        return res;
+        return new HashMap<>();
     }
 
     /*
@@ -67,9 +61,6 @@ public class GlueRule implements Feature {
         int featureIndex = conf.getInt(featureName, 0);
         if (r.isConcatenatingGlue()) {
             res.put(featureIndex, 1);
-        }
-        else {
-            res.put(featureIndex, 0);
         }
         return res;
     }

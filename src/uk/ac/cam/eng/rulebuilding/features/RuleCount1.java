@@ -34,15 +34,15 @@ public class RuleCount1 implements Feature {
         IntWritable mapreduceFeatureIndex =
                 new IntWritable(conf.getInt(
                         "source2target_probability-mapreduce", 0) + 1);
-        int count =
-                ((IntWritable) mapReduceFeatures.get(mapreduceFeatureIndex))
-                        .get();
+        int count = 0;
+        if (mapReduceFeatures.containsKey(mapreduceFeatureIndex)) {
+            count =
+                    ((IntWritable) mapReduceFeatures.get(mapreduceFeatureIndex))
+                            .get();
+        }
         int featureIndex = conf.getInt(featureName, 0);
         if (count == 1) {
             res.put(featureIndex, 1);
-        }
-        else {
-            res.put(featureIndex, 0);
         }
         return res;
     }
@@ -56,10 +56,7 @@ public class RuleCount1 implements Feature {
     @Override
     public Map<Integer, Number> valueAsciiOovDeletion(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName, 0);
-        res.put(featureIndex, 0);
-        return res;
+        return new HashMap<>();
     }
 
     /*
@@ -70,10 +67,7 @@ public class RuleCount1 implements Feature {
     @Override
     public Map<Integer, Number> valueGlue(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName, 0);
-        res.put(featureIndex, 0);
-        return res;
+        return new HashMap<>();
     }
 
     /*

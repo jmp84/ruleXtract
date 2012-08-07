@@ -48,10 +48,7 @@ public class UnalignedSourceWords implements Feature {
      */
     public Map<Integer, Number> valueAsciiOovDeletion(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName, 0);
-        res.put(featureIndex, 0);
-        return res;
+        return new HashMap<>();
     }
 
     /*
@@ -62,10 +59,7 @@ public class UnalignedSourceWords implements Feature {
     @Override
     public Map<Integer, Number> valueGlue(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName, 0);
-        res.put(featureIndex, 0);
-        return res;
+        return new HashMap<>();
     }
 
     /*

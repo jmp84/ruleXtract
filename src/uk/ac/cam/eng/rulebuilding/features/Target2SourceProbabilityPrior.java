@@ -36,9 +36,11 @@ public class Target2SourceProbabilityPrior implements Feature {
         Map<Integer, Number> res = new HashMap<>();
         IntWritable mapreduceFeatureIndex =
                 new IntWritable(conf.getInt(featureName + "-mapreduce", 0));
-        double t2s =
-                ((DoubleWritable) mapReduceFeatures.get(mapreduceFeatureIndex))
-                        .get();
+        double t2s = 0;
+        if (mapReduceFeatures.containsKey(mapreduceFeatureIndex)) {
+            t2s = ((DoubleWritable) mapReduceFeatures
+                    .get(mapreduceFeatureIndex)).get();
+        }
         int featureIndex = conf.getInt(featureName, 0);
         res.put(featureIndex, t2s == 0 ? defaultT2s : Math.log(t2s));
         return res;

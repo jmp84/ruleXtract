@@ -28,10 +28,7 @@ public class InsertScale implements Feature {
     @Override
     public Map<Integer, Number> value(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName, 0);
-        res.put(featureIndex, 0);
-        return res;
+        return new HashMap<>();
     }
 
     /*
@@ -53,9 +50,6 @@ public class InsertScale implements Feature {
         else if (r.getTargetWords().size() == 0) {
             res.put(featureIndex, -1);
         }
-        else {
-            res.put(featureIndex, 0);
-        }
         return res;
     }
 
@@ -67,10 +61,7 @@ public class InsertScale implements Feature {
     @Override
     public Map<Integer, Number> valueGlue(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName, 0);
-        res.put(featureIndex, 0);
-        return res;
+        return new HashMap<>();
     }
 
     /*

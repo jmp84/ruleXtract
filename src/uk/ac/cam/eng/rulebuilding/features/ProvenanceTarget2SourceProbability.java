@@ -65,10 +65,7 @@ public class ProvenanceTarget2SourceProbability implements Feature {
     @Override
     public Map<Integer, Number> valueAsciiOovDeletion(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName + "-" + provenance, 0);
-        res.put(featureIndex, 0);
-        return res;
+        return new HashMap<>();
     }
 
     /*
@@ -80,10 +77,7 @@ public class ProvenanceTarget2SourceProbability implements Feature {
     @Override
     public Map<Integer, Number> valueGlue(Rule r,
             SortedMapWritable mapReduceFeatures, Configuration conf) {
-        Map<Integer, Number> res = new HashMap<>();
-        int featureIndex = conf.getInt(featureName + "-" + provenance, 0);
-        res.put(featureIndex, 0);
-        return res;
+        return new HashMap<>();
     }
 
     /*
