@@ -47,13 +47,7 @@ public class ProvenanceSource2TargetProbabilityJob implements MapReduceFeature {
         // use a copy of the conf because conf reused in other features
         Configuration newconf = new Configuration(conf);
         newconf.set("provenance", provenance);
-        // this is 1.0.* syntax
-        // in the future it will be mapreduce.reduce.java.opts
-        newconf.set("mapred.reduce.child.java.opts", "-Xmx15000m");
         Job job = new Job(newconf, name + "-" + provenance);
-        // we limit the number of reducers because loading the lex models
-        // takes a bit of memory
-        job.setNumReduceTasks(3);
         job.setJarByClass(ProvenanceSource2TargetProbabilityJob.class);
         job.setMapOutputKeyClass(RuleWritable.class);
         job.setMapOutputValueClass(PairWritable.class);

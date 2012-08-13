@@ -39,7 +39,7 @@ public class ProvenanceTarget2SourceProbabilityJob implements MapReduceFeature {
     }
 
     public int getNumberOfFeatures(Configuration conf) {
-        // 2 features: probability and count
+        // 2 features: the probability and the count
         return 2;
     }
 
@@ -66,8 +66,8 @@ public class ProvenanceTarget2SourceProbabilityJob implements MapReduceFeature {
     }
 
     /**
-     * Mapper to compute source-to-target probability. Uses method 3 descried in
-     * "Fast, easy, cheap, etc." by Chris Dyer et al.
+     * Mapper to compute source-to-target probability. Uses method 3 described
+     * in "Fast, easy, cheap, etc." by Chris Dyer et al.
      */
     private static class ProvenanceTarget2SourceProbabilityMapper extends
             Mapper<RuleWritable, RuleInfoWritable, RuleWritable, PairWritable> {
@@ -111,7 +111,7 @@ public class ProvenanceTarget2SourceProbabilityJob implements MapReduceFeature {
     }
 
     /**
-     * @author jmp84 Reducer to compute target-to-source probability
+     * Reducer to compute target-to-source probability
      */
     private static class ProvenanceTarget2SourceProbabilityReducer extends
             Reducer<RuleWritable, PairWritable, RuleWritable, MapWritable> {

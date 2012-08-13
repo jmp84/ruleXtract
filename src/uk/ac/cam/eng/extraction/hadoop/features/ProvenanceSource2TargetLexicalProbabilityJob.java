@@ -48,7 +48,7 @@ public class ProvenanceSource2TargetLexicalProbabilityJob implements
         newconf.set("provenance", provenance);
         // this is 1.0.* syntax
         // in the future it will be mapreduce.reduce.java.opts
-        newconf.set("mapred.reduce.child.java.opts", "-Xmx4000m");
+        newconf.set("mapred.reduce.child.java.opts", "-Xmx15000m");
         Job job = new Job(newconf, name + "-" + provenance);
         // we limit the number of reducers because loading the lex models
         // takes a bit of memory
