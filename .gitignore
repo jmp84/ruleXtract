@@ -6,3 +6,4 @@ AwsCredentials.properties
 *.crc
 /.classpath
 input
+*.jar
