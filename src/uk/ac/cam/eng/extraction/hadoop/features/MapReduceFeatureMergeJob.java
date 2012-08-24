@@ -48,7 +48,7 @@ public class MapReduceFeatureMergeJob implements HadoopJob {
         String name = "merge";
         // add some memory
         Configuration newconf = new Configuration(conf);
-        newconf.set("mapred.reduce.child.java.opts", "-Xmx20000m");
+        newconf.set("mapred.reduce.child.java.opts", "-Xmx25000m");
         // keep sorted before dumping to hfile: either have one reduce task or
         // use a partitioner to keep output sorted
         String partitionInput = conf.get("partition");
