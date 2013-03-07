@@ -6,3 +6,14 @@ AwsCredentials.properties
 *.crc
 /.classpath
 input
+*.jar
+Rory.java
+Map2X.java
+MapReduceSortTest.java
+ReadLexicalModel.java
+ReadLexicalModel2.java
+Temp.java
+Test.java
+TestMapWritable.java
+Tree2Bracket.java
+Tree2Leaves.java
