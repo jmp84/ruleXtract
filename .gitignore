@@ -2,9 +2,7 @@ bin/
 test-output/
 doc/
 AwsCredentials.properties
-.settings/
 *.crc
-/.classpath
 input
 *.jar
 Rory.java
