@@ -4,11 +4,12 @@
 
 package uk.ac.cam.eng.rulebuilding.features;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.hadoop.io.ArrayWritable;
-import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.SortedMapWritable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 
@@ -17,6 +18,8 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
  */
 public class RuleCountGreaterThan2 implements Feature {
 
+    private final static String featureName = "rule_count_greater_than_2";
+
     /*
      * (non-Javadoc)
      * @see
@@ -24,14 +27,22 @@ public class RuleCountGreaterThan2 implements Feature {
      * .datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<>();
-        double count = ((DoubleWritable) mapReduceFeatures.get()[2]).get();
-        if (count > 2) {
-            res.add((double) 1);
+    public Map<Integer, Number> value(Rule r,
+            SortedMapWritable mapReduceFeatures, Configuration conf) {
+        Map<Integer, Number> res = new HashMap<>();
+        // the count always comes after the s2t probability
+        IntWritable mapreduceFeatureIndex =
+                new IntWritable(conf.getInt(
+                        "source2target_probability-mapreduce", 0) + 1);
+        int count = 0;
+        if (mapReduceFeatures.containsKey(mapreduceFeatureIndex)) {
+            count =
+                    ((IntWritable) mapReduceFeatures.get(mapreduceFeatureIndex))
+                            .get();
         }
-        else {
-            res.add((double) 0);
+        int featureIndex = conf.getInt(featureName, 0);
+        if (count > 2) {
+            res.put(featureIndex, 1);
         }
         return res;
     }
@@ -43,11 +54,9 @@ public class RuleCountGreaterThan2 implements Feature {
      * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public List<Double>
-            valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<>();
-        res.add((double) 0);
-        return res;
+    public Map<Integer, Number> valueAsciiOovDeletion(Rule r,
+            SortedMapWritable mapReduceFeatures, Configuration conf) {
+        return new HashMap<>();
     }
 
     /*
@@ -56,24 +65,24 @@ public class RuleCountGreaterThan2 implements Feature {
      * extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public List<Double> valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<Double>();
+    public Map<Integer, Number> valueGlue(Rule r,
+            SortedMapWritable mapReduceFeatures, Configuration conf) {
+        Map<Integer, Number> res = new HashMap<>();
+        int featureIndex = conf.getInt(featureName, 0);
         if (r.isStartSentence() || r.isEndSentence()) {
-            res.add((double) 1);
-        }
-        else {
-            res.add((double) 0);
+            res.put(featureIndex, 1);
         }
         return res;
     }
 
     /*
      * (non-Javadoc)
-     * @see uk.ac.cam.eng.rulebuilding.features.Feature#getNumberOfFeatures()
+     * @see
+     * uk.ac.cam.eng.rulebuilding.features.Feature#getNumberOfFeatures(org.apache
+     * .hadoop.conf.Configuration)
      */
     @Override
-    public int getNumberOfFeatures() {
+    public int getNumberOfFeatures(Configuration conf) {
         return 1;
     }
-
 }

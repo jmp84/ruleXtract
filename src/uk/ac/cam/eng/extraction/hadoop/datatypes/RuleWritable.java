@@ -8,11 +8,11 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
+import uk.ac.cam.eng.rulebuilding.retrieval.RulePattern;
 
 /**
  * @author jmp84 This class represents a writable rule, it's essentially the
@@ -21,13 +21,9 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
  */
 public class RuleWritable implements WritableComparable<RuleWritable> {
 
-    private Text leftHandSide;
-    private Text source;
-    private Text target;
-
-    // additional info for features
-    private DoubleWritable numberUnalignedSourceWords;
-    private DoubleWritable numberUnalignedTargetWords;
+    protected Text leftHandSide;
+    protected Text source;
+    protected Text target;
 
     public Text getLeftHandSide() {
         return leftHandSide;
@@ -71,44 +67,10 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         this.target = target;
     }
 
-    /**
-     * @return the numberUnalignedSourceWords
-     */
-    public DoubleWritable getNumberUnalignedSourceWords() {
-        return numberUnalignedSourceWords;
-    }
-
-    /**
-     * @param numberUnalignedSourceWords
-     *            the numberUnalignedSourceWords to set
-     */
-    public void setNumberUnalignedSourceWords(
-            DoubleWritable numberUnalignedSourceWords) {
-        this.numberUnalignedSourceWords = numberUnalignedSourceWords;
-    }
-
-    /**
-     * @return the numberUnalignedTargetWords
-     */
-    public DoubleWritable getNumberUnalignedTargetWords() {
-        return numberUnalignedTargetWords;
-    }
-
-    /**
-     * @param numberUnalignedTargetWords
-     *            the numberUnalignedTargetWords to set
-     */
-    public void setNumberUnalignedTargetWords(
-            DoubleWritable numberUnalignedTargetWords) {
-        this.numberUnalignedTargetWords = numberUnalignedTargetWords;
-    }
-
     public RuleWritable() {
         leftHandSide = new Text();
         source = new Text();
         target = new Text();
-        numberUnalignedSourceWords = new DoubleWritable();
-        numberUnalignedTargetWords = new DoubleWritable();
     }
 
     public RuleWritable(Rule r) {
@@ -121,76 +83,164 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         else {
             target = new Text();
         }
-        numberUnalignedSourceWords =
-                new DoubleWritable(r.getNumberUnalignedSourceWords());
-        numberUnalignedTargetWords =
-                new DoubleWritable(r.getNumberUnalignedTargetWords());
     }
 
+    /**
+     * Builds a RuleWritable from a source and a target. Needs to do a deep copy
+     * for use in the source-to-target and target-to-source reducers
+     * 
+     * @param source
+     * @param target
+     */
     public RuleWritable(RuleWritable source, RuleWritable target) {
-        leftHandSide = source.leftHandSide;
-        this.source = source.source;
-        this.target = target.target;
-        this.numberUnalignedSourceWords = target.numberUnalignedSourceWords;
-        this.numberUnalignedTargetWords = target.numberUnalignedTargetWords;
+        leftHandSide = new Text(source.leftHandSide);
+        this.source = new Text(source.source);
+        this.target = new Text(target.target);
     }
 
-    public static RuleWritable makeSourceMarginal(
-            Rule r, boolean source2target) {
+    public static RuleWritable makeSourceMarginal(Rule r) {
         String[] parts = r.toString().split("\\s+");
         RuleWritable res = new RuleWritable();
         res.leftHandSide = new Text(parts[0]);
         res.source = new Text(parts[1]);
         res.target = new Text();
-        if (!source2target) {
-            res.numberUnalignedSourceWords =
-                    new DoubleWritable(r.getNumberUnalignedSourceWords());
-            res.numberUnalignedTargetWords =
-                    new DoubleWritable(r.getNumberUnalignedTargetWords());
-        }
         return res;
     }
 
-    public static RuleWritable makeSourceMarginal(
-            RuleWritable r, boolean source2target) {
-        RuleWritable res = new RuleWritable();
-        res.leftHandSide = new Text(r.leftHandSide);
-        res.source = new Text(r.source);
-        res.target = new Text();
-        if (!source2target) {
-            res.numberUnalignedSourceWords = r.numberUnalignedSourceWords;
-            res.numberUnalignedTargetWords = r.numberUnalignedTargetWords;
-        }
-        return res;
+    /**
+     * Keep only the source information. In case of a rule with two
+     * nonterminals, use the order X1...X2 in the source
+     * 
+     * @param r
+     */
+    public void makeSourceMarginal(RuleWritable r) {
+        makeSourceMarginal(r, true);
     }
 
-    public static RuleWritable makeTargetMarginal(
-            Rule r, boolean source2target) {
+    public void makeSourceMarginal(RuleWritable r, boolean source2target) {
+        this.leftHandSide = r.leftHandSide;
+        if (source2target) {
+            this.source = r.source;
+        }
+        else {
+            Rule rule = new Rule(r);
+            if (rule.isSwapping()) {
+                RuleWritable ruleInvertOnTheSource =
+                        new RuleWritable(rule.invertNonTerminals());
+                this.source = ruleInvertOnTheSource.source;
+            }
+            else {
+                this.source = r.source;
+            }
+        }
+        this.target = new Text();
+    }
+
+    public static RuleWritable makeTargetMarginal(Rule r) {
         String[] parts = r.toString().split("\\s+");
         RuleWritable res = new RuleWritable();
         res.leftHandSide = new Text(parts[0]);
         res.target = new Text(parts[2]);
         res.source = new Text();
-        if (source2target) {
-            res.numberUnalignedSourceWords =
-                    new DoubleWritable(r.getNumberUnalignedSourceWords());
-            res.numberUnalignedTargetWords =
-                    new DoubleWritable(r.getNumberUnalignedTargetWords());
-        }
         return res;
     }
 
-    public static RuleWritable makeTargetMarginal(
-            RuleWritable r, boolean source2target) {
-        RuleWritable res = new RuleWritable();
-        res.leftHandSide = new Text(r.leftHandSide);
-        res.source = new Text();
-        res.target = new Text(r.target);
+    public void makeTargetMarginal(RuleWritable r) {
+        makeTargetMarginal(r, true);
+    }
+
+    public void makeTargetMarginal(RuleWritable r, boolean source2target) {
+        this.leftHandSide = r.leftHandSide;
+        this.source = new Text();
         if (source2target) {
-            res.numberUnalignedSourceWords = r.numberUnalignedSourceWords;
-            res.numberUnalignedTargetWords = r.numberUnalignedTargetWords;
+            this.target = r.target;
         }
+        else {
+            Rule rule = new Rule(r);
+            if (rule.isSwapping()) {
+                RuleWritable ruleInvertOnTheSource =
+                        new RuleWritable(rule.invertNonTerminals());
+                this.target = ruleInvertOnTheSource.target;
+            }
+            else {
+                this.target = r.target;
+            }
+        }
+    }
+
+    /**
+     * Used for the pattern probability feature.
+     * 
+     * @return the pattern for this rule
+     */
+    public RuleWritable getPattern() {
+        // TODO i don't like it
+        // create new object to avoid problems (e.g. with the source pattern
+        // partitioner)
+        RuleWritable res = new RuleWritable();
+        if (isPattern()) {
+            res.leftHandSide = new Text();
+            res.source = new Text(this.source);
+            res.target = new Text(this.target);
+            return res;
+        }
+        Rule rule = new Rule(this);
+        RulePattern rulePattern = RulePattern.getPattern(rule);
+        String[] parts = rulePattern.toString().split("\\s+");
+        if (parts.length != 2) {
+            System.err.println("Rule pattern malformed: "
+                    + rulePattern.toString());
+            System.exit(1);
+        }
+        res.leftHandSide = new Text();
+        res.source = new Text(parts[0]);
+        res.target = new Text(parts[1]);
         return res;
+    }
+
+    /**
+     * Used for the pattern probability feature.
+     * 
+     * @return the source pattern for this rule
+     */
+    public RuleWritable getSourcePattern() {
+        RuleWritable res = getPattern();
+        res.target.clear();
+        return res;
+    }
+
+    /**
+     * Used for the pattern probability feature.
+     * 
+     * @return the target pattern for this rule
+     */
+    public RuleWritable getTargetPattern() {
+        RuleWritable res = getPattern();
+        res.source.clear();
+        return res;
+    }
+
+    /**
+     * Used for the pattern probability feature.
+     * 
+     * @return true if this rule is actually a pattern
+     */
+    public boolean isPattern() {
+        return leftHandSide.toString().isEmpty();
+    }
+
+    /**
+     * @return true if the target side is empty
+     */
+    public boolean isTargetEmpty() {
+        return target.toString().isEmpty();
+    }
+
+    /**
+     * @return true is the source side is empty
+     */
+    public boolean isSourceEmpty() {
+        return source.toString().isEmpty();
     }
 
     public String toString() {
@@ -237,10 +287,21 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         return "";
     }
 
-    // for the equals, compareTo, hashcode, readFields and write, methods,
-    // we don't use the numberUnalignedSourceWords and
-    // numberUnalignedTargetWords fields because in a hash map we group together
-    // rules that come from different alignments
+    /**
+     * @return The length of the source side of the rule
+     */
+    public int getSourceLength() {
+        String[] parts = source.toString().split("_");
+        return parts.length;
+    }
+
+    /**
+     * @return The length of the target side of the rule
+     */
+    public int getTargetLength() {
+        String[] parts = target.toString().split("_");
+        return parts.length;
+    }
 
     /*
      * (non-Javadoc)
@@ -251,8 +312,6 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         leftHandSide.readFields(arg0);
         source.readFields(arg0);
         target.readFields(arg0);
-        numberUnalignedSourceWords.readFields(arg0);
-        numberUnalignedTargetWords.readFields(arg0);
     }
 
     /*
@@ -264,8 +323,6 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         leftHandSide.write(arg0);
         source.write(arg0);
         target.write(arg0);
-        numberUnalignedSourceWords.write(arg0);
-        numberUnalignedTargetWords.write(arg0);
     }
 
     /*
@@ -274,25 +331,6 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
      */
     @Override
     public int compareTo(RuleWritable arg0) {
-        int cmp = leftHandSide.compareTo(arg0.leftHandSide);
-        if (cmp != 0)
-            return cmp;
-        cmp = source.compareTo(arg0.source);
-        if (cmp != 0)
-            return cmp;
-        cmp = target.compareTo(arg0.target);
-        if (cmp != 0)
-            return cmp;
-        cmp =
-                numberUnalignedSourceWords
-                        .compareTo(arg0.numberUnalignedSourceWords);
-        if (cmp != 0)
-            return cmp;
-        return numberUnalignedTargetWords
-                .compareTo(arg0.numberUnalignedTargetWords);
-    }
-
-    public int compareYield(RuleWritable arg0) {
         int cmp = leftHandSide.compareTo(arg0.leftHandSide);
         if (cmp != 0)
             return cmp;
@@ -314,16 +352,6 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
                 prime
                         * result
                         + ((leftHandSide == null) ? 0 : leftHandSide.hashCode());
-        result =
-                prime
-                        * result
-                        + ((numberUnalignedSourceWords == null) ? 0
-                                : numberUnalignedSourceWords.hashCode());
-        result =
-                prime
-                        * result
-                        + ((numberUnalignedTargetWords == null) ? 0
-                                : numberUnalignedTargetWords.hashCode());
         result = prime * result + ((source == null) ? 0 : source.hashCode());
         result = prime * result + ((target == null) ? 0 : target.hashCode());
         return result;
@@ -353,24 +381,6 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         else if (!leftHandSide.equals(other.leftHandSide)) {
             return false;
         }
-        if (numberUnalignedSourceWords == null) {
-            if (other.numberUnalignedSourceWords != null) {
-                return false;
-            }
-        }
-        else if (!numberUnalignedSourceWords
-                .equals(other.numberUnalignedSourceWords)) {
-            return false;
-        }
-        if (numberUnalignedTargetWords == null) {
-            if (other.numberUnalignedTargetWords != null) {
-                return false;
-            }
-        }
-        else if (!numberUnalignedTargetWords
-                .equals(other.numberUnalignedTargetWords)) {
-            return false;
-        }
         if (source == null) {
             if (other.source != null) {
                 return false;
@@ -389,4 +399,5 @@ public class RuleWritable implements WritableComparable<RuleWritable> {
         }
         return true;
     }
+
 }

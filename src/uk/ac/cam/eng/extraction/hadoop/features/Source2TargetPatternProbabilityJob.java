@@ -1,0 +1,180 @@
+/**
+ * 
+ */
+
+package uk.ac.cam.eng.extraction.hadoop.features;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.MapWritable;
+import org.apache.hadoop.io.WritableUtils;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
+
+/**
+ * @author jmp84 MapReduce job to compute source-to-target pattern probability
+ */
+public class Source2TargetPatternProbabilityJob implements MapReduceFeature {
+
+    private final static String name = "source2target_pattern_probability";
+
+    public int getNumberOfFeatures(Configuration conf) {
+        return 1;
+    }
+
+    public Job getJob(Configuration conf) throws IOException {
+        Job job = new Job(conf, name);
+        job.setJarByClass(Source2TargetPatternProbabilityJob.class);
+        job.setMapOutputKeyClass(RuleWritable.class);
+        job.setMapOutputValueClass(IntWritable.class);
+        job.setOutputKeyClass(RuleWritable.class);
+        job.setOutputValueClass(MapWritable.class);
+        job.setMapperClass(Source2TargetPatternProbabilityMapper.class);
+        job.setReducerClass(Source2TargetPatternProbabilityReducer.class);
+        job.setPartitionerClass(SourcePatternPartitioner.class);
+        job.setGroupingComparatorClass(SourcePatternGroupingComparator.class);
+        job.setSortComparatorClass(SourcePatternSortComparator.class);
+        job.setInputFormatClass(SequenceFileInputFormat.class);
+        job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        FileInputFormat.setInputPaths(job, conf.get("work_dir") + "/rules");
+        FileOutputFormat.setOutputPath(job, new Path(conf.get("work_dir") + "/"
+                + name));
+        FileOutputFormat.setCompressOutput(job, true);
+        return job;
+    }
+
+    /**
+     * Mapper to compute the source-to-target pattern probability. Emits the
+     * rule with a count of one, the pattern with a count of one and the source
+     * pattern with a count of one. The partitioner, the sorting comparator and
+     * the grouping comparator are modified to have all rules with the same
+     * source pattern processed by the same reducer with the source pattern
+     * being the smallest element followed by pattern, followed by the rules.
+     */
+    private static class Source2TargetPatternProbabilityMapper extends
+            Mapper<RuleWritable, RuleInfoWritable, RuleWritable, IntWritable> {
+
+        private final static IntWritable one = new IntWritable(1);
+
+        /*
+         * (non-Javadoc)
+         * @see org.apache.hadoop.mapreduce.Mapper#map(java.lang.Object,
+         * java.lang.Object, org.apache.hadoop.mapreduce.Mapper.Context)
+         */
+        @Override
+        protected void map(RuleWritable key, RuleInfoWritable value,
+                Context context) throws IOException, InterruptedException {
+            context.write(key, one);
+            RuleWritable pattern = key.getPattern();
+            context.write(pattern, one);
+            RuleWritable sourcePattern = key.getSourcePattern();
+            context.write(sourcePattern, one);
+        }
+
+        /*
+         * (non-Javadoc)
+         * @see
+         * org.apache.hadoop.mapreduce.Mapper#run(org.apache.hadoop.mapreduce
+         * .Mapper.Context)
+         */
+        @Override
+        public void run(Context context)
+                throws IOException, InterruptedException {
+            setup(context);
+            while (context.nextKeyValue()) {
+                map(context.getCurrentKey(), context.getCurrentValue(), context);
+            }
+            cleanup(context);
+        }
+
+    }
+
+    /**
+     * @author jmp84
+     */
+    private static class Source2TargetPatternProbabilityReducer extends
+            Reducer<RuleWritable, IntWritable, RuleWritable, MapWritable> {
+
+        /**
+         * Starting index for this mapreduce feature. This is given by a config
+         * and set in the setup method.
+         */
+        private static int featureStartIndex;
+
+        // static writables to avoid memory consumption
+        private static MapWritable features = new MapWritable();
+        private static DoubleWritable probability = new DoubleWritable();
+        private static IntWritable featureIndex = new IntWritable();
+
+        // TODO static ?
+        private int sourcePatternCount;
+        private int patternCount;
+        private Map<RuleWritable, Integer> patternsCount = new HashMap<>();
+
+        /*
+         * (non-Javadoc)
+         * @see
+         * org.apache.hadoop.mapreduce.Reducer#setup(org.apache.hadoop.mapreduce
+         * .Reducer.Context)
+         */
+        @Override
+        protected void setup(Context context) {
+            Configuration conf = context.getConfiguration();
+            featureStartIndex = conf.getInt(name, 0);
+            featureIndex.set(featureStartIndex);
+        }
+
+        /*
+         * (non-Javadoc)
+         * @see org.apache.hadoop.mapreduce.Reducer#reduce(java.lang.Object,
+         * java.lang.Iterable, org.apache.hadoop.mapreduce.Reducer.Context)
+         */
+        @Override
+        protected void reduce(RuleWritable key, Iterable<IntWritable> values,
+                Context context) throws IOException, InterruptedException {
+            RuleWritable debug = key;
+            if (key.isPattern() && key.isTargetEmpty()) {
+                sourcePatternCount = 0;
+                for (IntWritable value: values) {
+                    sourcePatternCount += value.get();
+                }
+            }
+            else if (key.isPattern()) {
+                patternCount = 0;
+                for (IntWritable value: values) {
+                    patternCount++;
+                }
+                patternsCount.put(
+                        WritableUtils.clone(key, context.getConfiguration()),
+                        patternCount);
+            }
+            else {
+                RuleWritable pattern = key.getPattern();
+                if (!patternsCount.containsKey(pattern)) {
+                    System.err.println("ERROR: the pattern for this rule "
+                            + key.toString() + " should have been found: "
+                            + pattern.toString());
+                }
+                // probability.set((double) patternsCount.get(pattern)
+                // / sourcePatternCount);
+                probability.set(0.0);
+                features.put(featureIndex, probability);
+                context.write(key, features);
+            }
+        }
+    }
+}

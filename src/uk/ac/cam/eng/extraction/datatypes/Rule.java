@@ -600,22 +600,25 @@ public final class Rule { // final because immutable class
     }
 
     public boolean isSwapping() {
-        // if (nbNonTerminal < 2) {
-        // return false;
-        // }
-        // TODO check this, must be wrong
+        // check if the rule is swapping because we have X2...X1 in the source
         for (int sourceElement: source) {
             if (sourceElement < 0) {
                 if (sourceElement == X2) {
                     return true;
                 }
-                return false;
+                break;
+            }
+        }
+        // check if the rule is swapping because we have X2...X1 in the target
+        for (int targetElement: target) {
+            if (targetElement < 0) {
+                if (targetElement == X2) {
+                    return true;
+                }
+                break;
             }
         }
         return false;
-        // TODO logging
-        // throw new Error("Error: method isSwapping, cannot be here: " +
-        // source);
     }
 
     public Rule invertNonTerminals() {
@@ -644,6 +647,10 @@ public final class Rule { // final because immutable class
             }
         }
         return new Rule(src, trg);
+    }
+
+    public int getLeftHandSide() {
+        return leftHandSide;
     }
 
     public List<Integer> getSource() {
@@ -678,20 +685,20 @@ public final class Rule { // final because immutable class
     }
 
     /**
-	 * @return the numberUnalignedSourceWords
-	 */
-	public int getNumberUnalignedSourceWords() {
-		return numberUnalignedSourceWords;
-	}
+     * @return the numberUnalignedSourceWords
+     */
+    public int getNumberUnalignedSourceWords() {
+        return numberUnalignedSourceWords;
+    }
 
-	/**
-	 * @return the numberUnalignedTargetWords
-	 */
-	public int getNumberUnalignedTargetWords() {
-		return numberUnalignedTargetWords;
-	}
+    /**
+     * @return the numberUnalignedTargetWords
+     */
+    public int getNumberUnalignedTargetWords() {
+        return numberUnalignedTargetWords;
+    }
 
-	/*
+    /*
      * (non-Javadoc)
      * @see java.lang.Object#hashCode()
      */

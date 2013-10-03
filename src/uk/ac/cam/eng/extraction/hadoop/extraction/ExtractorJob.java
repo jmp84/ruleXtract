@@ -1,89 +1,84 @@
 
 package uk.ac.cam.eng.extraction.hadoop.extraction;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.mapreduce.Cluster;
+import org.apache.hadoop.io.MapWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
-import org.apache.hadoop.util.Tool;
-import org.apache.hadoop.util.ToolRunner;
 
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable;
-import uk.ac.cam.eng.extraction.hadoop.datatypes.PairWritable3ArrayWritable;
+import uk.ac.cam.eng.extraction.RuleExtractor;
+import uk.ac.cam.eng.extraction.datatypes.Alignment;
+import uk.ac.cam.eng.extraction.datatypes.Rule;
+import uk.ac.cam.eng.extraction.datatypes.SentencePair;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleInfoWritable;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.RuleWritable;
+import uk.ac.cam.eng.extraction.hadoop.datatypes.TextArrayWritable;
 
-public class ExtractorJob extends Configured implements Tool {
+public class ExtractorJob implements HadoopJob {
 
-    // TODO consider to do the following pipeline: use only a mapper
-    // for extraction and then run different reducers for each feature.
-
-    public int run(String[] args) throws Exception {
-        String configFile = args[0];
-        Properties p = new Properties();
-        try {
-            p.load(new FileInputStream(configFile));
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-
-        // Configuration conf = new Configuration();
-        Configuration conf = getConf();
-        for (String prop: p.stringPropertyNames()) {
-            conf.set(prop, p.getProperty(prop));
-        }
-        Job job = Job.getInstance(new Cluster(conf), conf);
+    public Job getJob(Configuration conf) throws IOException {
+        Job job = new Job(conf, "rules");
         job.setJarByClass(ExtractorJob.class);
-        job.setJobName("Rule Extraction");
-
-        // needs to specify the map output key (respectively value) class
-        // because
-        // it is different than the final output key (respectively value) class
-        // may not be needed for key
-        // job.setMapOutputKeyClass(RuleWritable.class);
-        job.setMapOutputKeyClass(BytesWritable.class);
-        job.setMapOutputValueClass(PairWritable.class);
-
-        // job.setOutputKeyClass(RuleWritable.class);
-        job.setOutputKeyClass(BytesWritable.class);
-        // job.setOutputValueClass(DoubleWritable.class);
-        job.setOutputValueClass(PairWritable3ArrayWritable.class);
-        // job.setOutputValueClass(ArrayWritable.class);
-        // job.setOutputValueClass(PairWritable.class);
-
-        job.setMapperClass(ExtractorMapperMethod3.class);
-        // TODO fix the Combiner
-        // job.setCombinerClass(ExtractorCombinerMethod3.class);
-        job.setReducerClass(ExtractorReducerMethod3.class);
-
+        job.setMapOutputKeyClass(RuleWritable.class);
+        job.setMapOutputValueClass(RuleInfoWritable.class);
+        job.setOutputKeyClass(RuleWritable.class);
+        job.setOutputValueClass(RuleInfoWritable.class);
+        job.setMapperClass(ExtractorMapper.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
-        // job.setOutputFormatClass(TextOutputFormat.class);
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
-
-        FileInputFormat.setInputPaths(job, conf.get("inputPaths"));
-        FileOutputFormat.setOutputPath(job, new Path(conf.get("outputPath")));
+        // no reducer
+        job.setNumReduceTasks(0);
+        FileInputFormat.setInputPaths(
+                job, conf.get("work_dir") + "/training_data");
+        FileOutputFormat.setOutputPath(
+                job, new Path(conf.get("work_dir") + "/rules"));
         FileOutputFormat.setCompressOutput(job, true);
-
-        boolean success = job.waitForCompletion(true);
-        return success ? 0 : 1;
+        return job;
     }
 
-    public static void main(String[] args) throws Exception {
-        if (args.length != 1) {
-            System.err.println("Usage args: configFile");
+    /**
+     * Mapper for rule extraction. Extracts the rules and writes the rule and
+     * additional info (unaligned words, etc.). We separate the rule from its
+     * additional info to be flexible and avoid equality problems whenever we
+     * add more info to the rule. The output will be the input to mapreduce
+     * features.
+     */
+    private static class ExtractorMapper
+            extends
+            Mapper<MapWritable, TextArrayWritable, RuleWritable, RuleInfoWritable> {
+
+        /*
+         * (non-Javadoc)
+         * @see org.apache.hadoop.mapreduce.Mapper#map(java.lang.Object,
+         * java.lang.Object, org.apache.hadoop.mapreduce.Mapper.Context)
+         */
+        @Override
+        protected void
+                map(MapWritable key, TextArrayWritable value, Context context)
+                        throws IOException, InterruptedException {
+            Configuration conf = context.getConfiguration();
+            String sentenceAlign = ((Text) value.get()[0]).toString();
+            String wordAlign = ((Text) value.get()[1]).toString();
+            boolean side1source = conf.getBoolean("side1source", false);
+            SentencePair sp = new SentencePair(sentenceAlign, side1source);
+            Alignment a = new Alignment(wordAlign, sp, side1source);
+            RuleExtractor re = new RuleExtractor(conf);
+            for (Rule r: re.extract(a, sp)) {
+                // TODO replace with static objects ?
+                RuleWritable rw = new RuleWritable(r);
+                RuleInfoWritable riw = new RuleInfoWritable(r);
+                // the key is the set of provenances of the instance
+                riw.setProvenance(key);
+                context.write(rw, riw);
+            }
         }
-        int res = ToolRunner.run(new ExtractorJob(), args);
-        System.exit(res);
     }
-
 }

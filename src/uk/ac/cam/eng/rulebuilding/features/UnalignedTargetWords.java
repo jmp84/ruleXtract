@@ -4,11 +4,13 @@
 
 package uk.ac.cam.eng.rulebuilding.features;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.hadoop.io.ArrayWritable;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.SortedMapWritable;
 
 import uk.ac.cam.eng.extraction.datatypes.Rule;
 
@@ -17,6 +19,8 @@ import uk.ac.cam.eng.extraction.datatypes.Rule;
  */
 public class UnalignedTargetWords implements Feature {
 
+    private final static String featureName = "unaligned_target_words";
+
     /*
      * (non-Javadoc)
      * @see
@@ -24,9 +28,17 @@ public class UnalignedTargetWords implements Feature {
      * .datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public List<Double> value(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<>();
-        res.add(((DoubleWritable) mapReduceFeatures.get()[4]).get());
+    public Map<Integer, Number> value(Rule r,
+            SortedMapWritable mapReduceFeatures, Configuration conf) {
+        Map<Integer, Number> res = new HashMap<>();
+        // the mapreduce feature unaligned_words has 2 features, the first is
+        // unaligned_source_words and the second is unaligned_target_words
+        IntWritable mapreduceFeatureIndex =
+                new IntWritable(conf.getInt("unaligned_words-mapreduce", 0) + 1);
+        int featureIndex = conf.getInt(featureName, 0);
+        res.put(featureIndex,
+                ((DoubleWritable) mapReduceFeatures.get(mapreduceFeatureIndex))
+                        .get());
         return res;
     }
 
@@ -37,11 +49,9 @@ public class UnalignedTargetWords implements Feature {
      * ac.cam.eng.extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public List<Double>
-            valueAsciiOovDeletion(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<Double>();
-        res.add((double) 0);
-        return res;
+    public Map<Integer, Number> valueAsciiOovDeletion(Rule r,
+            SortedMapWritable mapReduceFeatures, Configuration conf) {
+        return new HashMap<>();
     }
 
     /*
@@ -50,18 +60,19 @@ public class UnalignedTargetWords implements Feature {
      * extraction.datatypes.Rule, org.apache.hadoop.io.ArrayWritable)
      */
     @Override
-    public List<Double> valueGlue(Rule r, ArrayWritable mapReduceFeatures) {
-        List<Double> res = new ArrayList<Double>();
-        res.add((double) 0);
-        return res;
+    public Map<Integer, Number> valueGlue(Rule r,
+            SortedMapWritable mapReduceFeatures, Configuration conf) {
+        return new HashMap<>();
     }
 
     /*
      * (non-Javadoc)
-     * @see uk.ac.cam.eng.rulebuilding.features.Feature#getNumberOfFeatures()
+     * @see
+     * uk.ac.cam.eng.rulebuilding.features.Feature#getNumberOfFeatures(org.apache
+     * .hadoop.conf.Configuration)
      */
     @Override
-    public int getNumberOfFeatures() {
+    public int getNumberOfFeatures(Configuration conf) {
         return 1;
     }
 }
